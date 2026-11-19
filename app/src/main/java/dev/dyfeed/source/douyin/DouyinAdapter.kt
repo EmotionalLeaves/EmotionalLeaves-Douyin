@@ -198,6 +198,19 @@ class DouyinAdapter @Inject constructor(
         }
     }
 
+    /**
+     * One line on how Douyin is answering right now, for the health test and bug reports:
+     * the signed feed request's status, size and first bytes, then the backup path.
+     */
+    suspend fun probe(): String {
+        val r = web.get("/aweme/v1/web/tab/feed/", mapOf("count" to "10", "refresh_index" to "1", "video_type_select" to "1", "module_id" to "3003101"))
+        val head = r.body.take(160).replace('\n', ' ')
+        val parsed = runCatching { items(json.parseToJsonElement(r.body)).size }.getOrNull()
+        val harvested = if (parsed == null || parsed == 0) runCatching { web.harvest(20_000).size }.getOrDefault(-1) else null
+        return "signedIn=${web.signedIn()} feed=${r.status} ${r.body.length}B items=$parsed" +
+            (harvested?.let { " pageOwnAnswers=$it" } ?: "") + " head=$head"
+    }
+
     // ── internals ──
 
     private suspend fun call(path: String, params: Map<String, String>, searching: Boolean = false): JsonElement {

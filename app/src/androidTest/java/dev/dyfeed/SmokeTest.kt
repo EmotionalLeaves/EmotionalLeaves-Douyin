@@ -178,7 +178,7 @@ class SmokeTest {
         waitFor(timeoutMs = 30_000, what = "feed tab") { exists("For You") }
         tap("Search")
         waitFor(timeoutMs = 30_000, what = "search screen") { exists("Popular") }
-        tap("anal")
+        tap("美食 · food")
         // Results stream in as sources answer. On a slow test machine every source can miss its
         // deadline; that's a finished search with nothing found, not a failure of the app.
         waitFor(timeoutMs = 120_000, what = "search to return results or finish") {
@@ -283,8 +283,8 @@ class SmokeTest {
                 rule.onAllNodes(hasText("Search every site"), useUnmergedTree = true)[0].performScrollTo()
             }
             // The browse card may be below the fold (the Spotlight sits on top): scroll to it first.
-            runCatching { rule.onAllNodes(hasText("anal"), useUnmergedTree = true)[0].performScrollTo(); Thread.sleep(400) }
-            tap("anal")
+            runCatching { rule.onAllNodes(hasText("美食"), useUnmergedTree = true)[0].performScrollTo(); Thread.sleep(400) }
+            tap("美食")
             waitFor(timeoutMs = 60_000, what = "results") { exists("Play all") || !exists("still searching", substring = true) }
             Thread.sleep(2_000)
             shot("03_results")
@@ -311,7 +311,7 @@ class SmokeTest {
             }
             // A few saved images, so the Saved grid (count, Play all, kept badges) is in the shot.
             val savedForShot = runBlocking {
-                rule.activity.searchRepository.search("cosplay").toList().lastOrNull()?.items.orEmpty()
+                rule.activity.searchRepository.search("美食").toList().lastOrNull()?.items.orEmpty()
                     .filter { it.type == dev.dyfeed.domain.model.MediaType.IMAGE && !it.isGallery }.take(5)
             }
             runBlocking { savedForShot.forEach { rule.activity.library.add(dev.dyfeed.data.repo.LibraryKind.SAVED, it) } }
@@ -428,6 +428,18 @@ class SmokeTest {
             rule.runOnUiThread { rule.activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
             dev.dyfeed.ui.common.MaskMedia.on = false
         }
+    }
+
+    /** What Douyin answers from this network: logged for the run's summary, never fails the run. */
+    @Test
+    fun douyinAnswers() {
+        val douyin = rule.activity.sourceRegistry.byId("douyin") as dev.dyfeed.source.douyin.DouyinAdapter
+        val line = runCatching { runBlocking { douyin.probe() } }.getOrElse { "probe failed: ${it.javaClass.simpleName}: ${it.message}" }
+        android.util.Log.i("PFHEALTH", "douyin probe: $line")
+        val feed = runCatching { runBlocking { douyin.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)).items.size } }
+        android.util.Log.i("PFHEALTH", "douyin feed: " + feed.fold({ "$it posts" }, { "error ${it.message}" }))
+        val search = runCatching { runBlocking { douyin.search("美食", null).items.size } }
+        android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }
 
     /** A link shared into the app opens in the viewer. */

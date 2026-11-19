@@ -819,7 +819,7 @@ private fun LoadingPost(modifier: Modifier = Modifier) {
         Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Loading your feed", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
-            Text("Pulling from thousands of feeds", color = Color.White.copy(alpha = 0.45f), style = MaterialTheme.typography.bodySmall)
+            Text("Fetching Douyin's recommendations", color = Color.White.copy(alpha = 0.45f), style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -842,7 +842,7 @@ private fun FeedEmptyState(
             Text("Loading your feed", color = Color.White, style = MaterialTheme.typography.headlineSmall)
             Spacer(Modifier.height(6.dp))
             Text(
-                "Pulling from thousands of feeds",
+                "Fetching Douyin's recommendations",
                 color = Color.White.copy(alpha = 0.55f),
                 style = MaterialTheme.typography.bodyMedium,
             )

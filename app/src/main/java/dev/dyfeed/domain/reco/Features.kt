@@ -110,7 +110,7 @@ object Features {
         feature.startsWith("w:") -> "“${feature.removePrefix("w:")}” in titles"
         feature.startsWith(ORIGIN) -> "Posts from " + feature.removePrefix(ORIGIN).let { o -> if (o.startsWith("douyin:")) "@" + o.removePrefix("douyin:") else prettyOrigin(o.substringAfter(':')) }
         feature.startsWith(TYPE) -> when (feature.removePrefix(TYPE)) {
-            "video" -> "Videos"; "image" -> "Pictures"; "gif" -> "GIFs"; "comic" -> "Comics"; else -> feature
+            "video" -> "Videos"; "image" -> "Pictures"; "gif" -> "GIFs"; "comic" -> "Photo posts"; else -> feature
         }
         feature.startsWith(LENGTH) -> when (feature.removePrefix(LENGTH)) {
             "short" -> "Short clips (under a minute)"; "medium" -> "Videos of 1–8 minutes"; else -> "Long videos (8 minutes and up)"

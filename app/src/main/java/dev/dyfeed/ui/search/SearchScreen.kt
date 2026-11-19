@@ -119,10 +119,7 @@ enum class SortOrder(val label: String) { BEST("Best match"), LONGEST("Longest f
 enum class TypeFilter(val label: String, val types: Set<MediaType>) {
     ALL("All", emptySet()),
     VIDEOS("Videos", setOf(MediaType.VIDEO, MediaType.EMBED)),
-    IMAGES("Images", setOf(MediaType.IMAGE)),
-    GIFS("GIFs", setOf(MediaType.GIF)),
-    /** Multi-page posts: comics, doujinshi, photo sets. */
-    COMICS("Comics", setOf(MediaType.IMAGE)),
+    IMAGES("Photo posts", setOf(MediaType.IMAGE)),
 }
 
 data class SearchFilters(
@@ -141,7 +138,6 @@ data class SearchFilters(
         if (sources.isNotEmpty() && item.sourceId !in sources) return false
         if (type.types.isNotEmpty() && item.type !in type.types) return false
         // Images means single pictures; Comics means the multi-page ones.
-        if (type == TypeFilter.COMICS && !item.isGallery) return false
         if (type == TypeFilter.IMAGES && item.isGallery) return false
         val range = duration.range ?: return true
         val d = item.durationSec ?: return false
@@ -448,7 +444,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
             TextField(
                 value = ui.query,
                 onValueChange = vm::setQuery,
-                placeholder = { Text("Search every site", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
+                placeholder = { Text("Search Douyin · 搜索", maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) },
                 singleLine = true,
                 leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
                 trailingIcon = {
@@ -950,7 +946,7 @@ private fun ContinueCard(item: MediaItem, onClick: () -> Unit) {
 @Composable
 private fun TopicChip(text: String, highlighted: Boolean = false, onClick: () -> Unit) {
     Text(
-        text,
+        dev.dyfeed.data.settings.SourceCatalog.label(text),
         style = MaterialTheme.typography.labelLarge,
         color = if (highlighted) Color.White else Color.White.copy(alpha = 0.88f),
         maxLines = 1,

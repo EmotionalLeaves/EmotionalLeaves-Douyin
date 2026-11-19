@@ -177,7 +177,8 @@ jobs:
           done
           echo "::notice title=results::$n result files; connected.log $(wc -l < connected.log 2>/dev/null) lines; health.txt $(wc -l < health.txt 2>/dev/null) lines"
           grep -E "FAILED|There were failing|INSTALL_FAILED|Process crashed|Test run failed|Exception:|AssertionError" connected.log 2>/dev/null | head -6 | cut -c1-300 | sed 's/^/::error title=runner::/'
-          grep -iE "douyin|posts shown|search|For You|shared link|FATAL" health.txt 2>/dev/null | head -9 | cut -c1-300 | sed 's/^/::warning title=health::/'
+          grep -E "douyin (probe|feed|search)" health.txt 2>/dev/null | head -4 | cut -c1-400 | sed 's/^/::warning title=douyin::/'
+          grep -iE "posts shown|For You|shared link|FATAL" health.txt 2>/dev/null | head -5 | cut -c1-300 | sed 's/^/::warning title=health::/'
           exit 0
 
       - name: Upload design screenshots
