@@ -229,7 +229,7 @@ class SmokeTest {
         tab("Library")
         waitFor(what = "library screen") { exists("Saved", substring = true) && exists("Following", substring = true) }
 
-        tab("Settings")
+        tab("Me")
         waitFor(what = "settings screen") { exists("Sources") && exists("App lock") }
 
         // 5. Sources screen lists every source, the health check and the topic finder.
@@ -373,7 +373,7 @@ class SmokeTest {
                 savedForShot.forEach { lib.remove(dev.dyfeed.data.repo.LibraryKind.SAVED, it) }
                 android.util.Log.i("PFHEALTH", "collections after unsaving: ${lib.collections.first().joinToString { "${it.name}=${it.count}" }.ifEmpty { "none" }}")
             }
-            tab("Settings")
+            tab("Me")
             waitFor(what = "settings") { exists("App lock") }
             shot("05_settings")
             waitFor(what = "scroll settings") { rule.onAllNodes(hasText("Encrypted DNS"), useUnmergedTree = true)[0].performScrollTo(); true }

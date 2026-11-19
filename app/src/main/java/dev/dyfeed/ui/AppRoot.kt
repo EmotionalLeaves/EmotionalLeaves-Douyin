@@ -103,7 +103,7 @@ private val tabs = listOf(
     Tab(Routes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search, "发现"),
     Tab(Routes.LEARN, "Learn", Icons.Filled.School, Icons.Outlined.School, "学习"),
     Tab(Routes.LIBRARY, "Library", Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary, "收藏"),
-    Tab(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "设置"),
+    Tab(Routes.SETTINGS, "Me", Icons.Filled.Settings, Icons.Outlined.Settings, "我"),
 )
 
 @Composable

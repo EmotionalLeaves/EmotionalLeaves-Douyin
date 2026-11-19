@@ -5,6 +5,7 @@ Learn, ready to use
 - New: save a whole line (a caption, a subtitle, a comment) as a card, with its English.
 - New: "What's said in it" (⋯ menu): all of a video's on-screen text, as Douyin read it, word by word.
 - New: a days-in-a-row streak on the review card.
+- Tabs: 首页 Feed, 发现 Search, 学习 Learn, 收藏 Library, 我 Me (Settings), so all five fit on small phones.
 
 ## 1.7.0 — 2026-11-19
 学习 Learn Chinese
