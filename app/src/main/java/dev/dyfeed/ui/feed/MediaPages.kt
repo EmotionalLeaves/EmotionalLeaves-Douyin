@@ -216,6 +216,19 @@ fun VideoPage(
         if (p.currentMediaItem?.mediaId == item.key && p.duration > 0) p.repeatMode = repeatFor(p.duration, handsFree)
     }
 
+    // A video that won't play from one address (an error, or no picture for a while): try its next
+    // mirror server, or a fresh address, before skipping it. Always reads the current state.
+    val nextAddress = androidx.compose.runtime.rememberUpdatedState { code: String, why: String ->
+        val failedUrl = (stream as? StreamInfo.Direct)?.url
+        val host = failedUrl?.let { android.net.Uri.parse(it).host }.orEmpty()
+        val reason = "$why [$host, ${tried.size + 1} tried]"
+        tried = tried + listOfNotNull(failedUrl)
+        if (tried.size > MAX_ADDRESS_TRIES || item.sourceId != dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) { error = code; vm.markBroken(item, reason) }
+        else copyScope.launch {
+            val other = vm.findElsewhere(item, failedUrl, tried)
+            if (other != null && other != stream) { error = null; copy = other } else { error = code; vm.markBroken(item, reason) }
+        }
+    }
     DisposableEffect(player) {
         val p = player
         var loops = 0
@@ -249,16 +262,7 @@ fun VideoPage(
                 }
             }
             override fun onPlayerError(e: PlaybackException) {
-                val failedUrl = (stream as? StreamInfo.Direct)?.url
-                val host = failedUrl?.let { android.net.Uri.parse(it).host }.orEmpty()
-                val reason = "player: ${e.errorCodeName} ${e.cause?.message?.take(80).orEmpty()} [$host, ${tried.size + 1} tried]"
-                tried = tried + listOfNotNull(failedUrl)
-                if (tried.size > MAX_ADDRESS_TRIES) { error = e.errorCodeName; vm.markBroken(item, reason); return }
-                // Try the video's next mirror (or a fresh address) before giving up on it.
-                copyScope.launch {
-                    val other = vm.findElsewhere(item, failedUrl, tried)
-                    if (other != null && other != stream) { error = null; copy = other } else { error = e.errorCodeName; vm.markBroken(item, reason) }
-                }
+                nextAddress.value(e.errorCodeName, "player: ${e.errorCodeName} ${e.cause?.message?.take(80).orEmpty()}")
             }
             // Headphones unplugged: the player paused itself so nothing played on the speaker.
             // Mute the feed and carry on silently instead of leaving a frozen video.
@@ -298,7 +302,7 @@ fun VideoPage(
     LaunchedEffect(item.key, play, firstFrame, stream) {
         if (play && !firstFrame) {
             kotlinx.coroutines.delay(STALL_TIMEOUT_MS)
-            if (!firstFrame) vm.markBroken(item, "no frame after ${STALL_TIMEOUT_MS / 1000}s")
+            if (!firstFrame) nextAddress.value("STALLED", "no frame after ${STALL_TIMEOUT_MS / 1000}s")
         }
     }
     LaunchedEffect(player, muted) { player?.let { dev.dyfeed.player.PlayerPool.applyMute(it, muted) } }
@@ -869,7 +873,7 @@ private const val MAX_DECODE_W = 1280
 private const val MAX_DECODE_H = 4096
 
 /** On screen this long without a single frame: treat as dead and move on. */
-private const val STALL_TIMEOUT_MS = 12_000L
+private const val STALL_TIMEOUT_MS = 8_000L
 /** Mirrors and fresh addresses tried for one video before it's skipped. */
 private const val MAX_ADDRESS_TRIES = 4
 /** Clips at least this long count an automatic loop as a deliberate rewatch. */
