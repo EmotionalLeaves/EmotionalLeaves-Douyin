@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.6.0 — 2026-11-19
+- Show Chinese in English across tags, sounds, comments, trending and search captions (`rememberEnglish`); English queries translated to Chinese before searching (`EnglishToChinese`, `Zh.isLatinQuery`).
+- Ported Feed 5.15 (Moments) and 5.17 (landscape controls, with moments as jump chips).
+- Bilingual tab labels; launch cache drops expired douyinvod addresses.
+
 ## 1.5.2 — 2026-11-19
 - Playback tries each of Douyin's mirror servers (and a fresh address) before skipping a video; fixes the 403s that failed 1.5.1's emulator test.
 - Expiry read from douyinvod.com paths.

@@ -1,3 +1,13 @@
+## 1.6.0 — 2026-11-19
+Chinese in English, everywhere
+
+- New: Settings → Playback → Show Chinese in English now covers tags, sounds, comments, trending topics and search results, not just captions.
+- New: search in English: "hot pot" searches Douyin for 火锅 (translated on the phone).
+- New: Save this moment (⋯ menu): marks the line you want to hear again on the scrub bar; Saved → Moments plays each video from there.
+- New: turned sideways, a video gets proper controls: back/forward 10 s, play/pause, speed, and your moments to jump to.
+- Tabs show both languages: 首页 Feed, 发现 Search, 收藏 Library, 设置 Settings.
+- Faster start: posts kept from last time whose video address has expired are left out.
+
 ## 1.5.2 — 2026-11-19
 Fewer skipped videos, smarter For You
 
