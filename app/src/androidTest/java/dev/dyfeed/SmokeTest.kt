@@ -458,6 +458,9 @@ class SmokeTest {
         val creatorPosts = anyPost?.creator?.let { name -> runCatching { runBlocking { douyin.search(name, null).items.count { it.creator == name } } } }
         android.util.Log.i("PFHEALTH", "douyin creator page: " + (creatorPosts?.fold({ "$it posts by ${anyPost.creator}" }, { "error ${it.message}" }) ?: "no post to try"))
         android.util.Log.i("PFHEALTH", "douyin creator page trace: " + runBlocking { douyin.secondPageReport() })
+        // Video addresses expire after a few hours: a liked or history post is looked up again by id.
+        val again = anyPost?.let { p -> runCatching { runBlocking { douyin.fresh(p.id) } } }
+        android.util.Log.i("PFHEALTH", "douyin feed refresh by id: " + (again?.fold({ if (it == null) "nothing" else "ok, plays from ${it.extras["media"]?.substringBefore('?')?.take(60)}" }, { "error ${it.message}" }) ?: "no post to try"))
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }
