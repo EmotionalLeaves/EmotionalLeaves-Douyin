@@ -58,7 +58,8 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
     companion object {
         private const val PROBE_QUERY = "美食"
         private val USER_FILLED = setOf("rss", "local", "direct", "json", "api")
-        private const val LIST_TIMEOUT_MS = 30_000L
+        // Douyin from cold: open its page, then wait for the batch it loads (~35 s at worst).
+        private const val LIST_TIMEOUT_MS = 50_000L
         private const val FILE_TIMEOUT_MS = 10_000L
     }
 }
