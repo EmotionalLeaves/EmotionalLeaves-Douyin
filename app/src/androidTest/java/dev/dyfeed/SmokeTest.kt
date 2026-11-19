@@ -454,6 +454,9 @@ class SmokeTest {
         val anyPost = runCatching { runBlocking { douyin.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)).items.firstOrNull() } }.getOrNull()
         val comments = anyPost?.let { p -> runCatching { runBlocking { douyin.comments(p).size } } }
         android.util.Log.i("PFHEALTH", "douyin search comments: " + (comments?.fold({ "$it comments" }, { "error ${it.message}" }) ?: "no post to try"))
+        // A creator's page (and the Following tab) is that creator's own post list.
+        val creatorPosts = anyPost?.creator?.let { name -> runCatching { runBlocking { douyin.search(name, null).items.count { it.creator == name } } } }
+        android.util.Log.i("PFHEALTH", "douyin creator page: " + (creatorPosts?.fold({ "$it posts by ${anyPost.creator}" }, { "error ${it.message}" }) ?: "no post to try"))
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }
