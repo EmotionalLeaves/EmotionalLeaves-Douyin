@@ -1644,6 +1644,35 @@ private fun Overlay(
                         .animateContentSize()
                         .then(if (cut || expanded) Modifier.clickable(interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }, indication = null) { expanded = !expanded } else Modifier),
                 )
+                // "See translation" under a Chinese caption: English right there, on the phone.
+                val chinese = remember(it) { it.any { c -> Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN } }
+                if (chinese) {
+                    var showing by remember(item.key) { mutableStateOf(false) }
+                    var english by remember(item.key) { mutableStateOf<String?>(null) }
+                    val translateScope = rememberCoroutineScope()
+                    if (showing) {
+                        Text(
+                            english ?: "Translating…",
+                            color = Color.White.copy(alpha = 0.92f),
+                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                            maxLines = 6,
+                            overflow = TextOverflow.Ellipsis,
+                            style = MaterialTheme.typography.bodyMedium.shadowed(),
+                        )
+                    }
+                    Text(
+                        if (showing) "Show original" else "See translation",
+                        color = Color.White.copy(alpha = 0.75f),
+                        fontWeight = FontWeight.SemiBold,
+                        style = MaterialTheme.typography.labelMedium.shadowed(),
+                        modifier = Modifier.clickable {
+                            showing = !showing
+                            if (showing && english == null) translateScope.launch {
+                                english = dev.dyfeed.ui.common.ChineseToEnglish.translate(it).getOrElse { e -> "Couldn't translate (${e.message ?: "no connection for the first download?"})" }
+                            }
+                        },
+                    )
+                }
             }
             if (tags.isNotEmpty()) {
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
