@@ -1,3 +1,8 @@
+## 1.2.3 — 2026-11-19
+More in For You
+
+- Better: For You takes turns between Douyin's home feed and its 精选 (featured) feed when it needs more, so each refill brings more posts and more variety.
+
 ## 1.2.2 — 2026-11-19
 Comments that explain themselves
 

@@ -29,13 +29,13 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 | Douyin's search page | shows a captcha page (验证码中间页) |
 | `/aweme/v1/web/aweme/related/` | ✅ 10 per post: main source of signed-out search |
 | `/aweme/v1/web/hot/search/list/` | ✅ trending words (shown in Search) |
+| `/aweme/v1/web/comment/list/` | ✅ 20 comments signed out |
 | `/aweme/v1/web/challenge/aweme/` | times out |
 | Bing / DuckDuckGo `site:douyin.com/video` | no links from datacenter IPs |
 
 ## Ideas not done yet
 
 - Grow signed-out search: related videos for trending words.
-- Douyin comments for signed-out visitors: see the probe's "douyin search comments" line.
 - Load more feed per page visit: simulated keys don't work; try real scrolling of the feed container or a second page.
 - Cache search results so going back doesn't search again.
 
@@ -52,3 +52,4 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 - 2026-11-19 (chat, round 15): probe showed Douyin ignores simulated ↓ keys (nudgeNewAnswers=0), so
   nudging stops after two misses; comments show Douyin's reason instead of "No comments"; probe logs
   signed-out comments. 1.2.2.
+- 2026-11-19 (chat, round 16): hidden page alternates douyin.com home and /jingxuan on each fresh load. 1.2.3.

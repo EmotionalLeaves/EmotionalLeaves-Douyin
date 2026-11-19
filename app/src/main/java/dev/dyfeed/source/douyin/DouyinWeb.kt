@@ -197,8 +197,12 @@ class DouyinWeb @Inject constructor(
         val w = WebView(context)
         configure(w, Bridge(search = false), onReady = done)
         web = w
-        w.loadUrl(HOME)
+        // Alternate between the home feed and 精选 (featured): each loads its own batch, so taking
+        // turns brings more posts, and more varied ones, per fresh page.
+        w.loadUrl(FEED_PAGES[(pageLoads++) % FEED_PAGES.size])
     }
+
+    @Volatile private var pageLoads = 0
 
     /**
      * Settings shared by both hidden pages: a desktop browser, no pictures or video downloaded,
@@ -288,6 +292,7 @@ class DouyinWeb @Inject constructor(
 
     companion object {
         const val HOME = "https://www.douyin.com/?recommend=1"
+        private val FEED_PAGES = listOf(HOME, "https://www.douyin.com/jingxuan")
 
         /** True when douyin.com's sign-in cookie is set (signed in on the Douyin page in this app). */
         fun isSignedIn(): Boolean = runCatching {
