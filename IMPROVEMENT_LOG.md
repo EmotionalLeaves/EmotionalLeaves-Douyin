@@ -75,3 +75,11 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   comments; Translate captions automatically (setting).
 - 2026-11-19 (chat, rounds 55–60 → 1.5.1): creator/trend/post-page look-ups behind give-up gates
   (reset on any sign-in change); Settings wording on signed-out limits; lint 0 errors; Library wording.
+- 2026-11-19 (chat, rounds 61–72 → 1.5.2, 1.6.0): 1.5.1's emulator test failed: most clips got 403
+  from Douyin's video servers. Now every mirror address is kept and the player tries the next (then a
+  fresh read) before skipping; expiry read from douyinvod.com paths; the launch cache drops expired
+  posts. Ported from Feed: 5.3/5.4 (taste chips, voice search, For-you sort), 5.8/5.14 (Related: what
+  Douyin shows beside a video you enjoyed feeds For You and More like this), 5.15 (Save this moment),
+  5.17 (landscape controls; moments as jump chips). "Show Chinese in English" everywhere (tags,
+  sounds, trending, comments, search captions) and English searches put into Chinese on the phone.
+  Tabs in both languages (首页/发现/收藏/设置).
