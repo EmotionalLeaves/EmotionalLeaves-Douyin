@@ -57,3 +57,7 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 - 2026-11-19 (chat, round 17): search skips the page search and web search after two empty tries in a
   session (they cost ~20 s each and never answered in tests). Probe found creator post lists answer 403
   signed out; creator pages and Following now use the creator's own page. 1.3.0.
+- 2026-11-19 (chat, rounds 18–27, batch → 1.4.0): creator-page probe trace; fresh page's second batch;
+  warm-up at app start; Following caps page fallback at 4; like counts (万/亿) on the heart; "See
+  translation" under captions; search matching + GiveUpGate as tested pieces; probe re-fetch by id;
+  creator avatars; second hidden page closes after 2 idle minutes.

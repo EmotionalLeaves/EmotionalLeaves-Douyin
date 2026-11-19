@@ -12,8 +12,9 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 | What | Endpoint |
 |---|---|
 | For You | `/aweme/v2/web/module/feed/` → `v1/module/feed` → `v1/tab/feed`, else what Douyin's own page loads (re-ranked here) |
-| Search | signed in: `/aweme/v1/web/search/item/`; signed out: Douyin's own search page in a second hidden page (its results captured), plus posts already loaded |
-| Creator page, Following | `/aweme/v1/web/aweme/post/` |
+| Search | signed in: `/aweme/v1/web/search/item/`; signed out: related videos (`/aweme/v1/web/aweme/related/`) of matching posts, trending, posts already loaded |
+| Creator page, Following | `/aweme/v1/web/aweme/post/`; signed out (403): the creator's own page in a second hidden page |
+| Trending | `/aweme/v1/web/hot/search/list/` (shown in Search) |
 | Comments | `/aweme/v1/web/comment/list/` |
 | Shared links | `v.douyin.com/…` → `iesdouyin.com/share/video/<id>/` (public page, no signature) |
 
@@ -43,7 +44,7 @@ Download the APK from the latest GitHub release on your phone, open it, and allo
 
 - **Feed:** For You (learned from what you watch), Following (creators you follow here) and Latest. Swipe up for the next post; tap to pause, double-tap to like, hold for the menu (Comments, Not interested, hide a tag or creator, open on Douyin…). Swipe left on a post for everything by its creator.
 - **Photo posts** turn sideways picture by picture.
-- **Translate:** hold a post → Translate for the caption and tags in English; Comments has a Translate button too. Runs on the phone after a one-time download.
+- **Translate:** "See translation" under any Chinese caption, hold a post → Translate for caption and tags, and a Translate button in Comments. Runs on the phone after a one-time download.
 - **Search:** type in Chinese for best results (美食, 重庆, 猫…); the topic chips do it for you. Combos work: `美食 + 重庆 -火锅`.
 - **Share to the app:** share a Douyin link from anywhere and it plays here.
 - **Library:** Saved, Liked, History and Following; saved posts download for offline.

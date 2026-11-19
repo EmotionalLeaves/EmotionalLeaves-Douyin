@@ -1,3 +1,13 @@
+## 1.4.0 — 2026-11-19
+Feels more like Douyin
+
+- New: "See translation" under Chinese captions in the feed: English right there, tap again for the original.
+- New: the heart shows the post's like count the way Douyin writes it (8,421 · 1.2万 · 3.4亿).
+- New: creators' real profile pictures next to their names.
+- Faster: Douyin's page opens when the app does, so the first posts don't wait for it, and each refill takes the page's second batch too.
+- Faster: the Following tab no longer waits on every creator's page when you're signed out.
+- Lighter: the hidden page used for creator pages closes after 2 minutes unused.
+
 ## 1.3.0 — 2026-11-19
 Creator pages without signing in
 
