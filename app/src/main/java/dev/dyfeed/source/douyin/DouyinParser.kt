@@ -60,19 +60,21 @@ object DouyinParser {
     fun long(root: JsonElement?, key: String): Long? = ((root as? JsonObject)?.get(key) as? JsonPrimitive)?.contentOrNull?.toLongOrNull()
 
     fun parse(a: JsonObject, maxHeight: Int, fetchedAt: Long = System.currentTimeMillis()): MediaItem? {
-        val id = a.str("aweme_id") ?: return null
+        // Two spellings of the same post: the web API's (aweme_id, play_addr.url_list) and the site's
+        // own camelCase one (awemeId, playAddr[].src), which the module feed's cards may carry.
+        val id = a.str("aweme_id") ?: a.str("awemeId") ?: return null
         if (a.str("is_ads") == "true" || a["cell_room"].isPresent() || a["live_reason"].isPresent()) return null
-        val author = a["author"] as? JsonObject
+        val author = (a["author"] ?: a["authorInfo"]) as? JsonObject
         val creator = author?.str("nickname")?.trim()?.takeIf { it.isNotEmpty() }
-        val secUid = author?.str("sec_uid")
+        val secUid = author?.str("sec_uid") ?: author?.str("secUid")
         // The caption without its #hashtags and @mentions: those show as tappable tags already.
         val desc = a.str("desc")?.let(::caption)
         val tags = buildList {
-            (a["text_extra"] as? JsonArray)?.forEach { t -> (t as? JsonObject)?.str("hashtag_name")?.let { add(it) } }
-            (a["video_tag"] as? JsonArray)?.forEach { t -> (t as? JsonObject)?.str("tag_name")?.let { add(it) } }
+            ((a["text_extra"] ?: a["textExtra"]) as? JsonArray)?.forEach { t -> (t as? JsonObject)?.let { it.str("hashtag_name") ?: it.str("hashtagName") }?.let { add(it) } }
+            ((a["video_tag"] ?: a["videoTag"]) as? JsonArray)?.forEach { t -> (t as? JsonObject)?.let { it.str("tag_name") ?: it.str("tagName") }?.let { add(it) } }
         }.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct()
-        val created = a.str("create_time")?.toLongOrNull()?.takeIf { it > 0 }?.let(Instant::ofEpochSecond)
-        val likes = (a["statistics"] as? JsonObject)?.str("digg_count")
+        val created = (a.str("create_time") ?: a.str("createTime"))?.toLongOrNull()?.takeIf { it > 0 }?.let(Instant::ofEpochSecond)
+        val likes = ((a["statistics"] ?: a["stats"]) as? JsonObject)?.let { it.str("digg_count") ?: it.str("diggCount") }
         val video = a["video"] as? JsonObject
 
         val common = buildMap {
@@ -83,7 +85,8 @@ object DouyinParser {
 
         // Photo post: every picture, in order.
         val images = (a["images"] as? JsonArray)?.mapNotNull { img ->
-            ((img as? JsonObject)?.get("url_list") as? JsonArray).urls().let(::pickImage)
+            val o = img as? JsonObject ?: return@mapNotNull null
+            ((o["url_list"] ?: o["urlList"]) as? JsonArray).urls().let(::pickImage) ?: o.str("url")?.let(::https)
         }.orEmpty()
         if (images.isNotEmpty()) {
             return MediaItem(
@@ -104,8 +107,12 @@ object DouyinParser {
 
         video ?: return null
         val media = pickVideo(video, maxHeight) ?: return null
-        val cover = listOf("cover", "origin_cover", "dynamic_cover").firstNotNullOfOrNull { k ->
-            ((video[k] as? JsonObject)?.get("url_list") as? JsonArray).urls().let(::pickImage)
+        val cover = listOf("cover", "origin_cover", "originCover", "dynamic_cover", "dynamicCover").firstNotNullOfOrNull { k ->
+            when (val c = video[k]) {
+                is JsonObject -> ((c["url_list"] ?: c["urlList"]) as? JsonArray).urls().let(::pickImage)
+                is JsonPrimitive -> c.contentOrNull?.takeIf { it.isNotBlank() }?.let(::https)
+                else -> null
+            }
         }
         val durationMs = video.str("duration")?.toLongOrNull() ?: a.str("duration")?.toLongOrNull()
         return MediaItem(
@@ -130,28 +137,43 @@ object DouyinParser {
      */
     fun pickVideo(video: JsonObject, maxHeight: Int): String? {
         data class R(val url: String, val height: Int, val h265: Boolean, val bitrate: Long)
-        val renditions = (video["bit_rate"] as? JsonArray)?.mapNotNull { b ->
+        val renditions = ((video["bit_rate"] ?: video["bitRateList"]) as? JsonArray)?.mapNotNull { b ->
             val bo = b as? JsonObject ?: return@mapNotNull null
-            val addr = bo["play_addr"] as? JsonObject ?: return@mapNotNull null
-            val url = (addr["url_list"] as? JsonArray).urls().firstOrNull() ?: return@mapNotNull null
-            val w = addr.str("width")?.toIntOrNull() ?: 0
-            val h = addr.str("height")?.toIntOrNull() ?: 0
+            val addr = bo["play_addr"] ?: bo["playAddr"]
+            val url = addrUrls(addr).firstOrNull() ?: return@mapNotNull null
+            val ao = addr as? JsonObject
+            val w = (ao?.str("width") ?: bo.str("width"))?.toIntOrNull() ?: 0
+            val h = (ao?.str("height") ?: bo.str("height"))?.toIntOrNull() ?: 0
             R(
                 url = url,
                 // "1080p" means the short side, for portrait and landscape alike.
                 height = if (w > 0 && h > 0) minOf(w, h) else maxOf(w, h),
-                h265 = bo.str("is_h265") == "1" || bo.str("is_bytevc1") == "1" || (bo.str("gear_name")?.contains("265") == true),
-                bitrate = bo.str("bit_rate")?.toLongOrNull() ?: 0,
+                h265 = listOf("is_h265", "isH265", "is_bytevc1", "isBytevc1").any { bo.str(it) == "1" || bo.str(it) == "true" } ||
+                    ((bo.str("gear_name") ?: bo.str("gearName"))?.contains("265") == true),
+                bitrate = (bo.str("bit_rate") ?: bo.str("bitRate"))?.toLongOrNull() ?: 0,
             )
         }.orEmpty()
         val pick = renditions
             .sortedWith(compareBy<R> { it.h265 }.thenByDescending { if (it.height in 1..maxHeight) it.height else -it.height }.thenByDescending { it.bitrate })
             .firstOrNull()
         val url = pick?.url
-            ?: ((video["play_addr"] as? JsonObject)?.get("url_list") as? JsonArray).urls().firstOrNull()
-            ?: ((video["play_addr_h264"] as? JsonObject)?.get("url_list") as? JsonArray).urls().firstOrNull()
+            ?: listOf("play_addr", "playAddr", "play_addr_h264", "playAddrH264").firstNotNullOfOrNull { addrUrls(video[it]).firstOrNull() }
             ?: return null
         return url.replace("/playwm/", "/play/").replace("http://", "https://")
+    }
+
+    /** A play address in either spelling: {url_list:[…]} / {urlList:[…]}, or [{src:…}, …]. */
+    private fun addrUrls(addr: JsonElement?): List<String> = when (addr) {
+        is JsonObject -> ((addr["url_list"] ?: addr["urlList"]) as? JsonArray).urls()
+        is JsonArray -> addr.mapNotNull { (it as? JsonObject)?.str("src")?.let(::https) }
+        else -> emptyList()
+    }
+
+    /** "//host/path" (the site's own addresses) → "https://host/path". */
+    private fun https(u: String): String? = when {
+        u.startsWith("//") -> "https:$u"
+        u.startsWith("http") -> u
+        else -> null
     }
 
     private val HASHTAG = Regex("""[#＃][^\s#＃@]+""")
@@ -166,7 +188,7 @@ object DouyinParser {
         urls.firstOrNull { u -> listOf(".jpeg", ".jpg", ".png", ".webp").any { u.substringBefore('?').endsWith(it) } } ?: urls.firstOrNull()
 
     private fun JsonArray?.urls(): List<String> =
-        this?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.takeIf { u -> u.startsWith("http") } }.orEmpty()
+        this?.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.let(::https) }.orEmpty()
 
     private fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 

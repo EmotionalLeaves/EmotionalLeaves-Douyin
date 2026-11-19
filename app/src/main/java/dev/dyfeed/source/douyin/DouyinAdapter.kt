@@ -79,17 +79,21 @@ class DouyinAdapter @Inject constructor(
     /** Cursor = how many times the feed has been pulled this session ("refresh_index"). */
     private suspend fun recommended(cursor: String?): Page<MediaItem> {
         val index = cursor?.toIntOrNull() ?: 1
+        val next = (index + 1).toString().takeIf { index < MAX_FEED_PULLS }
+        // What Douyin's own page loaded for itself: the backup when the app's own request is
+        // turned away, or answers in a form with no readable posts.
+        suspend fun fromPage(): List<MediaItem> = web.harvest().flatMap { body ->
+            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+        }.distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
         val root = try { callFeed(index) } catch (e: SourceException) {
             if (e.httpCode == 429) throw e
-            // The app's own request was turned away: use what Douyin's page loaded for itself.
-            val harvested = web.harvest().flatMap { body ->
-                runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
-            }.distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
+            val harvested = fromPage()
             if (harvested.isEmpty()) throw e
-            return Page(harvested, (index + 1).toString())
+            return Page(harvested, next)
         }
-        val items = items(root).filterNot { seen.isSeen(it.key) }
-        return Page(items, (index + 1).toString().takeIf { index < MAX_FEED_PULLS })
+        val parsed = items(root)
+        if (parsed.isEmpty()) return Page(fromPage(), next)
+        return Page(parsed.filterNot { seen.isSeen(it.key) }, next)
     }
 
     /**
@@ -228,7 +232,9 @@ class DouyinAdapter @Inject constructor(
             val root = runCatching { json.parseToJsonElement(r.body) }.getOrNull()
             val n = root?.let { runCatching { items(it).size }.getOrNull() }
             "${path.removePrefix("/aweme/").removeSuffix("/")}=${r.status}/${r.body.length}B/items=$n" +
-                (if (root != null && n == 0) " shape=" + shape(root) else "")
+                (if (root != null && n == 0) " first=" + DouyinParser.awemes(root).firstOrNull()?.let { a ->
+                    a.entries.take(40).joinToString(",") { (k, v) -> k + ":" + shape(v, 1) }
+                }.orEmpty().take(1500) else "")
         }
         return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()}"
     }

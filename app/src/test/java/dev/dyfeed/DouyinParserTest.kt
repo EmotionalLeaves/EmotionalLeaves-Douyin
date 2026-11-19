@@ -100,6 +100,27 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `the site's camelCase spelling of a post`() {
+        val a = Json.parseToJsonElement(
+            """{"awemeId":"7344444444444444444","desc":"成都 #旅行","createTime":1700000000,
+               "authorInfo":{"nickname":"旅行者","secUid":"MS4w_y"},"stats":{"diggCount":5000},
+               "textExtra":[{"hashtagName":"旅行"}],
+               "video":{"duration":20000,"cover":"//p3.douyinpic.com/c.jpeg",
+                 "playAddr":[{"src":"//v3-web.douyinvod.com/p.mp4"}],
+                 "bitRateList":[{"bitRate":2000000,"isH265":0,"width":1080,"height":1920,"playAddr":[{"src":"//v3-web.douyinvod.com/1080.mp4"}]}]}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        val v = DouyinParser.parse(a, 1080)!!
+        assertEquals("7344444444444444444", v.id)
+        assertEquals("https://v3-web.douyinvod.com/1080.mp4", v.extras["media"])
+        assertEquals("https://p3.douyinpic.com/c.jpeg", v.thumbnailUrl)
+        assertEquals("旅行者", v.creator)
+        assertEquals("MS4w_y", v.extras["secUid"])
+        assertEquals(listOf("旅行"), v.tags)
+        assertEquals("5000", v.extras["score"])
+        assertEquals(20, v.durationSec)
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))
