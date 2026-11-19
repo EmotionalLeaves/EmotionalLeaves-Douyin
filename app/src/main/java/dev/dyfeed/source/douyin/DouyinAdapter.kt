@@ -68,7 +68,7 @@ class DouyinAdapter @Inject constructor(
         val closed = DouyinLoginActivity.open(ctx.activity)
         closed.await()
         web.reload()
-        listOf(pageSearchGate, webSearchGate, creatorPageGate, trendPageGate, postPageGate).forEach { it.reset() }
+        resetIfSignInChanged(force = true)
         return if (web.signedIn()) AuthResult.Success
         else AuthResult.Failure("Not signed in. The feed still works; search may need it.")
     }
@@ -186,6 +186,7 @@ class DouyinAdapter @Inject constructor(
     // ── search ──
 
     override suspend fun search(query: String, cursor: String?): Page<MediaItem> {
+        resetIfSignInChanged()
         val q = query.trim()
         if (q.isEmpty()) return Page(emptyList(), null)
         // A creator page: their own posts.
@@ -250,6 +251,16 @@ class DouyinAdapter @Inject constructor(
     private val creatorPageGate = GiveUpGate(GIVE_UP_AFTER)
     private val trendPageGate = GiveUpGate(GIVE_UP_AFTER)
     private val postPageGate = GiveUpGate(GIVE_UP_AFTER)
+    @Volatile private var lastSignedIn: Boolean? = null
+
+    /** Signing in or out (from any screen) re-opens the look-ups that were skipped. */
+    private fun resetIfSignInChanged(force: Boolean = false) {
+        val now = web.signedIn()
+        if (force || (lastSignedIn != null && lastSignedIn != now)) {
+            listOf(pageSearchGate, webSearchGate, creatorPageGate, trendPageGate, postPageGate).forEach { it.reset() }
+        }
+        lastSignedIn = now
+    }
 
     /** A hashtag's own video list, for a search that is (or contains) a hashtag seen in the feed. */
     private suspend fun hashtagPosts(q: String): List<MediaItem> {
