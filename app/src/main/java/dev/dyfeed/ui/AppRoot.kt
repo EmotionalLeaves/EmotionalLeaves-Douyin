@@ -93,13 +93,13 @@ object Routes {
 }
 
 /** [icon] when selected, [outline] otherwise: the current tab reads at a glance, as in most modern apps. */
-private data class Tab(val route: String, val label: String, val icon: ImageVector, val outline: ImageVector)
+private data class Tab(val route: String, val label: String, val icon: ImageVector, val outline: ImageVector, val zh: String)
 
 private val tabs = listOf(
-    Tab(Routes.FEED, "Feed", Icons.Filled.Home, Icons.Outlined.Home),
-    Tab(Routes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search),
-    Tab(Routes.LIBRARY, "Library", Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary),
-    Tab(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings),
+    Tab(Routes.FEED, "Feed", Icons.Filled.Home, Icons.Outlined.Home, "首页"),
+    Tab(Routes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search, "发现"),
+    Tab(Routes.LIBRARY, "Library", Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary, "收藏"),
+    Tab(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "设置"),
 )
 
 @Composable
@@ -375,14 +375,18 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
                     androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
                     // Over the feed only the current tab is named: fewer words on top of the video.
                     val labelAlpha by androidx.compose.animation.core.animateFloatAsState(if (selected || !immersive) 1f else 0f, label = "tabLabel")
-                    Text(
-                        tab.label,
-                        color = tint,
-                        modifier = Modifier.graphicsLayer { alpha = labelAlpha },
-                        fontSize = 10.5.sp,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
-                        maxLines = 1,
-                    )
+                    // Both languages, as a Chinese app would show them to a learner: 首页 Feed.
+                    androidx.compose.foundation.layout.Row(Modifier.graphicsLayer { alpha = labelAlpha }, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                        Text(tab.zh, color = tint, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
+                        androidx.compose.foundation.layout.Spacer(Modifier.width(3.dp))
+                        Text(
+                            tab.label,
+                            color = tint,
+                            fontSize = 10.sp,
+                            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
+                            maxLines = 1,
+                        )
+                    }
                     androidx.compose.foundation.layout.Spacer(Modifier.height(5.dp))
                 }
             }
