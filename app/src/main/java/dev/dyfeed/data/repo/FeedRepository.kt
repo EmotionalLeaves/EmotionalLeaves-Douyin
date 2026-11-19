@@ -181,6 +181,11 @@ class FeedSession(
         // so there's a first screen right away while fresh fetches (launched below) catch up.
         if (loads == 1 && forYouMain) seed += poolCache.take()
 
+        // For You: what Douyin showed beside videos you just enjoyed joins the pool first.
+        if (forYouMain) seed += dev.dyfeed.domain.reco.Related.drain()
+        // More like this: start from what Douyin shows beside the post.
+        if (loads == 1 && spec is FeedSpec.Similar) seed += dev.dyfeed.domain.reco.Related.of(spec.seedKey)
+
         // Pick up anything that finished in the background since the last call.
         val errors = collect(follows, tag, mode).toMutableList()
         val instantStart = loads == 1 && candidates.size >= BATCH
@@ -472,6 +477,7 @@ class FeedSession(
             // Also by meaning (posts tagged differently that are about the same thing) and by look.
             val (seedVec, vecs) = signals.engine.use { e -> e.space.itemVector(sig.toList()) to candidates.associate { it.key to e.vectorOf(it) } }
             val seedLook = dev.dyfeed.domain.reco.Visual.decode(spec.look)
+            val relatedKeys = dev.dyfeed.domain.reco.Related.of(spec.seedKey).mapTo(HashSet()) { it.key }
             fun closeness(c: MediaItem): Double {
                 val f = Features.of(c).filterNot(Features::isMeta).toSet()
                 val shared = f.count { it in sig }
@@ -480,7 +486,9 @@ class FeedSession(
                 val v = vecs[c.key]
                 val meaning = if (seedVec != null && v != null) dev.dyfeed.domain.reco.TasteEngine.cos(seedVec, v).coerceAtLeast(0.0) else 0.0
                 val look = seedLook?.let { a -> dev.dyfeed.domain.reco.Visual.decode(c.extras[dev.dyfeed.domain.reco.Visual.EXTRA])?.let { b -> dev.dyfeed.domain.reco.Visual.similarity(a, b) } } ?: 0.0
-                return cos + same + SIMILAR_MEANING * meaning + SIMILAR_LOOK * look
+                // Douyin itself lists it beside the post (its viewers watch them together).
+                val siteSays = if (c.key in relatedKeys) SIMILAR_RELATED else 0.0
+                return cos + same + SIMILAR_MEANING * meaning + SIMILAR_LOOK * look + siteSays
             }
             candidates.removeAll { it.key == spec.seedKey }
             Spread.order(
@@ -591,6 +599,7 @@ class FeedSession(
         private const val INTERESTS_PER_LOAD = 2
         private const val SIMILAR_MEANING = 0.5
         private const val SIMILAR_LOOK = 0.3
+        private const val SIMILAR_RELATED = 0.6
         private const val MAX_INTERESTS = 8
         /** TasteModel weight above which a feature counts as a real interest worth searching for. */
         private const val INTEREST_MIN_WEIGHT = 0.6

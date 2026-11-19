@@ -381,6 +381,13 @@ class DouyinAdapter @Inject constructor(
     // ── playback ──
 
     override suspend fun resolveStream(item: MediaItem): StreamInfo {
+        // As it starts playing, fetch what Douyin shows beside it (in the background), so that if
+        // you enjoy it, For You and "More like this" go on from there.
+        if (item.type == MediaType.VIDEO && dev.dyfeed.domain.reco.Related.of(item.key).isEmpty()) indexScope.launch {
+            runCatching { relatedPosts(listOf(item)) }.getOrNull()
+                ?.filter { it.key != item.key }?.takeIf { it.size >= 3 }
+                ?.let { dev.dyfeed.domain.reco.Related.put(item.key, it) }
+        }
         val at = item.extras["at"]?.toLongOrNull() ?: 0L
         val cached = item.extras["media"]
         // Trust the address until the expiry it carries (if it says), else for URL_TTL_MS.
