@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -66,7 +67,9 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
     val saved by WordBook.cards.collectAsState()
     val savedWords = saved.mapTo(HashSet()) { it.word }
     val speechProblem by Speak.problem.collectAsState()
-    ModalBottomSheet(onDismissRequest = onDismiss, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
+    // Open all the way: every word of the line in view, not half of them.
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("词 Words", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
@@ -100,7 +103,7 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
                     }
                 }
             }
-            LazyColumn(Modifier.fillMaxWidth().height(380.dp)) {
+            LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                 items(list.filter { it.known }.distinctBy { it.text }) { t ->
                     WordRow(t.text, t.entries, saved = t.text in savedWords, onSpeak = { Speak.say(context, t.text) }) {
                         if (t.text in savedWords) WordBook.remove(t.text) else WordBook.add(t.entries.first(), example = text)
