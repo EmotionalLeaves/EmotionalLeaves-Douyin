@@ -225,12 +225,21 @@ class DouyinAdapter @Inject constructor(
     suspend fun probe(): String {
         val perPath = FEED_PATHS.map { path ->
             val r = web.get(path, mapOf("module_id" to "3003101", "count" to "10", "refresh_index" to "1", "pull_type" to "0", "video_type_select" to "1"))
-            val n = runCatching { items(json.parseToJsonElement(r.body)).size }.getOrNull()
-            val code = runCatching { DouyinParser.statusCode(json.parseToJsonElement(r.body)) }.getOrNull()
-            "${path.removePrefix("/aweme/").removeSuffix("/")}=${r.status}/${r.body.length}B/items=$n/sc=$code"
+            val root = runCatching { json.parseToJsonElement(r.body) }.getOrNull()
+            val n = root?.let { runCatching { items(it).size }.getOrNull() }
+            "${path.removePrefix("/aweme/").removeSuffix("/")}=${r.status}/${r.body.length}B/items=$n" +
+                (if (root != null && n == 0) " shape=" + shape(root) else "")
         }
-        val harvested = runCatching { web.harvest(20_000).size }.getOrDefault(-1)
-        return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageOwnAnswers=$harvested"
+        return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()}"
+    }
+
+    /** A short sketch of a JSON answer's layout: keys, array sizes, the first element of each array. */
+    private fun shape(e: JsonElement, depth: Int = 0): String = when {
+        depth > 2 -> "…"
+        e is JsonObject -> e.entries.take(14).joinToString(",", "{", "}") { (k, v) -> k + ":" + shape(v, depth + 1) }
+        e is kotlinx.serialization.json.JsonArray -> "[${e.size}]" + (e.firstOrNull()?.let { shape(it, depth + 1) } ?: "")
+        e is JsonPrimitive -> if (e.isString) "s${e.content.length}" else e.content.take(6)
+        else -> "null"
     }
 
     // ── internals ──

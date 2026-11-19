@@ -60,6 +60,9 @@ class DouyinWeb @Inject constructor(
      * itself), when the app's own requests are being turned away. Takes what's waiting; if
      * nothing is, opens a fresh page (which loads a fresh batch) and waits up to [waitMs] for it.
      */
+    /** How many page-fetched feed answers are waiting (without using them up). */
+    fun waitingAnswers(): Int = captured.size
+
     suspend fun harvest(waitMs: Long = 15_000): List<String> {
         if (captured.isEmpty()) {
             capturedSignal = CompletableDeferred()

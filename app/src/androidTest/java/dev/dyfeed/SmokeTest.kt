@@ -10,6 +10,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onRoot
@@ -179,11 +181,13 @@ class SmokeTest {
         waitFor(timeoutMs = 30_000, what = "feed tab") { exists("For You") }
         tap("Search")
         waitFor(timeoutMs = 30_000, what = "search screen") { exists("Surprise me") }
-        // The chip can be listed twice (your interests and Popular) and the first may be off screen,
-        // where a touch can't reach it: click it through its accessibility action instead.
-        waitFor(timeoutMs = 30_000, what = "open the 美食 topic") {
-            rule.onAllNodes(hasText("美食 · food") and androidx.compose.ui.test.hasClickAction())[0]
-                .performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.OnClick)
+        // Type the search, as a person would.
+        waitFor(timeoutMs = 30_000, what = "type a search") {
+            rule.onAllNodes(androidx.compose.ui.test.hasSetTextAction())[0].performTextInput("美食")
+            true
+        }
+        waitFor(timeoutMs = 10_000, what = "run the search") {
+            rule.onAllNodes(androidx.compose.ui.test.hasSetTextAction())[0].performImeAction()
             true
         }
         // Results stream in as sources answer. On a slow test machine every source can miss its
