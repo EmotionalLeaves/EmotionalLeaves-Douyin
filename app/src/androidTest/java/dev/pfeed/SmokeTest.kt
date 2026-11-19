@@ -27,7 +27,7 @@ import org.junit.runner.RunWith
 /**
  * End-to-end smoke test on a real emulator: app starts (Hilt, SQLCipher, DataStore, WorkManager),
  * the app opens without a PIN by default, every top-level screen opens without crashing, and the
- * panic gesture locks the app once a PIN is set.
+ * Douyin sources screen opens.
  */
 @OptIn(ExperimentalTestApi::class)
 @RunWith(AndroidJUnit4::class)
@@ -199,7 +199,7 @@ class SmokeTest {
     }
 
     @Test
-    fun launchUnlockNavigateAndPanic() {
+    fun launchAndNavigate() {
         // 1–2. The app lock is optional and off by default: no PIN screen, straight to the feed.
         waitFor(what = "app opens without a PIN") { exists("For You") || exists("Latest") }
         assertTrue("no lock screen by default", !exists("Create a PIN") && !exists("Enter PIN"))
@@ -234,42 +234,6 @@ class SmokeTest {
         tab("Feed")
         waitFor(what = "back on feed") { exists("For You") }
 
-        // 6. Panic gesture: three fingers down at once locks the app. Sent as real MotionEvents through
-        //    the Activity, the same path a physical touch takes.
-        val lockManager = rule.activity.lockManager
-        // Panic only locks when the user has turned the lock on; turn it on the way Settings does.
-        runBlocking { lockManager.createPin(pin.joinToString("").toCharArray()) }
-        rule.runOnUiThread {
-            val activity = rule.activity
-            val cx = activity.window.decorView.width / 2f
-            val cy = activity.window.decorView.height / 2f
-            val t = SystemClock.uptimeMillis()
-            fun touch(action: Int, count: Int): MotionEvent {
-                val props = Array(count) { i ->
-                    MotionEvent.PointerProperties().apply { id = i; toolType = MotionEvent.TOOL_TYPE_FINGER }
-                }
-                val coords = Array(count) { i ->
-                    MotionEvent.PointerCoords().apply { x = cx + i * 80f; y = cy; pressure = 1f; size = 1f }
-                }
-                return MotionEvent.obtain(t, t, action, count, props, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0)
-            }
-            fun pointerDown(index: Int) = MotionEvent.ACTION_POINTER_DOWN or (index shl MotionEvent.ACTION_POINTER_INDEX_SHIFT)
-            listOf(
-                touch(MotionEvent.ACTION_DOWN, 1),
-                touch(pointerDown(1), 2),
-                touch(pointerDown(2), 3),
-                touch(MotionEvent.ACTION_CANCEL, 3),
-            ).forEach { ev -> activity.dispatchTouchEvent(ev); ev.recycle() }
-        }
-        val deadline = System.currentTimeMillis() + 5_000
-        while (!lockManager.locked.value && System.currentTimeMillis() < deadline) Thread.sleep(100)
-        assertTrue("panic gesture should lock the app", lockManager.locked.value)
-        // Tests share one install: leave the app unlocked with no PIN, or every test that runs after
-        // this one would start on the lock screen.
-        runBlocking {
-            lockManager.unlockWithPin(pin.joinToString("").toCharArray())
-            lockManager.disable(pin.joinToString("").toCharArray())
-        }
     }
 
     /** Saves a screenshot of what's on screen (pulled from the device and uploaded by CI). */

@@ -245,7 +245,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp),
                 ) {
-                    listOf("video" to "Videos", "image" to "Pictures", "gif" to "GIFs", "comic" to "Comics").forEach { (type, label) ->
+                    listOf("video" to "Videos", "image" to "Photo posts").forEach { (type, label) ->
                         val shown = type !in s.hiddenFeedTypes
                         androidx.compose.material3.FilterChip(
                             selected = shown,
@@ -275,14 +275,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                         }
                     }
                 }
-                RowDivider()
-                SwitchSetting(
-                    "Hide AI-generated art",
-                    s.hideAiArt,
-                    subtitle = "Stable Diffusion, NovelAI, Midjourney… by tags, titles and AI-only boards. Search too.",
-                    icon = Icons.Filled.AutoAwesome,
-                    onChange = vm::setHideAiArt,
-                )
             }
 
             Section("Look", modifier = Modifier.anchor("Look")) {
@@ -309,46 +301,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 )
                 RowDivider()
                 SwitchSetting(
-                    "Sound only with headphones",
-                    s.headphonesOnly,
-                    subtitle = "Without headphones the feed stays silent, so nothing ever comes out of the speaker",
-                    icon = Icons.Filled.Headphones,
-                    onChange = vm::setHeadphonesOnly,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Volume keys turn pages",
-                    s.volumeKeysTurnPages,
-                    subtitle = "In a feed, volume down goes to the next post and up to the one before, for one-handed scrolling",
-                    icon = Icons.Filled.SwapVert,
-                    onChange = vm::setVolumeKeysTurnPages,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Smart volume",
-                    s.smartVolume,
-                    subtitle = "Evens out loudness: quiet clips come up, loud ones don't blast. Applies from the next video",
-                    icon = Icons.Filled.GraphicEq,
-                    onChange = vm::setSmartVolume,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Skip intros",
-                    s.skipIntros,
-                    subtitle = "Videos of 5 minutes and more start 25 s in the first time, past the studio intro",
-                    icon = Icons.Filled.FastForward,
-                    onChange = vm::setSkipIntros,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Live grids",
-                    s.livePreviews,
-                    subtitle = "In grids, the video nearest the middle plays silently in its tile, then the next",
-                    icon = Icons.Filled.GridView,
-                    onChange = vm::setLivePreviews,
-                )
-                RowDivider()
-                SwitchSetting(
                     "Picture-in-picture",
                     s.pictureInPicture,
                     subtitle = "Leave the app while a video plays and it keeps going in a small window. Other apps and people nearby can see that window",
@@ -356,16 +308,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     onChange = vm::setPictureInPicture,
                 )
                 RowDivider()
-                if (!s.dataSaver) {
-                    SwitchSetting(
-                        "Best quality",
-                        s.bestQuality,
-                        subtitle = if (s.bestQuality) "Up to 4K where the site has it; uses much more data" else "Videos up to 1080p; switch on for 1440p and 4K where there is",
-                        icon = Icons.Filled.HighQuality,
-                        onChange = vm::setBestQuality,
-                    )
-                    RowDivider()
-                }
                 SwitchSetting(
                     "Data saver",
                     s.dataSaver,
@@ -375,22 +317,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 )
                 RowDivider()
                 val batteryLow by dev.pfeed.player.Battery.low.collectAsStateWithLifecycle()
-                SwitchSetting(
-                    "Battery saver",
-                    s.batterySaver,
-                    subtitle = (if (batteryLow && s.batterySaver) "Saving now: " else "") + "at 15% or less, videos drop to 480p and grids stay still until you charge",
-                    icon = Icons.Filled.BatterySaver,
-                    onChange = vm::setBatterySaver,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Ready when you are",
-                    s.readyAhead,
-                    subtitle = "Every few hours on Wi-Fi, For You gets your next posts ready while the app is closed, so it opens straight onto them",
-                    icon = Icons.Filled.AutoAwesome,
-                    onChange = vm::setReadyAhead,
-                )
-                RowDivider()
                 // What the app has downloaded, refreshed while this screen is open.
                 var used by remember { mutableStateOf(dev.pfeed.data.repo.DataMeter.session() to dev.pfeed.data.repo.DataMeter.month()) }
                 LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(3_000); used = dev.pfeed.data.repo.DataMeter.session() to dev.pfeed.data.repo.DataMeter.month() } }
@@ -432,53 +358,11 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             Section(
                 "Privacy & security",
                 modifier = Modifier.anchor("Privacy"),
-                footer = "Touch the screen with three fingers at any time to leave the app instantly" +
-                    if (lockOn) " and lock it." else ".",
+                footer = "Your PIN, history and everything For You learns stay on this phone.",
             ) {
                 if (lockOn) {
                     val eraseOn by vm.erasePinOn.collectAsStateWithLifecycle()
-                    SettingRow(
-                        "Emergency PIN",
-                        subtitle = if (eraseOn) "On: entering it on the lock screen erases everything and closes the app" else "A second PIN that erases everything instead of opening, if you're ever made to unlock",
-                        icon = Icons.Filled.DeleteForever,
-                        iconTint = if (eraseOn) dev.pfeed.ui.theme.Bad else TextLow,
-                        chevron = true,
-                        onClick = { dialog = if (eraseOn) PendingDialog.RemoveErasePin else PendingDialog.ErasePin },
-                    )
-                    RowDivider()
-                    SwitchSetting(
-                        "Calculator lock screen",
-                        s.calculatorLock,
-                        subtitle = "The lock screen is a working calculator. Type your PIN and press = to get in; hold = for fingerprint",
-                        icon = Icons.Filled.Calculate,
-                        onChange = vm::setCalculatorLock,
-                    )
-                    RowDivider()
                 }
-                SettingRow(
-                    "Leave to",
-                    subtitle = "Where three fingers, a flip or a shake takes you",
-                    value = PANIC_TARGETS.firstOrNull { it.first == s.panicTo }?.second ?: "Home screen",
-                    icon = Icons.AutoMirrored.Filled.ExitToApp,
-                    onClick = { dialog = PendingDialog.PickPanic },
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Hide from recent apps",
-                    s.hideFromRecents,
-                    subtitle = "The app doesn't appear in the recent-apps list at all, not even as a blank card",
-                    icon = Icons.Filled.Layers,
-                    onChange = vm::setHideFromRecents,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Flip or shake to hide",
-                    s.flipToHide,
-                    subtitle = "Turn the phone face down or shake it and the app leaves at once" + if (lockOn) ", locked" else "",
-                    icon = Icons.Filled.ScreenRotation,
-                    onChange = vm::setFlipToHide,
-                )
-                RowDivider()
                 SwitchSetting(
                     "App lock",
                     lockOn,
@@ -499,14 +383,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     SettingRow("Change PIN", icon = Icons.Filled.Password, iconTint = Good, chevron = true, onClick = { dialog = PendingDialog.ChangePin })
                 }
                 RowDivider()
-                SettingRow(
-                    "Home screen icon",
-                    value = disguiseOptions.firstOrNull { it.first == s.disguise }?.second ?: "Feed",
-                    icon = Icons.Filled.Apps,
-                    iconTint = Good,
-                    onClick = { dialog = PendingDialog.PickDisguise },
-                )
-                RowDivider()
                 SwitchSetting(
                     "Private mode",
                     s.privateMode,
@@ -515,15 +391,6 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     icon = Icons.Filled.VisibilityOff,
                     iconTint = Good,
                     onChange = vm::setPrivateMode,
-                )
-                RowDivider()
-                SwitchSetting(
-                    "Blur previews",
-                    s.blurPreviews,
-                    subtitle = "Library and search tiles, until you open one",
-                    icon = Icons.Filled.BlurOn,
-                    iconTint = Good,
-                    onChange = vm::setBlurPreviews,
                 )
                 RowDivider()
                 SettingRow(
@@ -563,7 +430,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             }
 
             Section("Backup", modifier = Modifier.anchor("Backup"), footer = "Settings, hidden things, follows, saved and liked posts and collections, in one file encrypted with a password you choose. Your PIN, sign-ins and history aren't included; saved videos download again after an import.") {
-                SettingRow("Export backup", icon = Icons.Filled.Upload, iconTint = TextLow, onClick = { exportLauncher.launch("feed-backup.json") })
+                SettingRow("Export backup", icon = Icons.Filled.Upload, iconTint = TextLow, onClick = { exportLauncher.launch("douyin-feed-backup.json") })
                 RowDivider()
                 SettingRow("Import backup", icon = Icons.Filled.Download, iconTint = TextLow, onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) })
                 RowDivider()
@@ -631,7 +498,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             }
 
             Text(
-                "Feed ${BuildConfig.VERSION_NAME} · What's new",
+                "抖音 Feed ${BuildConfig.VERSION_NAME} · What's new",
                 style = MaterialTheme.typography.labelSmall,
                 color = TextLow,
                 textAlign = TextAlign.Center,

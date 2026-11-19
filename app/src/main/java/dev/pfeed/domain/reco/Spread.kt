@@ -5,8 +5,7 @@ import dev.pfeed.domain.model.MediaItem
 /**
  * Hard spacing rules, so the feed never shows a run of posts from one place.
  *
- * "One place" is what you see on screen as the source: one subreddit, one image-board site, one
- * Mastodon server, one site like Coomer or RedGIFs ([origin]). Within any [WINDOW] consecutive
+ * "One place" is what you see on screen as the source: one Douyin creator, one folder ([origin]). Within any [WINDOW] consecutive
  * items (counting what was already shown before this batch):
  *  - the same origin never appears twice in a row;
  *  - one origin fills at most [MAX_PER_ORIGIN] slots, and one source at most [MAX_PER_SOURCE];
@@ -100,9 +99,16 @@ class Spread(recent: List<MediaItem> = emptyList()) {
         /** [ALL_RULES] and the soft balance rules too (per-source and niche shares). */
         const val BALANCED = 4
 
-        /** Where an item comes from, at the level you'd notice: subreddit, board site, server, site. */
+        /**
+         * Where an item comes from, at the level you'd notice. Douyin is one source of millions of
+         * creators, so there each creator is a place of their own; counting all of Douyin as one
+         * would break "never twice in a row" on every post and stall the feed at one post a load.
+         */
         fun origin(item: MediaItem): String = when (item.sourceId) {
+            "douyin" -> "douyin:" + (item.creator?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: item.id)
+            "local" -> "local:" + (item.creator?.trim()?.lowercase() ?: "")
             "reddit" -> "r/" + (item.tags.firstOrNull()?.lowercase() ?: "")
+            // Sources whose ids start with the site ("host/123"): one place per site.
             "booru", "philomena", "mastodon", "kemono", "tube", "comics" ->
                 item.sourceId + ":" + item.id.substringBefore('/', "").removePrefix("api.").lowercase()
             else -> item.sourceId

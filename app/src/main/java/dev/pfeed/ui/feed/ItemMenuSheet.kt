@@ -236,8 +236,7 @@ fun ItemMenuSheet(
                     val speed by PlaybackSpeed.value.collectAsState()
                     QuickAction(Icons.Filled.Speed, "Speed ${PlaybackSpeed.label(speed)}", lit = speed != 1f, modifier = Modifier.weight(1f)) { PlaybackSpeed.next() }
                 }
-                QuickAction(Icons.Filled.Fullscreen, "Clean screen", modifier = Modifier.weight(1f)) { CleanScreen.set(true); onDismiss() }
-                QuickAction(Icons.AutoMirrored.Filled.OpenInNew, "Open site", modifier = Modifier.weight(1f)) { openExternal(context, item.pageUrl); onDismiss() }
+                QuickAction(Icons.AutoMirrored.Filled.OpenInNew, "Open in 抖音", modifier = Modifier.weight(1f)) { openExternal(context, item.pageUrl); onDismiss() }
             }
             HorizontalDivider()
             if (onMoreLikeThis != null) {
@@ -253,50 +252,20 @@ fun ItemMenuSheet(
                     modifier = Modifier.clickable { onDismiss(); onMoreLikeThis() },
                 )
             }
-            if (item.type == dev.pfeed.domain.model.MediaType.VIDEO) {
-                MenuRow("Save this frame", Icons.Filled.PhotoCamera, "Keep this exact moment as a picture, in Saved → Frames") { FrameGrab.request.value = item.key; onDismiss() }
-                MenuRow("Loop a part", Icons.Filled.Repeat, "Starts here; tap when it reaches the end you want") { LoopPart.request.value = item.key; onDismiss() }
-                val feel by FeelTheSound.on.collectAsStateWithLifecycle()
-                MenuRow(
-                    if (feel) "Stop feeling the sound" else "Feel the sound",
-                    Icons.Filled.Vibration,
-                    if (feel) "The phone stops vibrating with the audio" else "The phone vibrates with the audio, stronger as it gets louder, sound on or off",
-                ) { FeelTheSound.set(!feel); onDismiss() }
-            }
-            if (onForTheRoad != null) MenuRow("Take 20 for the road", Icons.Filled.FlightTakeoff, "This and the next posts, downloaded to watch offline") { onForTheRoad(); onDismiss() }
             if (item.sourceId == dev.pfeed.source.douyin.DouyinParser.SOURCE_ID) {
                 MenuRow("Comments", Icons.Filled.ChatBubbleOutline, "What people said under it on Douyin") { pickTag = "comments" }
-            }
-            val dim by Dimmer.level.collectAsStateWithLifecycle()
-            MenuRow(
-                if (dim == 0f) "Dim the screen" else "Dim: ${(dim * 100).toInt()}% (tap for more, then off)",
-                Icons.Filled.Brightness4,
-                "Darker than your phone's lowest brightness, for watching in the dark",
-            ) { Dimmer.next() }
-            val sleepLeft = SleepTimer.endsAt.collectAsStateWithLifecycle().value?.let { SleepTimer.minutesLeft() }
-            MenuRow("Sleep timer", Icons.Filled.Bedtime, if (sleepLeft != null) "Stops in $sleepLeft min" else "Stop playing after a while") { pickTag = "sleep" }
-            val incognito by dev.pfeed.domain.privacy.Incognito.on.collectAsStateWithLifecycle()
-            MenuRow(
-                if (incognito) "Leave incognito" else "Go incognito",
-                Icons.Filled.VisibilityOff,
-                if (incognito) "Watching is remembered again" else "Until you turn it off: no History, nothing learned, no seen marks",
-            ) {
-                dev.pfeed.domain.privacy.Incognito.set(!incognito)
-                android.widget.Toast.makeText(context, if (incognito) "Incognito off" else "Incognito: nothing you watch is remembered", android.widget.Toast.LENGTH_SHORT).show()
-                onDismiss()
             }
             MenuRow("Not interested", Icons.Filled.ThumbDown, "Show fewer posts like this") { vm.notInterested(item); onDismiss() }
             if (tags.isNotEmpty()) MenuRow("Hide a tag…", Icons.Filled.Block, "Never show posts with that tag") { pickTag = "block" }
             if (creator != null) {
                 MenuRow("Block @$creator", Icons.Filled.PersonOff, "Never show their posts") { vm.blockCreator(item); onDismiss() }
             }
-            MenuRow("Hide $source", Icons.Filled.VisibilityOff, "Never show posts from it") { vm.hideOrigin(item, source); onDismiss() }
             if (item.pageUrl.isNotBlank()) MenuRow("Copy link", Icons.Filled.Link) {
                 dev.pfeed.ui.common.copySensitive(context, "Link", item.pageUrl)
                 onDismiss()
             }
             // Kept on the phone already: copy it out to Downloads (visible to the gallery and other apps).
-            if (vm.canExport(item)) MenuRow("Export to Downloads", Icons.Filled.Download, "Outside this app: other apps can see it") {
+            if (vm.canExport(item)) MenuRow("Save to phone", Icons.Filled.Download, "Into Downloads, where your gallery and other apps can see it") {
                 vm.exportToDownloads(item)
                 onDismiss()
             }

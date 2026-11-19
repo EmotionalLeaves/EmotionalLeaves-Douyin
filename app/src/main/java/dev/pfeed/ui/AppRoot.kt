@@ -107,7 +107,7 @@ fun AppRoot(lockManager: AppLockManager, onPanic: () -> Unit) {
     val locked by lockManager.locked.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     var adult by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(AgeGate.confirmed(context)) }
-    Box(Modifier.fillMaxSize().panicGesture(onPanic)) {
+    Box(Modifier.fillMaxSize()) {
         // The app stays composed under the lock screen (so view-model state survives), but media pauses.
         // Behind the age gate it's the same: the feed loads, nothing plays.
         MainNav(locked = locked || !adult)

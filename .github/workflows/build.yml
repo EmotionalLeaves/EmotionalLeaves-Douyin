@@ -70,7 +70,13 @@ jobs:
           fi
 
       - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon testDebugUnitTest 2>&1 | tee unit-tests.log || {
+            # Repeat the reason as annotations, which show on the run's summary page.
+            grep -E "FAILED|What went wrong|^e: |Exception|expected" -A3 unit-tests.log | head -40 | sed 's/^/::error::/'
+            exit 1
+          }
 
       - name: Build debug APK
         run: ./gradlew --no-daemon assembleDebug

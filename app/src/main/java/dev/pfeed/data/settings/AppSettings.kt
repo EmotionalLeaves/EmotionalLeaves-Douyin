@@ -58,7 +58,7 @@ data class AppSettings(
     /** Storage Access Framework tree URIs. Device-specific, so not imported from backups. */
     val localFolders: List<String> = emptyList(),
     val cacheSizeMb: Int = 1024,
-    val autoplayOnMobileData: Boolean = false,
+    val autoplayOnMobileData: Boolean = true,
     /** Grids play the video nearest the middle silently in its tile, moving on every few seconds. */
     val livePreviews: Boolean = true,
     /** The app's colour (a [dev.pfeed.ui.theme.Palette] name). */
@@ -89,7 +89,7 @@ data class AppSettings(
     val hideFromRecents: Boolean = false,
     /** Where a panic (three fingers, flip, shake) leaves to: "home", "browser", "calculator" or "messages". */
     val panicTo: String = "home",
-    val defaultMute: Boolean = true,
+    val defaultMute: Boolean = false,
     val historyRetentionDays: Int = 30,
     /** Look every site up over encrypted DNS (1.1.1.1), not just ones the network blocks. */
     val encryptedDns: Boolean = false,
@@ -106,7 +106,7 @@ data class AppSettings(
     /** Which videos the main feeds show by length: "any", "short" (clips under 3 min) or "long" (3 min and up). */
     val videoLength: String = "any",
     /** Leave out AI-generated art (Stable Diffusion, NovelAI…) everywhere: feeds, search, tag pages. */
-    val hideAiArt: Boolean = true,
+    val hideAiArt: Boolean = false,
     /** Leaving the app while a video plays keeps it going in a small floating window. Off by default. */
     val pictureInPicture: Boolean = false,
     /** Your proxy for sites blocked where you are: "off", "http", "socks" or "orbot" (Tor via Orbot, 127.0.0.1:9050). */
