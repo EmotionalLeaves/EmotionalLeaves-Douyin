@@ -24,6 +24,9 @@ object ChineseToEnglish {
     }
     private val cache = java.util.concurrent.ConcurrentHashMap<String, String>()
 
+    /** Settings → Translate captions automatically (set at startup and on change). */
+    @Volatile var auto = false
+
     /** True once the model is on the phone (so a tap translates at once). */
     @Volatile var ready = false
         private set

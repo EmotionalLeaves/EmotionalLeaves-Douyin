@@ -1,3 +1,13 @@
+## 1.5.0 — 2026-11-19
+In English, all the way
+
+- New: Settings → Playback → Translate captions automatically: every Chinese caption shows in English as it comes up.
+- Better: creator pages add the creator's posts found among Douyin's related videos, and say plainly that signed out Douyin shows only some (one tap to sign in).
+- Better: a saved Douyin clip downloads right away, even on mobile data (unless Data saver is on), since its address won't keep.
+- Better: video addresses are trusted until the expiry they carry, so older posts play without a needless look-up.
+- Battery: the hidden Douyin pages close a minute after you leave the app (and after background prefetching).
+- Accessibility: screen readers hear "Like, 1.2万 likes".
+
 ## 1.4.2 — 2026-11-19
 Trending that opens
 

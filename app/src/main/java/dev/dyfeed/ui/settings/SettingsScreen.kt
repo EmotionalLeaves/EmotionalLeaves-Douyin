@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import dev.dyfeed.ui.theme.Accent
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayCircle
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.positionInParent
@@ -297,6 +298,14 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             }
 
             Section("Playback", modifier = Modifier.anchor("Playback")) {
+                SwitchSetting(
+                    "Translate captions automatically",
+                    s.autoTranslate,
+                    subtitle = "Chinese captions show in English right away (on the phone; a one-time 30 MB download)",
+                    icon = Icons.Filled.Translate,
+                    onChange = vm::setAutoTranslate,
+                )
+                RowDivider()
                 SwitchSetting("Start muted", s.defaultMute, icon = Icons.AutoMirrored.Filled.VolumeOff, onChange = vm::setDefaultMute)
                 RowDivider()
                 SwitchSetting(

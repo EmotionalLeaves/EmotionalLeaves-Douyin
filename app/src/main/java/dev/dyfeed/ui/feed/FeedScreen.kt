@@ -1648,9 +1648,14 @@ private fun Overlay(
                 // "See translation" under a Chinese caption: English right there, on the phone.
                 val chinese = remember(it) { it.any { c -> Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN } }
                 if (chinese) {
-                    var showing by remember(item.key) { mutableStateOf(false) }
+                    var showing by remember(item.key) { mutableStateOf(dev.dyfeed.ui.common.ChineseToEnglish.auto) }
                     var english by remember(item.key) { mutableStateOf<String?>(null) }
-                    val translateScope = rememberCoroutineScope()
+                    // Settings → Translate captions automatically: fetch it as the post comes up.
+                    androidx.compose.runtime.LaunchedEffect(item.key, showing) {
+                        if (showing && english == null) {
+                            english = dev.dyfeed.ui.common.ChineseToEnglish.translate(it).getOrElse { e -> "Couldn't translate (${e.message ?: "no connection for the first download?"})" }
+                        }
+                    }
                     if (showing) {
                         Text(
                             english ?: "Translating…",
@@ -1666,12 +1671,7 @@ private fun Overlay(
                         color = Color.White.copy(alpha = 0.75f),
                         fontWeight = FontWeight.SemiBold,
                         style = MaterialTheme.typography.labelMedium.shadowed(),
-                        modifier = Modifier.clickable {
-                            showing = !showing
-                            if (showing && english == null) translateScope.launch {
-                                english = dev.dyfeed.ui.common.ChineseToEnglish.translate(it).getOrElse { e -> "Couldn't translate (${e.message ?: "no connection for the first download?"})" }
-                            }
-                        },
+                        modifier = Modifier.clickable { showing = !showing }, // the effect above fetches it
                     )
                 }
             }
