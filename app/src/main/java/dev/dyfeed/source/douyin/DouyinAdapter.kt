@@ -158,8 +158,10 @@ class DouyinAdapter @Inject constructor(
             if (maxCursor > 0) throw e
             // Signed out the post list answers 403: take what the creator's own page loads, plus
             // their posts the app already has.
-            val fromPage = if (!allowPage) emptyList() else runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
-                runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+            val fromPage = if (!allowPage) emptyList() else creatorPageGate.attempt {
+                runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
+                    runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+                }
             }
             ensureIndex()
             val known = synchronized(loaded) { loaded.filter { it.extras["secUid"] == secUid } }
@@ -242,6 +244,11 @@ class DouyinAdapter @Inject constructor(
 
     private val pageSearchGate = GiveUpGate(GIVE_UP_AFTER)
     private val webSearchGate = GiveUpGate(GIVE_UP_AFTER)
+    // Pages Douyin shows a signed-out visitor without their posts (creator, trending topic, single
+    // post): each costs ~10 s, so after two empty tries they're skipped for the session.
+    private val creatorPageGate = GiveUpGate(GIVE_UP_AFTER)
+    private val trendPageGate = GiveUpGate(GIVE_UP_AFTER)
+    private val postPageGate = GiveUpGate(GIVE_UP_AFTER)
 
     /** A hashtag's own video list, for a search that is (or contains) a hashtag seen in the feed. */
     private suspend fun hashtagPosts(q: String): List<MediaItem> {
@@ -300,8 +307,10 @@ class DouyinAdapter @Inject constructor(
         if (trendIds.isEmpty()) runCatching { trending() }
         val key = q.trim()
         val sid = trendIds[key] ?: trendIds.entries.firstOrNull { (w, _) -> w.contains(key) || key.contains(w) }?.value ?: return emptyList()
-        return runCatching { web.trendPage(sid) }.getOrDefault(emptyList()).flatMap { body ->
-            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+        return trendPageGate.attempt {
+            runCatching { web.trendPage(sid) }.getOrDefault(emptyList()).flatMap { body ->
+                runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+            }
         }
     }
 
@@ -381,9 +390,11 @@ class DouyinAdapter @Inject constructor(
         }.getOrNull()
             ?: sharePage(awemeId)
             // The post's own page, read in the second hidden page (its embedded data carries it).
-            ?: runCatching { web.postPage(awemeId) }.getOrDefault(emptyList()).asSequence()
-                .flatMap { body -> runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList()).asSequence() }
-                .firstOrNull { it.id == awemeId }
+            ?: postPageGate.attempt {
+                runCatching { web.postPage(awemeId) }.getOrDefault(emptyList())
+                    .flatMap { body -> runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList()) }
+                    .filter { it.id == awemeId }
+            }.firstOrNull()
 
     /** A link shared to the app: v.douyin.com short links, douyin.com/video|note/<id>, ?modal_id=<id>, iesdouyin share pages. */
     suspend fun fromLink(url: HttpUrl): MediaItem? {
