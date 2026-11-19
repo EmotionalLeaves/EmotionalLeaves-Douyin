@@ -187,6 +187,21 @@ object DouyinParser {
     private val HASHTAG = Regex("""[#＃][^\s#＃@]+""")
     private val MENTION = Regex("""@[^\s#＃@]+""")
 
+    /**
+     * Whether [item] answers a search for [q]: every word of it appears in the caption, the tags or
+     * the creator's name (Chinese needs no spaces: "火锅" matches "重庆火锅太好吃了").
+     */
+    fun matches(item: MediaItem, q: String): Boolean {
+        val words = q.lowercase().split(Regex("""\s+""")).map { it.removePrefix("#") }.filter { it.isNotBlank() }
+        if (words.isEmpty()) return false
+        val hay = buildString {
+            append(item.title.orEmpty().lowercase()); append(' ')
+            item.tags.forEach { append(it.lowercase()); append(' ') }
+            append(item.creator.orEmpty().lowercase())
+        }
+        return words.all { it in hay }
+    }
+
     /** "重庆火锅太好吃了 #美食 #重庆 @小王" → "重庆火锅太好吃了"; null if nothing else is left. */
     fun caption(desc: String): String? =
         desc.replace(HASHTAG, " ").replace(MENTION, " ").replace(Regex("""\s+"""), " ").trim().takeIf { it.isNotEmpty() }

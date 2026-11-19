@@ -233,26 +233,8 @@ class DouyinAdapter @Inject constructor(
         return Page(items, next.takeIf { DouyinParser.hasMore(root) && items.isNotEmpty() })
     }
 
-    /**
-     * Gives up on a way of searching that keeps finding nothing: after [GIVE_UP_AFTER] empty tries
-     * in a row (and never a hit) it isn't asked again this session. Douyin's search page shows a
-     * visitor a captcha and search engines don't list Douyin for some networks; waiting ~20 s on
-     * each for every search (and every topic row) made search slow for nothing.
-     */
-    private class Gate {
-        @Volatile private var misses = 0
-        @Volatile private var everWorked = false
-
-        suspend fun attempt(block: suspend () -> List<MediaItem>): List<MediaItem> {
-            if (!everWorked && misses >= GIVE_UP_AFTER) return emptyList()
-            val r = block()
-            if (r.isEmpty()) misses++ else { everWorked = true; misses = 0 }
-            return r
-        }
-    }
-
-    private val pageSearchGate = Gate()
-    private val webSearchGate = Gate()
+    private val pageSearchGate = GiveUpGate(GIVE_UP_AFTER)
+    private val webSearchGate = GiveUpGate(GIVE_UP_AFTER)
 
     /** A hashtag's own video list, for a search that is (or contains) a hashtag seen in the feed. */
     private suspend fun hashtagPosts(q: String): List<MediaItem> {
@@ -343,16 +325,8 @@ class DouyinAdapter @Inject constructor(
 
     /** Posts brought in this session (feed, creators, links) whose caption, tags or creator contain every word of [q]. */
     fun loadedMatching(q: String): List<MediaItem> {
-        val words = q.lowercase().split(Regex("""\s+""")).filter { it.isNotBlank() }
-        if (words.isEmpty()) return emptyList()
-        return synchronized(loaded) { loaded.toList() }.asReversed().filter { item ->
-            val hay = buildString {
-                append(item.title.orEmpty().lowercase()); append(' ')
-                item.tags.forEach { append(it); append(' ') }
-                append(item.creator.orEmpty().lowercase())
-            }
-            words.all { it in hay }
-        }
+        if (q.isBlank()) return emptyList()
+        return synchronized(loaded) { loaded.toList() }.asReversed().filter { DouyinParser.matches(it, q) }
     }
 
     // ── playback ──
@@ -591,3 +565,22 @@ class DouyinAdapter @Inject constructor(
     }
 }
 
+/**
+ * Gives up on a way of searching that keeps finding nothing: after [giveUpAfter] empty tries in a
+ * row (and never a hit) it isn't asked again this session. Douyin's search page shows a visitor a
+ * captcha and search engines don't list Douyin for some networks; waiting ~20 s on each for every
+ * search (and every topic row) made search slow for nothing.
+ */
+internal class GiveUpGate(private val giveUpAfter: Int) {
+    @Volatile private var misses = 0
+    @Volatile private var everWorked = false
+
+    val open: Boolean get() = everWorked || misses < giveUpAfter
+
+    suspend fun <T> attempt(block: suspend () -> List<T>): List<T> {
+        if (!open) return emptyList()
+        val r = block()
+        if (r.isEmpty()) misses++ else { everWorked = true; misses = 0 }
+        return r
+    }
+}
