@@ -410,15 +410,10 @@ private fun AddSection(title: String, content: @Composable () -> Unit) {
 }
 
 
-
-
-/** The editable list behind a source (subreddits, board feeds…), filterable, each removable. */
+/** The editable list behind a source (links, folders), filterable, each removable. */
 @Composable
 private fun Entries(id: String, s: AppSettings, vm: SettingsViewModel) {
     val entries: List<Pair<String, () -> Unit>> = when (id) {
-        "reddit" -> s.redditSubs.map { sub -> "r/$sub" to { vm.removeReddit(sub); Unit } }
-        "booru" -> s.booruFeeds.map { f -> f.label to { vm.removeBooru(f); Unit } }
-        "mastodon" -> s.mastodonFeeds.map { f -> f.label to { vm.removeMastodon(f); Unit } }
         "direct" -> s.directUrls.map { u -> u to { vm.removeDirect(u); Unit } }
         "local" -> s.localFolders.map { u -> (Uri.parse(u).lastPathSegment?.substringAfter(':') ?: u) to { vm.removeFolder(u); Unit } }
         else -> return
@@ -512,28 +507,14 @@ private fun Field(label: String, value: String, placeholder: String? = null, onC
 
 /** How many feeds/entries a source pulls from, or null if it has no countable list. */
 internal fun feedCount(id: String, s: AppSettings): Int? = when (id) {
-    "reddit" -> s.redditSubs.size
-    "booru" -> s.booruFeeds.size
-    "mastodon" -> s.mastodonFeeds.size
     "direct" -> s.directUrls.size
     "local" -> s.localFolders.size
-    "kemono" -> s.kemonoHosts.size
     else -> null
 }
 
 /** One line about what a source is pulling from. */
 internal fun feedSummary(id: String, s: AppSettings): String? = when (id) {
     "douyin" -> "Recommended feed, search, creators"
-    "reddit" -> "${"%,d".format(s.redditSubs.size)} subreddits"
-    "booru" -> {
-        val sites = s.booruFeeds.map { it.host.lowercase().removePrefix("www.") }.distinct().size
-        "${"%,d".format(s.booruFeeds.size)} tag feeds on $sites boards"
-    }
-    "mastodon" -> {
-        val servers = s.mastodonFeeds.map { it.host.lowercase() }.distinct().size
-        "${"%,d".format(s.mastodonFeeds.size)} hashtag feeds on $servers servers"
-    }
-    "kemono" -> s.kemonoHosts.joinToString(" + ").ifBlank { null }
     "direct" -> if (s.directUrls.isEmpty()) "Paste a video or image link" else "${s.directUrls.size} links"
     "local" -> if (s.localFolders.isEmpty()) "Pick a folder on this phone" else "${s.localFolders.size} folders"
     else -> null

@@ -316,33 +316,6 @@ class SettingsViewModel @Inject constructor(
     }
     fun removeDirect(url: String) = update { it.copy(directUrls = it.directUrls - url) }
 
-    fun addReddit(name: String): Boolean {
-        val sub = name.trim().removePrefix("/").removePrefix("r/").trim('/')
-        if (sub.isBlank() || sub.contains(' ')) { _messages.tryEmit("Enter a single subreddit name"); return false }
-        update { s -> if (sub in s.redditSubs) s else s.copy(redditSubs = s.redditSubs + sub) }
-        return true
-    }
-    fun removeReddit(sub: String) = update { it.copy(redditSubs = it.redditSubs - sub) }
-
-    fun addMastodon(host: String, tag: String): Boolean {
-        val h = host.trim()
-        if (h.isBlank() || h.contains(' ')) { _messages.tryEmit("Enter a server, e.g. mastodon.social"); return false }
-        val feed = MastodonFeed(h, tag.trim().removePrefix("#").ifBlank { null })
-        update { s -> if (feed in s.mastodonFeeds) s else s.copy(mastodonFeeds = s.mastodonFeeds + feed) }
-        return true
-    }
-    fun removeMastodon(feed: MastodonFeed) = update { it.copy(mastodonFeeds = it.mastodonFeeds - feed) }
-
-    fun addBooru(host: String, tags: String): Boolean {
-        val h = host.trim()
-        if (h.isBlank() || h.contains(' ')) { _messages.tryEmit("Enter a board host"); return false }
-        val feed = BooruFeed(h, tags.trim().ifBlank { null })
-        update { s -> if (feed in s.booruFeeds) s else s.copy(booruFeeds = s.booruFeeds + feed) }
-        return true
-    }
-    fun removeBooru(feed: BooruFeed) = update { it.copy(booruFeeds = it.booruFeeds - feed) }
-
-
     fun addFolder(uri: Uri) {
         runCatching { app.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
             .onFailure { _messages.tryEmit("Couldn't keep access to that folder"); return }
