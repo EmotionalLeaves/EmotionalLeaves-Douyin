@@ -1,0 +1,113 @@
+package dev.pfeed
+
+import dev.pfeed.domain.filter.Blocklist
+import dev.pfeed.domain.model.MediaItem
+import dev.pfeed.domain.reco.RankWeights
+import dev.pfeed.domain.reco.Ranker
+import dev.pfeed.domain.reco.Spread
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.time.Instant
+import kotlin.random.Random
+
+class SpreadAndRatingTest {
+    private val now = Instant.parse("2026-11-01T12:00:00Z")
+
+    private fun sub(id: String, sub: String) = item(id, source = "reddit", tags = listOf(sub))
+    private fun board(id: String, host: String) = item("$host/$id", source = "booru")
+
+    private fun assertNoRuns(list: List<MediaItem>) {
+        list.map(Spread::origin).zipWithNext().forEach { (a, b) -> assertTrue("back-to-back $a in ${list.map(Spread::origin)}", a != b) }
+        list.windowed(Spread.WINDOW, partialWindows = true).forEach { w ->
+            w.groupingBy(Spread::origin).eachCount().forEach { (o, n) -> assertTrue("$o appears $n times in 12", n <= Spread.MAX_PER_ORIGIN) }
+        }
+    }
+
+    @Test
+    fun `latest order never shows one subreddit or site back to back`() {
+        // One busy subreddit posted the 20 newest items; others are older.
+        val busy = (1..20).map { sub("busy$it", "BDSM").copy(publishedAt = now.minusSeconds(it.toLong())) }
+        val others = (1..20).map { i -> sub("o$i", "sub${i % 6}").copy(publishedAt = now.minusSeconds(1000L + i)) }
+        val ordered = Spread.order((busy + others).sortedByDescending { it.publishedAt }, emptyList(), 12)
+        assertEquals(12, ordered.size)
+        assertNoRuns(ordered)
+    }
+
+    @Test
+    fun `for you spreads origins even when one origin scores best`() {
+        // Everything from rule34 matches the user's taste; other sites don't.
+        val loved = (1..30).map { board("$it", "rule34.xxx").copy(tags = listOf("rope")) }
+        val rest = (1..30).map { i -> board("x$i", "site${i % 6}.net").copy(tags = listOf("other$i")) }
+        val ranked = Ranker(RankWeights(exploration = 0.0), Random(1))
+            .rank(loved + rest, mapOf("rope" to 10.0), emptyMap(), now, limit = 12)
+        assertNoRuns(ranked)
+        // Taste still matters: the loved site gets its full share.
+        assertEquals(Spread.MAX_PER_ORIGIN, ranked.count { it.id.startsWith("rule34.xxx/") })
+    }
+
+    @Test
+    fun `spacing carries across batches`() {
+        val shown = listOf(board("1", "a.net"), board("2", "b.net"), board("3", "a.net"), board("4", "c.net"), board("5", "a.net"))
+        // a.net already has 3 in the window, so it must not open the next batch.
+        val next = Spread.order(listOf(board("6", "a.net"), board("7", "d.net")), shown, 1)
+        assertEquals("d.net/7", next.single().id)
+    }
+
+    @Test
+    fun `one gallery post contributes one item per window`() {
+        val gallery = (1..10).map { i -> item("coomer.su/99/$i", source = "kemono").copy(pageUrl = "https://coomer.su/post/99") }
+        val others = (1..10).map { i -> item("coomer.su/$i/0", source = "kemono").copy(pageUrl = "https://coomer.su/post/$i") }
+        val subs = (1..10).map { i -> sub("r$i", "sub$i") }
+        val ordered = Spread.order(gallery + others + subs, emptyList(), 12)
+        assertEquals(1, ordered.count { it.pageUrl == "https://coomer.su/post/99" })
+    }
+
+    @Test
+    fun `fills from one origin only when nothing else is coming`() {
+        val only = (1..5).map { board("$it", "one.net") }
+        // allowForcedRun = true is the "every source is exhausted, this is all there is" fallback:
+        // better to show the remaining items than stall the feed.
+        assertEquals(5, Spread.order(only, emptyList(), 12, allowForcedRun = true).size)
+    }
+
+    @Test
+    fun `stops short of a run while more varied candidates may still arrive`() {
+        // Pool is briefly all one site (e.g. cold start: only this source has answered so far).
+        val only = (1..12).map { board("$it", "one.net") }
+        // With nothing shown yet, the first item is fine; the rest would be a run, so the batch
+        // stops after one and the feed fills in on the next load once other sources answer.
+        val fresh = Spread.order(only, emptyList(), 12, allowForcedRun = false)
+        assertEquals(1, fresh.size)
+        // If that same site was the last thing shown, even the first pick would be a run: emit
+        // nothing and let the feed wait for variety rather than continue the run across loads.
+        val afterSame = Spread.order(only, listOf(board("0", "one.net")), 12, allowForcedRun = false)
+        assertTrue(afterSame.isEmpty())
+    }
+
+    @Test
+    fun `a full varied pool still fills the batch with no runs`() {
+        // Even with allowForcedRun = false, variety means the batch fills normally.
+        val pool = (1..40).map { i -> board("$i", "site${i % 8}.net") }
+        val ordered = Spread.order(pool, emptyList(), 12, allowForcedRun = false)
+        assertEquals(12, ordered.size)
+        assertNoRuns(ordered)
+    }
+
+    @Test
+    fun `for you holds a run back until variety arrives`() {
+        val loved = (1..20).map { board("$it", "rule34.xxx").copy(tags = listOf("rope")) }
+        val ranked = Ranker(RankWeights(exploration = 0.0), Random(1))
+            .rank(loved, mapOf("rope" to 10.0), emptyMap(), now, limit = 12, allowForcedRun = false)
+        // One strong match leads; the rest would be a run from the same site, so they wait.
+        assertEquals(1, ranked.size)
+    }
+
+    @Test
+    fun `nothing is filtered for being safe-rated any more`() {
+        val rated = item("b", source = "douyin").copy(extras = mapOf("media" to "m", "rating" to "s"))
+        assertTrue(Blocklist.EMPTY.allows(rated))
+        assertTrue(Blocklist.EMPTY.allows(item("h", source = "douyin", tags = listOf("美食", "sfw"))))
+    }
+}

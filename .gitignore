@@ -1,0 +1,14 @@
+*.iml
+.gradle/
+/local.properties
+/.idea/
+.DS_Store
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
+*.jks
+*.keystore
+# Fixed sideload signing key, so updates install over the previous build
+!keystore/pfeed.jks

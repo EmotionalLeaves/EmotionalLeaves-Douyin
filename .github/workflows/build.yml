@@ -1,0 +1,204 @@
+name: Build APK
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      # Optional repo secrets. Without the signing ones, a debug-signed APK is published instead
+      # (the release build still runs, unsigned, to verify R8/ProGuard).
+      KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      API_DISPLAY_NAME: ${{ secrets.API_DISPLAY_NAME }}
+      API_BASE_URL: ${{ secrets.API_BASE_URL }}
+      API_AUTH_URL: ${{ secrets.API_AUTH_URL }}
+      API_TOKEN_URL: ${{ secrets.API_TOKEN_URL }}
+      API_CLIENT_ID: ${{ secrets.API_CLIENT_ID }}
+      API_SCOPES: ${{ secrets.API_SCOPES }}
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+
+      - name: Write local.properties
+        run: |
+          {
+            echo "sdk.dir=$ANDROID_HOME"
+            echo "api.displayName=$API_DISPLAY_NAME"
+            echo "api.baseUrl=$API_BASE_URL"
+            echo "api.authUrl=$API_AUTH_URL"
+            echo "api.tokenUrl=$API_TOKEN_URL"
+            echo "api.clientId=$API_CLIENT_ID"
+            echo "api.scopes=$API_SCOPES"
+          } > local.properties
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+            {
+              echo "release.storeFile=$RUNNER_TEMP/release.jks"
+              echo "release.storePassword=$KEYSTORE_PASSWORD"
+              echo "release.keyAlias=$KEY_ALIAS"
+              echo "release.keyPassword=$KEY_PASSWORD"
+            } >> local.properties
+            echo "SIGNED=true" >> "$GITHUB_ENV"
+          else
+            echo "::notice::No signing secrets set. Publishing a debug-signed APK; release build runs unsigned to verify R8."
+            echo "SIGNED=false" >> "$GITHUB_ENV"
+          fi
+
+      - name: Unit tests
+        run: ./gradlew --no-daemon testDebugUnitTest
+
+      - name: Build debug APK
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Build release APK (R8 + lintVital)
+        run: ./gradlew --no-daemon assembleRelease
+
+      - name: Build optimized sideload APK (R8, installs over the debug APK)
+        run: ./gradlew --no-daemon assembleSideload
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ env.SIGNED == 'true' && 'app-release' || 'app-optimized' }}
+          path: ${{ env.SIGNED == 'true' && 'app/build/outputs/apk/release/*.apk' || 'app/build/outputs/apk/sideload/*.apk' }}
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Upload debug APK (for comparison)
+        uses: actions/upload-artifact@v5
+        with:
+          name: app-debug
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+      - name: Lint
+        if: always()
+        run: ./gradlew --no-daemon lintDebug
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: reports
+          path: |
+            app/build/reports/
+            app/build/test-results/
+            app/build/outputs/mapping/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  smoke-test:
+    # Boots an emulator, installs the debug build and runs the instrumented smoke test
+    # (launch, PIN gate, every screen, panic gesture).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-36" "build-tools;36.0.0" "platform-tools"
+          echo "sdk.dir=$ANDROID_HOME" > local.properties
+
+      - name: Build test APKs
+        run: ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest
+
+      - name: Run smoke test on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          disable-animations: true
+          emulator-options: -no-snapshot -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim
+          script: ./gradlew --no-daemon connectedDebugAndroidTest; code=$?; adb logcat -d -s PFHEALTH:I AndroidRuntime:E TestRunner:E; mkdir -p shots; adb pull /data/local/tmp/shots/. shots/ || true; ./gradlew --no-daemon -q installSideload && adb logcat -c && adb shell am start -W -n dev.dyfeed.debug/dev.pfeed.LauncherDefault | grep -E "TotalTime|WaitTime" | sed "s/^/STARTUP cold /"; sleep 30; echo "OPTIMIZED $(adb logcat -d -s PFHEALTH:I | grep -c 'posts shown') shown-lines, $(adb logcat -d -s PFHEALTH:I | grep 'posts shown' | tail -1)"; adb shell am force-stop dev.dyfeed.debug; (while sleep 30; do adb shell dumpsys meminfo dev.dyfeed.debug 2>/dev/null | grep -E "Java Heap|TOTAL PSS" | tr -s " " | tr "\n" " " | sed "s/^/HEAP /"; echo; done) > heap.txt 2>&1 & HEAPMON=$!; adb shell monkey -p dev.dyfeed.debug --pct-syskeys 0 --pct-appswitch 0 --pct-anyevent 0 --throttle 90 -s $(date +%s) -v 6000 > monkey.txt 2>&1; kill $HEAPMON 2>/dev/null; grep HEAP heap.txt | tail -12; adb shell dumpsys gfxinfo dev.dyfeed.debug | grep -E "Total frames rendered|Janky frames|50th percentile|90th percentile|99th percentile" | sed "s/^/FRAMES /"; echo "MONKEY crashes=$(grep -c CRASH monkey.txt) anrs=$(grep -c ANR monkey.txt)"; tail -3 monkey.txt; grep -A25 -m1 'CRASH' monkey.txt || true; grep -B3 -A40 -m1 'ANR in' monkey.txt || true; adb shell ls /data/anr || true; exit $code
+
+      - name: Upload design screenshots
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: screenshots
+          path: shots/
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: smoke-test-reports
+          path: app/build/reports/androidTests/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    # A new version (versionName with no GitHub release yet) that passed the emulator tests goes up
+    # as a GitHub release with the APK attached. The app's updater reads releases/latest.
+    needs: [build, smoke-test]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Fetch the APK
+        uses: actions/download-artifact@v5
+        with:
+          pattern: app-{optimized,release}
+          path: apk
+          merge-multiple: true
+
+      - name: Release it if it's a new version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VER=$(grep -oP 'versionName = "\K[^"]+' app/build.gradle.kts)
+          if gh release view "v$VER" > /dev/null 2>&1; then
+            echo "v$VER is already released"; exit 0
+          fi
+          APK=$(ls apk/*.apk | head -1)
+          [ -n "$APK" ] || { echo "::error::no APK"; exit 1; }
+          cp "$APK" "PrivateFeed-$VER.apk"
+          # This version's part of the changelog, as the release notes.
+          awk -v v="## $VER" 'index($0, v) == 1 { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md > notes.md
+          gh release create "v$VER" "PrivateFeed-$VER.apk" --title "$VER" --notes-file notes.md --target "$GITHUB_SHA" --latest

@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">抖音 Feed</string>
+    <string name="disguise_notes">Notes</string>
+    <string name="disguise_calculator">Calculator</string>
+    <string name="disguise_browser">Browser</string>
+    <string name="tile_lock">Lock</string>
+</resources>

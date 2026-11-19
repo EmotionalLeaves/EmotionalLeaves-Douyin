@@ -1,0 +1,42 @@
+package dev.pfeed.domain.filter
+
+import dev.pfeed.domain.model.MediaItem
+
+/**
+ * Pure blocklist applied at ingest (and re-applied to the live feed whenever it changes).
+ * Tags and creators are compared after [normalize]; items are compared by [MediaItem.key].
+ */
+data class Blocklist(
+    val tags: Set<String> = emptySet(),
+    val creators: Set<String> = emptySet(),
+    val items: Set<String> = emptySet(),
+    /** Hidden sources ("douyin", "local", a site's host…). */
+    val origins: Set<String> = emptySet(),
+    /** Settings → Hide AI-generated art. */
+    val hideAi: Boolean = false,
+) {
+    fun allows(item: MediaItem): Boolean {
+        if (hideAi && AiArt.isAi(item)) return false
+        if (item.key in items) return false
+        if (origins.isNotEmpty() && normalize(dev.pfeed.domain.reco.Spread.origin(item)) in origins) return false
+        val creator = item.creator?.let(::normalize)
+        if (creator != null && creator in creators) return false
+        if (tags.isEmpty()) return true
+        return item.tags.none { dev.pfeed.domain.reco.Features.normalizeTag(it) in canonicalTags }
+    }
+
+    /**
+     * Hidden tags in the form posts' tags are compared in: "big tits", "big_tits" and "large breasts"
+     * are one tag (see Features.normalizeTag), so hiding one hides them all.
+     */
+    private val canonicalTags: Set<String> by lazy { tags.mapTo(HashSet()) { dev.pfeed.domain.reco.Features.normalizeTag(it) } }
+
+    fun filter(items: List<MediaItem>): List<MediaItem> = items.filter(::allows)
+
+    companion object {
+        val EMPTY = Blocklist()
+
+        fun normalize(value: String): String =
+            value.trim().removePrefix("#").trim().lowercase().replace(Regex("\\s+"), " ")
+    }
+}

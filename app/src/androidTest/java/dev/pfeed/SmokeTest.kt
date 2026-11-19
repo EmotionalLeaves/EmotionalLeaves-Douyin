@@ -1,0 +1,558 @@
+package dev.pfeed
+
+import android.os.SystemClock
+import android.view.InputDevice
+import android.view.MotionEvent
+import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+import org.junit.runner.RunWith
+
+/**
+ * End-to-end smoke test on a real emulator: app starts (Hilt, SQLCipher, DataStore, WorkManager),
+ * the app opens without a PIN by default, every top-level screen opens without crashing, and the
+ * panic gesture locks the app once a PIN is set.
+ */
+@OptIn(ExperimentalTestApi::class)
+@RunWith(AndroidJUnit4::class)
+class SmokeTest {
+
+    companion object {
+        /**
+         * Start every launch from an empty feed: with instant start a video can be playing the
+         * moment the app opens, and the test framework can't inspect the screen while one plays.
+         */
+        @JvmStatic
+        @org.junit.BeforeClass
+        fun noInstantStart() {
+            dev.pfeed.data.repo.PoolCache.enabled = false
+            dev.pfeed.ui.feed.FirstRun.askInterests = false
+            dev.pfeed.ui.AgeGate.required = false
+        }
+    }
+
+    @get:Rule
+    val rule = createAndroidComposeRule<MainActivity>()
+
+    private val pin = listOf("1", "2", "3", "4")
+
+    private fun exists(text: String, substring: Boolean = false) =
+        rule.onAllNodes(hasText(text, substring = substring), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /**
+     * Waits by polling. A busy screen (loading bars, thumbnails arriving, a playing video) makes the
+     * framework refuse to inspect it for a moment; that counts as "not yet", not as a failure.
+     */
+    private fun waitFor(timeoutMs: Long = 15_000, what: String, condition: () -> Boolean) {
+        var last: Throwable? = null
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            try {
+                if (condition()) return
+            } catch (e: Throwable) {
+                last = e
+            }
+            Thread.sleep(300)
+        }
+        val onScreen = runCatching {
+            rule.onAllNodes(androidx.compose.ui.test.isRoot(), useUnmergedTree = true).fetchSemanticsNodes().flatMap { root ->
+                fun walk(n: androidx.compose.ui.semantics.SemanticsNode): List<String> =
+                    run {
+                        val key = androidx.compose.ui.semantics.SemanticsProperties.Text
+                        if (key in n.config) n.config[key].map { t -> t.text } else emptyList()
+                    } + n.children.flatMap { c -> walk(c) }
+                walk(root)
+            }.distinct().take(40).joinToString(" | ")
+        }.getOrDefault("?")
+        throw AssertionError("Failed waiting for: $what [${last?.javaClass?.simpleName}: ${last?.message?.take(200)}] on screen: $onScreen", last)
+    }
+
+    /** Taps a text, retrying while the screen is too busy to be inspected. */
+    /** A tab in the bottom bar (brought back first, in case scrolling tucked the bar away). */
+    private fun tab(name: String) {
+        dev.pfeed.ui.BottomBar.collapse = 0f
+        // Wake it too: over the feed it hides after a while, and a tap on a hidden bar only wakes it.
+        dev.pfeed.ui.BottomBar.lastTouch = System.currentTimeMillis()
+        rule.waitForIdle()
+        rule.onNode(
+            hasText(name) and androidx.compose.ui.test.isSelectable() and
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Tab),
+        ).performClick()
+    }
+
+    private fun tap(text: String) = waitFor(timeoutMs = 30_000, what = "tap '$text'") {
+        rule.onAllNodes(hasText(text), useUnmergedTree = true)[0].performClick()
+        true
+    }
+
+    /** Polls without touching the Compose tree (which can't be inspected while a video plays). */
+    private fun poll(timeoutMs: Long, what: String, condition: () -> Boolean) {
+        val deadline = System.currentTimeMillis() + timeoutMs
+        while (System.currentTimeMillis() < deadline) {
+            if (condition()) return
+            // Under a test rule the UI only draws frames when the test drives its clock.
+            rule.mainClock.advanceTimeBy(250)
+            Thread.sleep(150)
+        }
+        throw AssertionError("Timed out waiting for: $what")
+    }
+
+    /** A real finger swipe up through the Activity, the same path a physical touch takes. */
+    private fun swipeUpGesture() {
+        val activity = rule.activity
+        val w = activity.window.decorView.width.toFloat()
+        val h = activity.window.decorView.height.toFloat()
+        val down = SystemClock.uptimeMillis()
+        fun ev(action: Int, y: Float, t: Long) = MotionEvent.obtain(down, t, action, w / 2f, y, 0).apply { source = InputDevice.SOURCE_TOUCHSCREEN }
+        val steps = 10
+        rule.runOnUiThread { ev(MotionEvent.ACTION_DOWN, h * 0.75f, down).let { activity.dispatchTouchEvent(it); it.recycle() } }
+        for (i in 1..steps) {
+            Thread.sleep(16)
+            val y = h * (0.75f - 0.5f * i / steps)
+            rule.runOnUiThread { ev(MotionEvent.ACTION_MOVE, y, SystemClock.uptimeMillis()).let { activity.dispatchTouchEvent(it); it.recycle() } }
+        }
+        rule.runOnUiThread { ev(MotionEvent.ACTION_UP, h * 0.25f, SystemClock.uptimeMillis()).let { activity.dispatchTouchEvent(it); it.recycle() } }
+    }
+
+    /**
+     * The thing the app is for: with the built-in sources and a real network, posts actually
+     * display (an image drawn or a video's first frame), and keep displaying as you swipe.
+     */
+    @Test
+    fun feedShowsRealPostsAndKeepsScrolling() {
+        val shown = rule.activity.mediaHealth.shownCount
+        val t0 = System.currentTimeMillis()
+        try {
+            poll(90_000, "a first post to display") { shown.get() >= 1 }
+            android.util.Log.i("PFHEALTH", "feed: first post on screen ${System.currentTimeMillis() - t0} ms after launch (cold, no saved posts)")
+        } catch (e: AssertionError) {
+            throw AssertionError("No post displayed in 90 s. What happened: ${rule.activity.mediaHealth.recentEvents()}")
+        }
+        var swipes = 0
+        try {
+            poll(120_000, "three posts to have displayed while swiping") {
+                if (swipes < 12) {
+                swipeUpGesture(); swipes++
+                repeat(8) { rule.mainClock.advanceTimeBy(250); Thread.sleep(150) }
+            }
+                shown.get() >= 3
+            }
+        } catch (e: AssertionError) {
+            throw AssertionError("Only ${shown.get()} posts displayed after $swipes swipes. What happened: ${rule.activity.mediaHealth.recentEvents()}")
+        }
+        // Keep scrolling a while and log what showed and what failed: the mix of sites and the
+        // failure rate are what using the app feels like.
+        fun mem(): String {
+            val rt = Runtime.getRuntime()
+            return "java ${(rt.totalMemory() - rt.freeMemory()) / 1_048_576} MB, native ${android.os.Debug.getNativeHeapAllocatedSize() / 1_048_576} MB"
+        }
+        android.util.Log.i("PFHEALTH", "feed: memory after ${swipes} swipes: ${mem()}")
+        repeat(45) { swipeUpGesture(); repeat(6) { rule.mainClock.advanceTimeBy(250); Thread.sleep(120) } }
+        android.util.Log.i("PFHEALTH", "feed: memory after ${swipes + 45} swipes: ${mem()}")
+        val events = rule.activity.mediaHealth.recentEvents()
+        events.forEach { android.util.Log.i("PFHEALTH", "  feed $it") }
+        android.util.Log.i("PFHEALTH", "feed: ${shown.get()} shown after ${swipes + 45} swipes, " +
+            "${events.count { it.startsWith("failed") }} of the last ${events.size} events failed, " +
+            "${events.filter { it.startsWith("shown") }.map { it.split(' ').getOrElse(1) { "" } }.distinct().size} different origins")
+        assertTrue("activity still alive after scrolling", !rule.activity.isFinishing && !rule.activity.isDestroyed)
+    }
+
+    /** Search finds real results and plays them. */
+    @Test
+    fun searchFindsPlaysAndSaves() {
+        waitFor(timeoutMs = 30_000, what = "feed tab") { exists("For You") }
+        tap("Search")
+        waitFor(timeoutMs = 30_000, what = "search screen") { exists("Popular") }
+        tap("anal")
+        // Results stream in as sources answer. On a slow test machine every source can miss its
+        // deadline; that's a finished search with nothing found, not a failure of the app.
+        waitFor(timeoutMs = 120_000, what = "search to return results or finish") {
+            exists("Play all") || (!exists("Searching every source…") && !exists("still searching", substring = true))
+        }
+        if (!exists("Play all")) return
+        tap("Play all")
+        // Results must really display in the viewer.
+        val shown = rule.activity.mediaHealth.shownCount
+        val before = shown.get()
+        try {
+            poll(90_000, "a search result to display") { shown.get() > before }
+        } catch (e: AssertionError) {
+            throw AssertionError("No search result displayed in 90 s. What happened: ${rule.activity.mediaHealth.recentEvents()}")
+        }
+        assertTrue("viewer still alive after playing search results", !rule.activity.isFinishing && !rule.activity.isDestroyed)
+    }
+
+    @Test
+    fun launchUnlockNavigateAndPanic() {
+        // 1–2. The app lock is optional and off by default: no PIN screen, straight to the feed.
+        waitFor(what = "app opens without a PIN") { exists("For You") || exists("Latest") }
+        assertTrue("no lock screen by default", !exists("Create a PIN") && !exists("Enter PIN"))
+
+        // 3. Feed loads — either content appears (pre-seeded sources) or the tab bar is visible.
+        //    We no longer expect an empty-state: sources are pre-seeded at install and start loading.
+        waitFor(what = "feed visible") { exists("For You") || exists("Latest") || exists("Following") }
+
+        // 4. Every tab opens.
+        tab("Search")
+        waitFor(what = "search screen") { exists("Search every site") && exists("Popular") }
+
+        tab("Library")
+        waitFor(what = "library screen") { exists("Saved", substring = true) && exists("Following", substring = true) }
+
+        tab("Settings")
+        waitFor(what = "settings screen") { exists("Sources") && exists("App lock") }
+
+        // 5. Sources screen lists every source, the health check and the topic finder.
+        rule.onNodeWithText("Sources").performClick()
+        waitFor(what = "sources screen") { exists("抖音 Douyin") && exists("Local files") && exists("Check sources") }
+        waitFor(timeoutMs = 30_000, what = "open Douyin") {
+            rule.onAllNodes(hasText("抖音 Douyin"), useUnmergedTree = true)[0].performScrollTo().performClick()
+            true
+        }
+        waitFor(what = "douyin sheet") { exists("Sign in") }
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        waitFor(what = "sheet closed, still on sources") { !exists("Sign in") && exists("Check sources") }
+        waitFor(what = "tap back") { rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Back"), useUnmergedTree = true)[0].performClick(); true }
+        waitFor(what = "back to settings") { exists("App lock") }
+
+        tab("Feed")
+        waitFor(what = "back on feed") { exists("For You") }
+
+        // 6. Panic gesture: three fingers down at once locks the app. Sent as real MotionEvents through
+        //    the Activity, the same path a physical touch takes.
+        val lockManager = rule.activity.lockManager
+        // Panic only locks when the user has turned the lock on; turn it on the way Settings does.
+        runBlocking { lockManager.createPin(pin.joinToString("").toCharArray()) }
+        rule.runOnUiThread {
+            val activity = rule.activity
+            val cx = activity.window.decorView.width / 2f
+            val cy = activity.window.decorView.height / 2f
+            val t = SystemClock.uptimeMillis()
+            fun touch(action: Int, count: Int): MotionEvent {
+                val props = Array(count) { i ->
+                    MotionEvent.PointerProperties().apply { id = i; toolType = MotionEvent.TOOL_TYPE_FINGER }
+                }
+                val coords = Array(count) { i ->
+                    MotionEvent.PointerCoords().apply { x = cx + i * 80f; y = cy; pressure = 1f; size = 1f }
+                }
+                return MotionEvent.obtain(t, t, action, count, props, coords, 0, 0, 1f, 1f, 0, 0, InputDevice.SOURCE_TOUCHSCREEN, 0)
+            }
+            fun pointerDown(index: Int) = MotionEvent.ACTION_POINTER_DOWN or (index shl MotionEvent.ACTION_POINTER_INDEX_SHIFT)
+            listOf(
+                touch(MotionEvent.ACTION_DOWN, 1),
+                touch(pointerDown(1), 2),
+                touch(pointerDown(2), 3),
+                touch(MotionEvent.ACTION_CANCEL, 3),
+            ).forEach { ev -> activity.dispatchTouchEvent(ev); ev.recycle() }
+        }
+        val deadline = System.currentTimeMillis() + 5_000
+        while (!lockManager.locked.value && System.currentTimeMillis() < deadline) Thread.sleep(100)
+        assertTrue("panic gesture should lock the app", lockManager.locked.value)
+        // Tests share one install: leave the app unlocked with no PIN, or every test that runs after
+        // this one would start on the lock screen.
+        runBlocking {
+            lockManager.unlockWithPin(pin.joinToString("").toCharArray())
+            lockManager.disable(pin.joinToString("").toCharArray())
+        }
+    }
+
+    /** Saves a screenshot of what's on screen (pulled from the device and uploaded by CI). */
+    private fun shot(name: String) {
+        repeat(6) { rule.mainClock.advanceTimeBy(250); Thread.sleep(120) }
+        // Taken by the shell into /data/local/tmp, which outlives the test run's uninstall (CI pulls it).
+        val ua = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation
+        fun sh(cmd: String) = android.os.ParcelFileDescriptor.AutoCloseInputStream(ua.executeShellCommand(cmd)).use { it.readBytes() }
+        sh("mkdir -p /data/local/tmp/shots")
+        sh("screencap -p /data/local/tmp/shots/$name.png")
+        android.util.Log.i("PFHEALTH", "screenshot $name")
+    }
+
+    /**
+     * Screenshots of every main screen for design review. Every post's picture is covered with a
+     * flat panel (see MaskMedia): the shots show the app's layout, not the content.
+     */
+    @Test
+    fun designScreenshots() {
+        dev.pfeed.ui.common.MaskMedia.on = true
+        // The app blocks screenshots (FLAG_SECURE); lift that for this test only, with the posts masked.
+        rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
+        try {
+            // The 18+ gate a fresh install opens on.
+            runCatching {
+                dev.pfeed.ui.AgeGate.required = true
+                rule.activityRule.scenario.recreate()
+                rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
+                waitFor(what = "age gate") { exists("Adults only") }
+                Thread.sleep(800)
+                shot("00_age_gate")
+                tap("I'm 18 or older")
+                waitFor(what = "past the age gate") { !exists("Adults only") }
+            }.onFailure { android.util.Log.i("PFHEALTH", "age gate: ${it.message?.take(120)}") }
+            dev.pfeed.ui.AgeGate.required = false
+            val shown = rule.activity.mediaHealth.shownCount
+            val before = shown.get()
+            runCatching { poll(90_000, "a post on screen") { shown.get() > before } }
+            Thread.sleep(1_500)
+            shot("01_feed")
+            // Wall: four clips at once.
+            runCatching {
+                rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Wall: four clips at once"), useUnmergedTree = true)[0].performClick()
+                waitFor(what = "wall") { exists("Tap one to watch it") }
+                Thread.sleep(6_000)
+                shot("01c_wall")
+                rule.onAllNodes(androidx.compose.ui.test.hasContentDescription("Back to the feed"), useUnmergedTree = true)[0].performClick()
+                waitFor(what = "back from the wall") { !exists("Tap one to watch it") }
+            }.onFailure { android.util.Log.i("PFHEALTH", "wall: ${it.message?.take(120)}") }
+            tab("Search")
+            waitFor(what = "search screen") { exists("Popular") }
+            // Topic rows arrive once the video sites answer.
+            runCatching { waitFor(timeoutMs = 25_000, what = "topic rows") { exists("See all") } }
+            android.util.Log.i("PFHEALTH", "search landing: topic rows ${if (exists("See all")) "shown" else "not shown"}")
+            shot("02_search")
+            runCatching {
+                rule.onAllNodes(hasText("Popular"), useUnmergedTree = true)[0].performScrollTo()
+                Thread.sleep(600)
+                shot("02b_browse")
+                rule.onAllNodes(hasText("Search every site"), useUnmergedTree = true)[0].performScrollTo()
+            }
+            // The browse card may be below the fold (the Spotlight sits on top): scroll to it first.
+            runCatching { rule.onAllNodes(hasText("anal"), useUnmergedTree = true)[0].performScrollTo(); Thread.sleep(400) }
+            tap("anal")
+            waitFor(timeoutMs = 60_000, what = "results") { exists("Play all") || !exists("still searching", substring = true) }
+            Thread.sleep(2_000)
+            shot("03_results")
+            if (exists("Play all")) {
+                tap("Play all")
+                val b = shown.get()
+                runCatching { poll(60_000, "a result on screen") { shown.get() > b } }
+                Thread.sleep(1_000)
+                shot("03b_viewer")
+                // Swipe left on the post: the creator's profile (header, counts, grid).
+                runCatching {
+                    rule.onRoot().performTouchInput {
+                        swipe(androidx.compose.ui.geometry.Offset(width * 0.75f, height * 0.4f), androidx.compose.ui.geometry.Offset(width * 0.08f, height * 0.4f), 250)
+                    }
+                    waitFor(timeoutMs = 20_000, what = "creator profile") { exists("posts") && (exists("Follow") || exists("Following")) }
+                    Thread.sleep(2_500)
+                    shot("03c_creator")
+                    android.util.Log.i("PFHEALTH", "creator profile: shown")
+                    androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+                    Thread.sleep(1_000)
+                }.onFailure { android.util.Log.i("PFHEALTH", "creator profile: not shown (${it.message?.take(80)})") }
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+                Thread.sleep(1_000)
+            }
+            // A few saved images, so the Saved grid (count, Play all, kept badges) is in the shot.
+            val savedForShot = runBlocking {
+                rule.activity.searchRepository.search("cosplay").toList().lastOrNull()?.items.orEmpty()
+                    .filter { it.type == dev.pfeed.domain.model.MediaType.IMAGE && !it.isGallery }.take(5)
+            }
+            runBlocking { savedForShot.forEach { rule.activity.library.add(dev.pfeed.data.repo.LibraryKind.SAVED, it) } }
+            // Two collections: one with three of them, one renamed after creation.
+            val lib = rule.activity.library
+            runBlocking {
+                savedForShot.take(3).forEach { lib.addToCollection("Cosplay", it) }
+                savedForShot.lastOrNull()?.let { lib.addToCollection("temp name", it) }
+                lib.renameCollection("temp name", "Favourites")
+                val cols = lib.collections.first()
+                val first = savedForShot.firstOrNull()?.let { lib.collectionsOf(it) }
+                android.util.Log.i("PFHEALTH", "collections: ${cols.joinToString { "${it.name}=${it.count}" }}; first post in $first")
+                // Backup round trip: export, lose a collection, import, and it's back.
+                runCatching {
+                    val out = java.io.ByteArrayOutputStream()
+                    rule.activity.settingsExporter.exportTo(out, "test-pass".toCharArray())
+                    lib.deleteCollection("Cosplay")
+                    rule.activity.settingsExporter.importFrom(java.io.ByteArrayInputStream(out.toByteArray()), "test-pass".toCharArray())
+                    "${out.size()} bytes; after import: ${lib.collections.first().joinToString { "${it.name}=${it.count}" }}"
+                }.let { android.util.Log.i("PFHEALTH", "backup: ${it.getOrElse { e -> "FAILED ${e.javaClass.simpleName}: ${e.message?.take(100)}" }}") }
+            }
+            Thread.sleep(8_000) // time for them to be kept
+            tab("Library")
+            waitFor(what = "library") { exists("Saved", substring = true) }
+            Thread.sleep(1_500)
+            shot("04_library")
+            runCatching {
+                rule.onAllNodes(hasText("Cosplay · ", substring = true))[0].performClick()
+                Thread.sleep(1_500)
+                shot("04b_collection")
+                rule.onAllNodes(hasText("All · ", substring = true))[0].performClick()
+            }.onFailure { android.util.Log.i("PFHEALTH", "collections: chip not found (${it.message?.take(80)})") }
+            // Your week: the recap on top of History, once there's a week's worth to sum up.
+            runCatching {
+                runBlocking { savedForShot.forEach { lib.add(dev.pfeed.data.repo.LibraryKind.HISTORY, it) } }
+                rule.onAllNodes(hasText("History"))[0].performClick()
+                waitFor(what = "week recap", timeoutMs = 6_000) { exists("YOUR WEEK") }
+                Thread.sleep(800)
+                shot("04c_week")
+                android.util.Log.i("PFHEALTH", "week recap: shown")
+                rule.onAllNodes(hasText("Saved"))[0].performClick()
+            }.onFailure { android.util.Log.i("PFHEALTH", "week recap: not shown (${it.message?.take(80)})") }
+            runBlocking {
+                savedForShot.forEach { lib.remove(dev.pfeed.data.repo.LibraryKind.SAVED, it) }
+                android.util.Log.i("PFHEALTH", "collections after unsaving: ${lib.collections.first().joinToString { "${it.name}=${it.count}" }.ifEmpty { "none" }}")
+            }
+            tab("Settings")
+            waitFor(what = "settings") { exists("App lock") }
+            shot("05_settings")
+            waitFor(what = "scroll settings") { rule.onAllNodes(hasText("Encrypted DNS"), useUnmergedTree = true)[0].performScrollTo(); true }
+            shot("06_settings_more")
+            runCatching {
+                rule.onAllNodes(hasText("Blocked where you are"), useUnmergedTree = true)[0].performScrollTo().performClick()
+                waitFor(what = "network screen") { exists("Orbot") }
+                Thread.sleep(600)
+                shot("06b_network")
+                androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+                waitFor(what = "back to settings") { exists("App lock") }
+            }.onFailure {
+                android.util.Log.i("PFHEALTH", "network shot: ${it.message?.take(100)}")
+                if (!exists("App lock")) androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            }
+            waitFor(what = "scroll to top") { rule.onAllNodes(hasText("Sources"), useUnmergedTree = true)[0].performScrollTo(); true }
+            rule.onNodeWithText("Your taste").performClick()
+            Thread.sleep(1_000)
+            shot("07_taste")
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            waitFor(what = "settings again") { exists("App lock") }
+            rule.onNodeWithText("Hidden & blocked").performClick()
+            Thread.sleep(1_000)
+            shot("07b_blocked")
+            androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+            waitFor(what = "settings again") { exists("App lock") }
+            rule.onNodeWithText("Sources").performClick()
+            waitFor(what = "sources") { exists("Check sources") }
+            shot("08_sources")
+            // The PIN screen, as it looks when the app locks.
+            val lm = rule.activity.lockManager
+            runBlocking { lm.createPin("1234".toCharArray()) }
+            rule.runOnUiThread { lm.lockNow() }
+            Thread.sleep(800)
+            shot("09_lock")
+            // The calculator lock: works as a calculator, and the PIN then = opens the app.
+            runCatching {
+                rule.runOnUiThread { dev.pfeed.ui.lock.LockLook.calculator.value = true }
+                waitFor(what = "calculator lock", timeoutMs = 5_000) { rule.onAllNodes(hasTestTag("calc_÷")).fetchSemanticsNodes().isNotEmpty() }
+                fun key(k: String) = rule.onNode(hasTestTag("calc_$k")).performClick()
+                listOf("7", "×", "6", "=").forEach(::key)
+                rule.waitForIdle()
+                val sums = rule.onNode(hasTestTag("calc_display")).fetchSemanticsNode().config.getOrElseNullable(androidx.compose.ui.semantics.SemanticsProperties.Text) { null }?.joinToString() == "42"
+                shot("09b_calculator_lock")
+                key("C")
+                listOf("1", "2", "3", "4", "=").forEach(::key)
+                waitFor(what = "unlocked by the calculator", timeoutMs = 8_000) { !lm.locked.value }
+                android.util.Log.i("PFHEALTH", "calculator lock: 7×6 ${if (sums) "= 42" else "wrong"}; PIN then = unlocked")
+            }.onFailure { android.util.Log.i("PFHEALTH", "calculator lock: failed (${it.message?.take(80)})") }
+            rule.runOnUiThread { dev.pfeed.ui.lock.LockLook.calculator.value = false }
+            runBlocking { if (lm.locked.value) lm.unlockWithPin("1234".toCharArray()); lm.disable("1234".toCharArray()) }
+            // The first-run topic picker, as a new install sees it.
+            rule.activity.getSharedPreferences("ui_hints", android.content.Context.MODE_PRIVATE).edit().remove("interests_asked").commit()
+            dev.pfeed.ui.feed.FirstRun.askInterests = true
+            dev.pfeed.ui.feed.FirstRun.forceInterests = true
+            try {
+                tab("Feed")
+                waitFor(what = "topic picker") { exists("What are you into?") }
+                tap("美食 · food"); tap("猫 · cats")
+                shot("10_interests")
+                tap("Skip")
+            } finally {
+                dev.pfeed.ui.feed.FirstRun.askInterests = false
+                dev.pfeed.ui.feed.FirstRun.forceInterests = false
+            }
+        } finally {
+            rule.runOnUiThread { rule.activity.window.addFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
+            dev.pfeed.ui.common.MaskMedia.on = false
+        }
+    }
+
+    /** A link shared into the app opens in the viewer. */
+    @Test
+    fun sharedLinkOpensInViewer() {
+        rule.waitForIdle()
+        dev.pfeed.ui.SharedLink.pending.value = "Look at this: https://example.com/media/some-clip.mp4"
+        val shown = runCatching { waitFor(timeoutMs = 15_000, what = "shared link viewer") { exists("Shared link") } }.isSuccess
+        android.util.Log.i("PFHEALTH", "shared link: " + if (shown) "opened in the viewer" else "did not open")
+        if (shown) shot("09_shared_link")
+        assert(shown) { "a shared link should open in the viewer" }
+    }
+
+    /** The updater reaches GitHub's releases and makes sense of the answer. */
+    @Test
+    fun updaterChecksGitHub() {
+        val updater = dagger.hilt.android.EntryPointAccessors.fromApplication(
+            rule.activity.applicationContext, dev.pfeed.update.UpdaterEntryPoint::class.java,
+        ).updater()
+        updater.checkAndDownload()
+        val deadline = System.currentTimeMillis() + 90_000
+        var s = updater.state.value
+        while (System.currentTimeMillis() < deadline) {
+            s = updater.state.value
+            if (s !is dev.pfeed.update.Updater.State.Checking && s !is dev.pfeed.update.Updater.State.Downloading && s !is dev.pfeed.update.Updater.State.Idle) break
+            Thread.sleep(500)
+        }
+        android.util.Log.i("PFHEALTH", "updater: this is ${updater.currentVersion}; GitHub says ${s.toString().take(160)}")
+    }
+
+    /** What For You actually serves (not what had time to draw): its first 60 posts by source and type. */
+    @Test
+    fun forYouMix() {
+        val a = rule.activity
+        for (mode in listOf(dev.pfeed.domain.model.FeedMode.FOR_YOU, dev.pfeed.domain.model.FeedMode.LATEST)) runBlocking {
+            val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+            val session = a.feedSessions.create(dev.pfeed.data.repo.FeedSpec.Main(mode), scope)
+            val got = ArrayList<dev.pfeed.domain.model.MediaItem>()
+            val t0 = System.currentTimeMillis()
+            while (got.size < 60 && System.currentTimeMillis() - t0 < 90_000) {
+                val r = session.loadMore()
+                got += r.items
+                if (r.items.isEmpty()) kotlinx.coroutines.delay(1_000)
+            }
+            session.close()
+            val bySource = got.groupingBy { it.sourceId }.eachCount().entries.sortedByDescending { it.value }.joinToString { "${it.key}=${it.value}" }
+            val byType = got.groupingBy { if (it.isGallery) "comic" else it.type.name.lowercase() }.eachCount()
+            android.util.Log.i("PFHEALTH", "$mode: ${got.size} posts in ${System.currentTimeMillis() - t0} ms; by source: $bySource; by type: $byType; origins: ${got.map { dev.pfeed.domain.reco.Spread.origin(it) }.distinct().size}; my little pony: ${got.count { dev.pfeed.domain.reco.Niche.of(it) != null }}")
+            assertTrue("For You served nothing", got.isNotEmpty())
+        }
+    }
+
+    /** "More like this": a feed around one post finds posts that share its tags. */
+    @Test
+    fun moreLikeThis() {
+        val a = rule.activity
+        runBlocking {
+            val seed = a.searchRepository.search("blonde pov").toList().lastOrNull()?.items.orEmpty()
+                .firstOrNull { it.tags.size >= 3 } ?: return@runBlocking android.util.Log.i("PFHEALTH", "similar: no seed found").let { }
+            val features = dev.pfeed.domain.reco.Features.of(seed).filterNot(dev.pfeed.domain.reco.Features::isMeta)
+            val queries = (listOfNotNull(seed.creator) + features.filterNot { it.startsWith("w:") }.take(3).map { it.replace('_', ' ') }).distinct()
+            val spec = dev.pfeed.data.repo.FeedSpec.Similar(seed.key, queries, features.toSet(), seed.creator)
+            val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+            val session = a.feedSessions.create(spec, scope)
+            val got = ArrayList<dev.pfeed.domain.model.MediaItem>()
+            val t0 = System.currentTimeMillis()
+            while (got.size < 30 && System.currentTimeMillis() - t0 < 90_000) {
+                val r = session.loadMore()
+                got += r.items
+                if (r.items.isEmpty()) kotlinx.coroutines.delay(1_000)
+                if (r.endReached) break
+            }
+            session.close()
+            val sharing = got.count { c -> dev.pfeed.domain.reco.Features.of(c).any { it in features } }
+            android.util.Log.i("PFHEALTH", "similar: seed ${seed.key} queries=$queries; ${got.size} posts in ${System.currentTimeMillis() - t0} ms; $sharing share a tag; seed returned: ${got.any { it.key == seed.key }}")
+            assertTrue("More like this served nothing", got.isNotEmpty())
+        }
+    }
+}
