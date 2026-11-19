@@ -97,4 +97,11 @@ class LearnTest {
         val top = dev.dyfeed.domain.learn.Frequent.words(dict, captions, known = setOf("重庆"))
         assertEquals(listOf("好吃" to 3, "火锅" to 3), top.map { it.first.text to it.second })
     }
+
+    @Test
+    fun `a streak counts days in a row up to today or yesterday`() {
+        assertEquals(3, Srs.streak(setOf(10L, 9L, 8L, 5L), 10))
+        assertEquals(3, Srs.streak(setOf(9L, 8L, 7L), 10)) // not yet today: still alive
+        assertEquals(0, Srs.streak(setOf(7L), 10))
+    }
 }

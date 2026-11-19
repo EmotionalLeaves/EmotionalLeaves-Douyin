@@ -47,6 +47,14 @@ object Srs {
     }
 
     fun due(cards: List<Card>, now: Long): List<Card> = cards.filter { it.due <= now }.sortedBy { it.due }
+
+    /** Days in a row (ending today or yesterday) with at least one review, from the days you reviewed (epoch days). */
+    fun streak(days: Set<Long>, today: Long): Int {
+        var d = if (today in days) today else today - 1
+        var n = 0
+        while (d in days) { n++; d-- }
+        return n
+    }
 }
 
 /** Your saved words, kept on the phone (learn_words.json in the app's own storage). */
@@ -54,12 +62,19 @@ object WordBook {
     private val json = Json { ignoreUnknownKeys = true }
     @Volatile private var file: java.io.File? = null
     private val _cards = MutableStateFlow<List<Card>>(emptyList())
+    private val _days = MutableStateFlow<Set<Long>>(emptySet())
+    /** The days (epoch days, local) you reviewed at least one word. */
+    val days: StateFlow<Set<Long>> = _days
+    @Volatile private var daysFile: java.io.File? = null
     val cards: StateFlow<List<Card>> = _cards
 
     fun init(context: Context) {
         val f = java.io.File(context.filesDir, "learn_words.json")
         file = f
         _cards.value = runCatching { json.decodeFromString<List<Card>>(f.readText()) }.getOrDefault(emptyList())
+        val d = java.io.File(context.filesDir, "learn_days.txt")
+        daysFile = d
+        _days.value = runCatching { d.readLines().mapNotNull { it.trim().toLongOrNull() }.toSet() }.getOrDefault(emptySet())
     }
 
     fun has(word: String): Boolean = _cards.value.any { it.word == word }
@@ -71,8 +86,18 @@ object WordBook {
 
     fun remove(word: String) = save(_cards.value.filterNot { it.word == word })
 
-    fun answer(card: Card, grade: Grade, now: Long = System.currentTimeMillis()) =
+    fun answer(card: Card, grade: Grade, now: Long = System.currentTimeMillis()) {
         save(_cards.value.map { if (it.word == card.word) Srs.review(it, grade, now) else it })
+        val today = today(now)
+        if (today !in _days.value) {
+            _days.value = (_days.value + today).sortedDescending().take(400).toSet()
+            daysFile?.let { f -> runCatching { f.writeText(_days.value.joinToString("\n")) } }
+        }
+    }
+
+    /** Today, as a local epoch day. */
+    fun today(now: Long = System.currentTimeMillis()): Long =
+        java.time.Instant.ofEpochMilli(now).atZone(java.time.ZoneId.systemDefault()).toLocalDate().toEpochDay()
 
     private fun save(next: List<Card>) {
         _cards.value = next

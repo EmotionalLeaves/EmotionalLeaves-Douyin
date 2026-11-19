@@ -67,6 +67,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     val context = LocalContext.current
     val captions by vm.captions.collectAsState(initial = emptyList())
     val cards by WordBook.cards.collectAsState()
+    val days by WordBook.days.collectAsState()
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val due = remember(cards, now) { Srs.due(cards, now) }
     var reviewing by remember { mutableStateOf(false) }
@@ -106,6 +107,12 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                                 else -> "${cards.size} words saved. Each one you know comes back later and later."
                             },
                             color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium,
+                        )
+                        val streak = Srs.streak(days, WordBook.today(now))
+                        if (streak > 0) Text(
+                            "🔥 $streak day${if (streak == 1) "" else "s"} in a row · 连续$streak 天",
+                            color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 6.dp),
                         )
                     }
                 }
