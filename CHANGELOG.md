@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.7.1 — 2026-11-19
+- Fix: AGP unpacks .gz assets, so the dictionary is learn/zh_en.tsv in the APK; Dict reads either and never throws.
+- Sentence cards, seo_info.ocr_content as "What's said in it", review streak.
+
 ## 1.7.0 — 2026-11-19
 - Learn tab: CC-CEDICT dictionary (bundled, 3.6 MB), bidirectional maximum-match word splitting, pinyin tone marks, SM-2-style review (WordBook), learner topics, frequent words from history, Android TTS.
 - Live subtitles: ML Kit Chinese text recognition on the playing frame (lower half, every 0.7 s, slower when none found), LiveSubs.pick picks the subtitle line, translated and shown above it.

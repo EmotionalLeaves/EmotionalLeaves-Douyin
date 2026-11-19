@@ -1,3 +1,11 @@
+## 1.7.1 — 2026-11-19
+Learn, ready to use
+
+- Fixed: the dictionary behind 学习 Learn and 词 Words is read correctly (1.7.0 never reached you: the emulator test caught this first).
+- New: save a whole line (a caption, a subtitle, a comment) as a card, with its English.
+- New: "What's said in it" (⋯ menu): all of a video's on-screen text, as Douyin read it, word by word.
+- New: a days-in-a-row streak on the review card.
+
 ## 1.7.0 — 2026-11-19
 学习 Learn Chinese
 

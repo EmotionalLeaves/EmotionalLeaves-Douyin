@@ -122,15 +122,22 @@ object Dict {
     private val lock = Mutex()
     @Volatile private var loaded: ZhDictionary? = null
 
+    /** Why the dictionary couldn't be read, if it couldn't (it's then empty, and tried again next time). */
+    @Volatile var failure: String? = null
+        private set
+
     /** Already in memory: lookups can be made at once. */
     val ready: ZhDictionary? get() = loaded
 
     suspend fun get(context: Context): ZhDictionary = loaded ?: lock.withLock {
         loaded ?: withContext(Dispatchers.IO) {
-            context.assets.open("learn/zh_en.tsv.gz").use { raw ->
-                java.util.zip.GZIPInputStream(raw).bufferedReader().useLines { ZhDictionary.parse(it) }
-            }
-        }.also { loaded = it }
+            failure = null
+            // The build unpacks .gz assets (learn/zh_en.tsv in the app); the source keeps it packed.
+            runCatching { context.assets.open("learn/zh_en.tsv").bufferedReader().useLines { ZhDictionary.parse(it) } }
+                .recoverCatching { context.assets.open("learn/zh_en.tsv.gz").use { raw -> java.util.zip.GZIPInputStream(raw).bufferedReader().useLines { ZhDictionary.parse(it) } } }
+                .onFailure { failure = it.message ?: it.javaClass.simpleName }
+                .getOrDefault(ZhDictionary(emptyMap()))
+        }.also { if (failure == null) loaded = it }
     }
 }
 
