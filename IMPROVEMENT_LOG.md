@@ -61,3 +61,8 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   warm-up at app start; Following caps page fallback at 4; like counts (万/亿) on the heart; "See
   translation" under captions; search matching + GiveUpGate as tested pieces; probe re-fetch by id;
   creator avatars; second hidden page closes after 2 idle minutes.
+- 2026-11-19 (chat, rounds 28–40, batch → 1.4.1): exact matches first in search; wording sweep and
+  Comics mood removed; dead subreddit/board settings code removed; Share; English hints on tag chips;
+  creator pages read RENDER_DATA (deep post search, tested); search index of 3,000 posts kept across
+  restarts (cleared by Clear history, not saved incognito); Sign out; refresh by id via the post's own
+  page; followed creators' pictures; Check sources gives Douyin 50 s; More comments.
