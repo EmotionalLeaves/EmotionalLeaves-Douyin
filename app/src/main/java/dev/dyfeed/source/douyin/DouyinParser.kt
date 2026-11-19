@@ -1,5 +1,6 @@
 package dev.dyfeed.source.douyin
 
+import dev.dyfeed.domain.lang.Zh
 import dev.dyfeed.domain.model.MediaItem
 import dev.dyfeed.domain.model.MediaType
 import kotlinx.serialization.json.JsonArray
@@ -156,6 +157,9 @@ object DouyinParser {
             if (tagIds.isNotEmpty()) put("tagIds", tagIds.joinToString(";"))
             likes?.let { put("score", it) }
             put("at", fetchedAt.toString())
+            // The text Douyin itself read off the video's frames (its subtitles, mostly): for Learn.
+            ((a["seo_info"] ?: a["seoInfo"]) as? JsonObject)?.let { seo -> seo.str("ocr_content") ?: seo.str("ocrContent") }
+                ?.trim()?.takeIf { Zh.has(it) }?.let { put(SCREEN_TEXT, it.take(MAX_SCREEN_TEXT)) }
         }
 
         // Photo post: every picture, in order.
@@ -245,6 +249,10 @@ object DouyinParser {
             .filter { it.startsWith("https://") }
             .distinct()
     }
+
+    /** Extra key: what the video says on screen (its subtitles), as Douyin read it. */
+    const val SCREEN_TEXT = "ocr"
+    private const val MAX_SCREEN_TEXT = 600
 
     /** Extra key: other addresses for the same video, space-separated, tried in order if the first fails. */
     const val ALTERNATES = "media_alt"

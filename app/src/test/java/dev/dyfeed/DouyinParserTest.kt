@@ -215,4 +215,17 @@ class DouyinParserTest {
         assertNull(DouyinAdapter.awemeIdIn("https://www.douyin.com/user/MS4wLjABAAAA"))
         assertTrue(DouyinAdapter.isDouyinHost("v.douyin.com"))
     }
+
+    @Test
+    fun `what the video says on screen is kept for learning`() {
+        val a = Json.parseToJsonElement(
+            """{"aweme_id":"7300000000000000009","desc":"x","seo_info":{"ocr_content":"今天我们去吃火锅 太好吃了"},
+               "video":{"play_addr":{"url_list":["https://v3-web.douyinvod.com/a.mp4"]}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals("今天我们去吃火锅 太好吃了", DouyinParser.parse(a, 1080)!!.extras[DouyinParser.SCREEN_TEXT])
+        val none = Json.parseToJsonElement(
+            """{"aweme_id":"7300000000000000010","desc":"x","seo_info":{"ocr_content":"ok"},"video":{"play_addr":{"url_list":["https://v3-web.douyinvod.com/a.mp4"]}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertNull(DouyinParser.parse(none, 1080)!!.extras[DouyinParser.SCREEN_TEXT])
+    }
 }

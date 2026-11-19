@@ -348,6 +348,11 @@ fun ItemMenuSheet(
                         dev.dyfeed.ui.learn.LearnWords.request.value = item.title; onDismiss()
                     }
                 }
+                item.extras[dev.dyfeed.source.douyin.DouyinParser.SCREEN_TEXT]?.let { said ->
+                    MenuRow("What's said in it", Icons.Filled.School, "All the video's on-screen text, word by word, as Douyin read it") {
+                        dev.dyfeed.ui.learn.LearnWords.request.value = said; onDismiss()
+                    }
+                }
             }
             if (item.type == dev.dyfeed.domain.model.MediaType.VIDEO) {
                 MenuRow("Save this moment", Icons.Filled.BookmarkAdd, "Marks where you are (a line worth hearing again): it shows on the scrub bar, and Saved → Moments plays it from there") { MomentGrab.request.value = item.key; onDismiss() }
