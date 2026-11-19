@@ -143,7 +143,14 @@ object DouyinParser {
             val cid = (o.str("hashtag_id") ?: o.str("hashtagId") ?: o.str("cid"))?.takeIf { it.length > 3 && it.all(Char::isDigit) } ?: return@mapNotNull null
             "$name=$cid"
         }.orEmpty()
+        // The sound: "song – artist" (Douyin's own "original sound" posts read 原声 – creator).
+        val music = (a["music"] as? JsonObject)?.let { m ->
+            val title = m.str("title")?.trim()?.takeIf { it.isNotEmpty() }
+            val by = (m.str("author") ?: m.str("owner_nickname") ?: m.str("ownerNickname"))?.trim()?.takeIf { it.isNotEmpty() }
+            listOfNotNull(title, by).distinct().joinToString(" – ").takeIf { it.isNotEmpty() }
+        }
         val common = buildMap {
+            music?.let { put("music", it) }
             secUid?.let { put("secUid", it) }
             avatar?.let { put("avatar", it) }
             if (tagIds.isNotEmpty()) put("tagIds", tagIds.joinToString(";"))
