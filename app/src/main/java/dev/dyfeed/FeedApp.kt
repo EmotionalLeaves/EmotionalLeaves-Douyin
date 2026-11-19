@@ -26,6 +26,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
     @Inject lateinit var offline: dev.dyfeed.data.repo.OfflineStore
     @Inject lateinit var updater: dev.dyfeed.update.Updater
     @Inject lateinit var tasteEngine: dev.dyfeed.data.repo.TasteEngineStore
+    @Inject lateinit var douyinWeb: dev.dyfeed.source.douyin.DouyinWeb
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -68,7 +69,12 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
         // Updates from GitHub: look as the app comes up; a downloaded one that can go in without a
         // prompt is installed once you've left the app, so it never closes in front of you.
         androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
-            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) = updater.auto()
+            override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                updater.auto()
+                // Open Douyin's page out of sight now, so it's ready by the time the feed asks
+                // (it takes ~10-15 s to load and set up its signer).
+                kotlinx.coroutines.MainScope().launch { runCatching { douyinWeb.warmUp() } }
+            }
             override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
                 tasteEngine.flush()
                 dev.dyfeed.data.repo.DataMeter.month()

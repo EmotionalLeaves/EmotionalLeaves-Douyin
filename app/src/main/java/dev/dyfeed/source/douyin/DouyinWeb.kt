@@ -118,6 +118,9 @@ class DouyinWeb @Inject constructor(
         out
     }
 
+    /** Loads the page now (if it isn't already), so the first feed request doesn't wait for it. */
+    suspend fun warmUp() = ensurePage()
+
     /** How many page-fetched feed answers are waiting (without using them up). */
     fun waitingAnswers(): Int = captured.size
 
