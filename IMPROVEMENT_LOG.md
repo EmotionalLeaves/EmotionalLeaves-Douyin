@@ -83,3 +83,8 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   5.17 (landscape controls; moments as jump chips). "Show Chinese in English" everywhere (tags,
   sounds, trending, comments, search captions) and English searches put into Chinese on the phone.
   Tabs in both languages (首页/发现/收藏/设置).
+- 2026-11-19 (chat, rounds 73–90 → 1.7.0): verified 1.6.0 green (feed 40, search 59, comments 16);
+  a re-run stalled clips (no frame) from the US runner, so stalls now move to the next mirror too.
+  User: accounts are impossible outside China, so every sign-in prompt is gone. Then, as asked once
+  verified, the Learn section: dictionary, words under captions and comments, pinyin, voice, word list
+  and review, learner topics, frequent words; and live English for subtitles burned into videos.

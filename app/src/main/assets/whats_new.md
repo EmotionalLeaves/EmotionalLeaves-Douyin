@@ -1,3 +1,14 @@
+## 1.7.0 — 2026-11-19
+学习 Learn Chinese
+
+- New tab, 学习 Learn: videos picked for learners (pinyin, everyday speech, idioms, tongue twisters, songs, poems), a dictionary (English, pinyin or 汉字), your word list, and flashcard review that spaces each word out as you learn it.
+- New: Translate what's said. The subtitles in a video are read off the picture as they come up and shown in English just above them. Tap one to learn its words.
+- New: 词 Words under every Chinese caption, and tapping any comment: the sentence word by word, with pinyin (tone colours), meanings, a voice, and a save button.
+- New: Pinyin over captions (Learn or Settings → 学习 Learn), and "Words you keep hearing": the words that come up most in what you watch.
+- New: memes and learning topics in Search (梗图, 表情包, 沙雕, 学中文…).
+- No account needed: the app no longer asks you to sign in (Douyin accounts need a Chinese phone number). The button in Settings is only for Douyin's "verify you're human" check.
+- Fixed: a video that won't start tries Douyin's other servers instead of being skipped.
+
 ## 1.6.0 — 2026-11-19
 Chinese in English, everywhere
 

@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.0 — 2026-11-19
+- Learn tab: CC-CEDICT dictionary (bundled, 3.6 MB), bidirectional maximum-match word splitting, pinyin tone marks, SM-2-style review (WordBook), learner topics, frequent words from history, Android TTS.
+- Live subtitles: ML Kit Chinese text recognition on the playing frame (lower half, every 0.7 s, slower when none found), LiveSubs.pick picks the subtitle line, translated and shown above it.
+- Sign-in prompts removed; the Douyin button is "Verify I'm human".
+- Stalled clips (no frame in 8 s) also move to the next mirror.
+
 ## 1.6.0 — 2026-11-19
 - Show Chinese in English across tags, sounds, comments, trending and search captions (`rememberEnglish`); English queries translated to Chinese before searching (`EnglishToChinese`, `Zh.isLatinQuery`).
 - Ported Feed 5.15 (Moments) and 5.17 (landscape controls, with moments as jump chips).
