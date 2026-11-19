@@ -74,6 +74,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -225,8 +226,15 @@ class SearchViewModel @Inject constructor(
 
     private var job: Job? = null
 
+    /** Douyin's trending topics (its hot list), shown before you type; empty until it answers. */
+    val trending = MutableStateFlow<List<String>>(emptyList())
+
     init {
         viewModelScope.launch { recent.load() }
+        viewModelScope.launch {
+            val douyin = registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter
+            trending.value = runCatching { douyin?.trending().orEmpty() }.getOrDefault(emptyList()).take(20)
+        }
         viewModelScope.launch {
             _interests.value = runCatching { signals.topInterests(limit = 30).first }.getOrDefault(emptyList())
                 .map { it.first }
@@ -379,6 +387,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
     val continueWatching by vm.continueWatching.collectAsStateWithLifecycle()
     val topicRows by vm.topicRows.collectAsStateWithLifecycle()
     val followed by vm.followed.collectAsStateWithLifecycle()
+    val trending by vm.trending.collectAsStateWithLifecycle()
     val watchedKeys by vm.watched.collectAsStateWithLifecycle()
     val savedKeys by vm.savedKeys.collectAsStateWithLifecycle()
     // Press and hold a result: save it, or open it on its site, without leaving the results.
@@ -500,6 +509,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
                 followed = followed,
                 recent = recent,
                 interests = interests,
+                trending = trending,
                 onPick = run,
                 onRemoveRecent = vm::removeRecent,
                 onClearRecent = vm::clearRecent,
@@ -548,6 +558,7 @@ private fun SuggestionsPane(
     followed: List<String>,
     recent: List<String>,
     interests: List<String>,
+    trending: List<String> = emptyList(),
     onPick: (String) -> Unit,
     onRemoveRecent: (String) -> Unit,
     onClearRecent: () -> Unit,
@@ -677,6 +688,26 @@ private fun SuggestionsPane(
             modifier = Modifier.padding(top = 10.dp).clickable { onPick("美食 + 重庆 -火锅") },
         )
         Spacer(Modifier.height(18.dp))
+        if (trending.isNotEmpty()) {
+            SectionTitle("Trending on Douyin · 抖音热榜")
+            Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
+                trending.take(10).forEachIndexed { i, word ->
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(word) }.padding(horizontal = 4.dp, vertical = 9.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            "${i + 1}",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = if (i < 3) Accent else Color.White.copy(alpha = 0.45f),
+                            modifier = Modifier.width(28.dp),
+                        )
+                        Text(word, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    }
+                }
+            }
+        }
         SectionTitle("Popular")
         // Browse cards, two by two, each in a colour of its own (the same colour every time).
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {

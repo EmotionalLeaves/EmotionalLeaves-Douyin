@@ -1,3 +1,9 @@
+## 1.2.0 — 2026-11-19
+Trending on Douyin
+
+- New: Search opens with Douyin's trending list (抖音热榜), live, top 10 numbered; tap one to search it.
+- Better: Signed-out search leans on Douyin's related videos, which it does answer, so a search fills up (about 30 posts for a common topic in testing).
+
 ## 1.1.2 — 2026-11-19
 Search that doesn't need a sign-in
 

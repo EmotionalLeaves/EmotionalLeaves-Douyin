@@ -243,6 +243,16 @@ class DouyinAdapter @Inject constructor(
         return hits.flatMap { w -> runCatching { hashtagPosts(w) }.getOrDefault(emptyList()) + loadedMatching(w) }
     }
 
+    @Volatile private var trendingCache: Pair<Long, List<String>>? = null
+
+    /** Douyin's trending topics right now (its hot list), newest fetch at most 20 minutes old. */
+    suspend fun trending(): List<String> {
+        trendingCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 20 * 60_000L && list.isNotEmpty()) return list }
+        val words = trendingWords(call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))).distinct()
+        trendingCache = System.currentTimeMillis() to words
+        return words
+    }
+
     /** The words of Douyin's trending list (data.word_list[].word, or trending_list). */
     private fun trendingWords(root: JsonElement): List<String> {
         val data = (root as? JsonObject)?.get("data") as? JsonObject ?: return emptyList()
