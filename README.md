@@ -18,7 +18,7 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 | Comments | `/aweme/v1/web/comment/list/` |
 | Shared links | `v.douyin.com/…` → `iesdouyin.com/share/video/<id>/` (public page, no signature) |
 
-If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → 抖音 Douyin** (top of Settings) opens the real site, and anything you do there (the check, signing in) carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
+If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → 抖音 Douyin** (top of Settings; Sign out is there too) opens the real site, and anything you do there (the check, signing in) carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
 
 This depends on Douyin's website, which can change without notice. When it does, `DouyinWeb.kt` (the request) and `DouyinParser.kt` (the answer) are the two places to look.
 
@@ -42,10 +42,11 @@ Download the APK from the latest GitHub release on your phone, open it, and allo
 
 ## Using it
 
-- **Feed:** For You (learned from what you watch), Following (creators you follow here) and Latest. Swipe up for the next post; tap to pause, double-tap to like, hold for the menu (Comments, Not interested, hide a tag or creator, open on Douyin…). Swipe left on a post for everything by its creator.
+- **Feed:** For You (learned from what you watch) and Following (creators you follow here). Swipe up for the next post; tap to pause, double-tap to like (the heart shows Douyin's own like count), hold for the menu (Comments, Translate, Share, Not interested, hide a tag or creator, open on Douyin…). Swipe left on a post, or tap the creator's picture, for everything by them.
+- **Without a Douyin account:** the feed, comments, creator pages, Following and search all work signed out. Search is built from what Douyin shows a visitor (related videos, trending, and the last 3,000 posts you've scrolled past), so signing in still finds more.
 - **Photo posts** turn sideways picture by picture.
 - **Translate:** "See translation" under any Chinese caption, hold a post → Translate for caption and tags, and a Translate button in Comments. Runs on the phone after a one-time download.
-- **Search:** type in Chinese for best results (美食, 重庆, 猫…); the topic chips do it for you. Combos work: `美食 + 重庆 -火锅`.
+- **Search:** opens with Douyin's live trending list (抖音热榜). Type in Chinese for best results (美食, 重庆, 猫…); the topic chips do it for you. Combos work: `美食 + 重庆 -火锅`.
 - **Share to the app:** share a Douyin link from anywhere and it plays here.
 - **Library:** Saved, Liked, History and Following; saved posts download for offline.
 
