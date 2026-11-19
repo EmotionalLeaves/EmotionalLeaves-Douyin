@@ -16,6 +16,10 @@ object SourceCatalog {
         "短剧" to "short dramas", "历史" to "history", "知识" to "learning", "中文学习" to "learn Chinese",
         "农村生活" to "country life", "建筑" to "architecture", "治愈" to "relaxing", "解压" to "satisfying",
         "变装" to "transformations", "情侣" to "couples", "vlog" to "vlogs", "街拍" to "street style",
+        "梗图" to "memes", "表情包" to "reaction memes", "沙雕" to "silly", "名场面" to "iconic scenes",
+        "鬼畜" to "remixes", "段子" to "jokes", "学中文" to "Chinese for learners", "汉语拼音" to "pinyin",
+        "成语故事" to "idiom stories", "绕口令" to "tongue twisters", "日常口语" to "everyday Chinese", "古诗词" to "classic poems",
+        "儿歌" to "kids' songs", "中文歌曲" to "Chinese songs", "街头采访" to "street interviews", "汉字" to "characters",
     )
 
     /** Just the search terms. */
