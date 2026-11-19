@@ -82,6 +82,7 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }
                 return@Column
             }
+            Dict.failure?.let { Text("The dictionary couldn't be read ($it)", color = Color(0xFFFBBF24), style = MaterialTheme.typography.labelMedium) }
             // The sentence, pinyin over each word (tone-coloured).
             FlowRow(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 list.forEach { t -> Ruby(t) }
