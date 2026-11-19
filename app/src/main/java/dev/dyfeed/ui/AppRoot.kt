@@ -106,15 +106,9 @@ private val tabs = listOf(
 fun AppRoot(lockManager: AppLockManager, onPanic: () -> Unit) {
     val locked by lockManager.locked.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
-    var adult by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(AgeGate.confirmed(context)) }
     Box(Modifier.fillMaxSize()) {
         // The app stays composed under the lock screen (so view-model state survives), but media pauses.
-        // Behind the age gate it's the same: the feed loads, nothing plays.
-        MainNav(locked = locked || !adult)
-        if (!adult) {
-            AgeGateScreen(onConfirm = { AgeGate.confirm(context); adult = true })
-            return@Box
-        }
+        MainNav(locked = locked)
         if (dev.dyfeed.ui.common.WhatsNew.showing) dev.dyfeed.ui.common.WhatsNewDialog { dev.dyfeed.ui.common.WhatsNew.showing = false }
         // The lock screen sits outside the Scaffold, so give it the app's text colour itself
         // (without this its title drew in the default black, invisible on the dark background).

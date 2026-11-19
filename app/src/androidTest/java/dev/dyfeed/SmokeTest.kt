@@ -43,7 +43,6 @@ class SmokeTest {
         fun noInstantStart() {
             dev.dyfeed.data.repo.PoolCache.enabled = false
             dev.dyfeed.ui.feed.FirstRun.askInterests = false
-            dev.dyfeed.ui.AgeGate.required = false
         }
     }
 
@@ -257,18 +256,6 @@ class SmokeTest {
         // The app blocks screenshots (FLAG_SECURE); lift that for this test only, with the posts masked.
         rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
         try {
-            // The 18+ gate a fresh install opens on.
-            runCatching {
-                dev.dyfeed.ui.AgeGate.required = true
-                rule.activityRule.scenario.recreate()
-                rule.runOnUiThread { rule.activity.window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_SECURE) }
-                waitFor(what = "age gate") { exists("Adults only") }
-                Thread.sleep(800)
-                shot("00_age_gate")
-                tap("I'm 18 or older")
-                waitFor(what = "past the age gate") { !exists("Adults only") }
-            }.onFailure { android.util.Log.i("PFHEALTH", "age gate: ${it.message?.take(120)}") }
-            dev.dyfeed.ui.AgeGate.required = false
             val shown = rule.activity.mediaHealth.shownCount
             val before = shown.get()
             runCatching { poll(90_000, "a post on screen") { shown.get() > before } }

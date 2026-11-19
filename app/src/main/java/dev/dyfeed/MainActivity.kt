@@ -68,7 +68,6 @@ class MainActivity : FragmentActivity() {
                 else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
             }
         }
-        if (intent?.getBooleanExtra(dev.dyfeed.ui.AgeGate.EXTRA_CONFIRMED, false) == true) dev.dyfeed.ui.AgeGate.confirm(this)
         if (savedInstanceState == null) takeSharedLink(intent)
         watchFlipToHide()
         watchHideFromRecents()
