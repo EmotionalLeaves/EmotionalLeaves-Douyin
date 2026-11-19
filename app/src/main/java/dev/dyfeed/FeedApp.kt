@@ -47,6 +47,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
         dev.dyfeed.player.ResumePoints.init(this)
         dev.dyfeed.player.ComicPages.init(this)
         dev.dyfeed.source.net.GeoBlock.init(this)
+        dev.dyfeed.source.douyin.CreatorAvatars.init(this)
         CrashLog.install(this)
         lockManager.attach()
         kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default).launch {

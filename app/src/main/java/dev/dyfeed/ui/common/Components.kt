@@ -401,7 +401,12 @@ fun BrandSpinner(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.D
  * name): the feed's caption and Library → Following use it, so a creator looks the same in both.
  */
 @Composable
-fun InitialAvatar(name: String, size: androidx.compose.ui.unit.Dp = 32.dp, modifier: Modifier = Modifier, imageUrl: String? = null) {
+fun InitialAvatar(
+    name: String,
+    size: androidx.compose.ui.unit.Dp = 32.dp,
+    modifier: Modifier = Modifier,
+    imageUrl: String? = androidx.compose.runtime.remember(name) { dev.dyfeed.source.douyin.CreatorAvatars.get(name) },
+) {
     val clean = name.removePrefix("@").trim()
     val hue = androidx.compose.runtime.remember(clean) { ((clean.lowercase().hashCode() and 0x7fffffff) % 360).toFloat() }
     Box(

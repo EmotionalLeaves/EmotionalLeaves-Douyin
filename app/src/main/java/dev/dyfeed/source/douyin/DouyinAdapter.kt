@@ -557,18 +557,10 @@ class DouyinAdapter @Inject constructor(
         if (creators.put(k, secUid) != secUid) prefs.edit { putString(k, secUid) }
     }
 
-    private val avatars = ConcurrentHashMap<String, String>()
-
-    private fun rememberAvatar(name: String, url: String) {
-        val k = "avatar:" + key(name)
-        if (avatars.put(k, url) != url) prefs.edit { putString(k, url) }
-    }
+    private fun rememberAvatar(name: String, url: String) = CreatorAvatars.remember(name, url)
 
     /** A creator's profile picture, if one of their posts has come by (kept across restarts). */
-    fun avatarFor(name: String): String? {
-        val k = "avatar:" + key(name)
-        return avatars[k] ?: prefs.getString(k, null)?.also { avatars[k] = it }
-    }
+    fun avatarFor(name: String): String? = CreatorAvatars.get(name)
 
     private fun secUidFor(name: String): String? {
         val k = key(name)
