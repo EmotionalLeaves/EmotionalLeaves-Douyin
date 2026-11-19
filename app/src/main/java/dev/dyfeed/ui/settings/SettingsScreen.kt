@@ -210,14 +210,15 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             val counts by vm.libraryCounts.collectAsStateWithLifecycle()
             LibraryCard(counts) { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } }
 
-            Section(footer = "If the feed stops loading, open Douyin here and pass its \"verify you're human\" check. Signing in also opens up search.") {
+            Section(footer = "If the feed stops loading, open Douyin here and pass its \"verify you're human\" check.") {
                 // The one place to sort out Douyin: sign in, or clear its human check.
                 val authStatus by vm.authStatus.collectAsStateWithLifecycle()
                 val signedIn = remember(authStatus) { dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() }
                 val activityContext = androidx.compose.ui.platform.LocalContext.current
                 SettingRow(
                     "抖音 Douyin",
-                    subtitle = authStatus["douyin"] ?: if (signedIn) "Signed in" else "Not signed in. The feed works without it",
+                    subtitle = authStatus["douyin"] ?: if (signedIn) "Signed in: full search and creator pages"
+                    else "Not signed in: the feed, comments and trending work; search and creator pages show less",
                     icon = Icons.Filled.PlayCircle,
                     iconTint = if (signedIn) Good else Accent,
                     chevron = true,
