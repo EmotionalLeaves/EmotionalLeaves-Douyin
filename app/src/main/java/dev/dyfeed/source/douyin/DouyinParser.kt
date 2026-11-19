@@ -74,6 +74,19 @@ object DouyinParser {
         }
     }
 
+    /** The hot list's heat per word (hot_value), where given. */
+    fun trendingHeat(root: JsonElement?): Map<String, Long> {
+        val data = (root as? JsonObject)?.get("data") as? JsonObject ?: return emptyMap()
+        return listOf("word_list", "trending_list").flatMap { k ->
+            (data[k] as? JsonArray)?.mapNotNull { e ->
+                val o = e as? JsonObject ?: return@mapNotNull null
+                val word = o.str("word")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                val heat = (o.str("hot_value") ?: o.str("hotValue"))?.toLongOrNull()?.takeIf { it > 0 } ?: return@mapNotNull null
+                word to heat
+            }.orEmpty()
+        }.toMap()
+    }
+
     /** A comment-list answer's comments: (who, what they said, likes), blanks skipped. */
     fun comments(root: JsonElement?): List<Triple<String, String, Int>> {
         val list = (root as? JsonObject)?.get("comments") as? JsonArray ?: return emptyList()

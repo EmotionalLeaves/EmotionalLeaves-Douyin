@@ -280,10 +280,16 @@ class DouyinAdapter @Inject constructor(
         trendingCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 20 * 60_000L && list.isNotEmpty()) return list }
         val root = call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))
         DouyinParser.trendingTopics(root).forEach { (word, sid) -> if (sid != null) trendIds[word] = sid }
+        DouyinParser.trendingHeat(root).forEach { (word, heat) -> trendHeat[word] = heat }
         val words = trendingWords(root).distinct()
         trendingCache = System.currentTimeMillis() to words
         return words
     }
+
+    /** Trending words with their heat (热度), as the hot list gives it; empty heat if not given. */
+    private val trendHeat = ConcurrentHashMap<String, Long>()
+
+    fun heatOf(word: String): Long? = trendHeat[word]
 
     /** A trending topic's posts, from its own page, when [q] is (or is inside) a trending word. */
     private suspend fun trendPosts(q: String): List<MediaItem> {

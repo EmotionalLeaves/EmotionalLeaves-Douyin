@@ -228,13 +228,14 @@ class SearchViewModel @Inject constructor(
     private var job: Job? = null
 
     /** Douyin's trending topics (its hot list), shown before you type; empty until it answers. */
-    val trending = MutableStateFlow<List<String>>(emptyList())
+    val trending = MutableStateFlow<List<Pair<String, Long?>>>(emptyList())
 
     init {
         viewModelScope.launch { recent.load() }
         viewModelScope.launch {
             val douyin = registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter
             trending.value = runCatching { douyin?.trending().orEmpty() }.getOrDefault(emptyList()).take(20)
+                .map { it to douyin?.heatOf(it) }
         }
         viewModelScope.launch {
             _interests.value = runCatching { signals.topInterests(limit = 30).first }.getOrDefault(emptyList())
@@ -559,7 +560,7 @@ private fun SuggestionsPane(
     followed: List<String>,
     recent: List<String>,
     interests: List<String>,
-    trending: List<String> = emptyList(),
+    trending: List<Pair<String, Long?>> = emptyList(),
     onPick: (String) -> Unit,
     onRemoveRecent: (String) -> Unit,
     onClearRecent: () -> Unit,
@@ -692,7 +693,7 @@ private fun SuggestionsPane(
         if (trending.isNotEmpty()) {
             SectionTitle("Trending on Douyin · 抖音热榜")
             Column(Modifier.fillMaxWidth().padding(bottom = 18.dp)) {
-                trending.take(10).forEachIndexed { i, word ->
+                trending.take(10).forEachIndexed { i, (word, heat) ->
                     Row(
                         Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onPick(word) }.padding(horizontal = 4.dp, vertical = 9.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -704,7 +705,15 @@ private fun SuggestionsPane(
                             color = if (i < 3) Accent else Color.White.copy(alpha = 0.45f),
                             modifier = Modifier.width(28.dp),
                         )
-                        Text(word, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(word, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        if (heat != null) {
+                            Text(
+                                dev.dyfeed.ui.feed.Display.count(heat),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = Color.White.copy(alpha = 0.45f),
+                                modifier = Modifier.padding(start = 8.dp),
+                            )
+                        }
                     }
                 }
             }

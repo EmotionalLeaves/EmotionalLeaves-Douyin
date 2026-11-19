@@ -172,6 +172,7 @@ class DouyinParserTest {
                {"word":"累了就出去玩","sentence_id":0}],"trending_list":[{"word":"新歌","sentence_id":"77"}]}}""",
         )
         assertEquals(listOf("中美元首会晤" to "2305123", "累了就出去玩" to null, "新歌" to "77"), DouyinParser.trendingTopics(root))
+        assertEquals(mapOf("中美元首会晤" to 11_000_000L), DouyinParser.trendingHeat(root))
     }
 
     @Test
