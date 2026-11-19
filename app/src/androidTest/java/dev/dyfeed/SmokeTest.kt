@@ -464,6 +464,10 @@ class SmokeTest {
         android.util.Log.i("PFHEALTH", "douyin search trending '$topic': " + (trendHits?.fold({ "$it posts" }, { "error ${it.message}" }) ?: "no topics"))
         // Video addresses expire after a few hours: a liked or history post is looked up again by id.
         val again = anyPost?.let { p -> runCatching { runBlocking { douyin.fresh(p.id) } } }
+        val media = anyPost?.extras?.get("media")
+        val expiry = media?.let { dev.dyfeed.source.douyin.DouyinParser.expiresAt(it) }
+        android.util.Log.i("PFHEALTH", "douyin feed address: " + (media?.substringAfter('?')?.split('&')?.map { it.substringBefore('=') }?.joinToString(",")?.take(200) ?: "none") +
+            " | expires " + (expiry?.let { "in ${(it - System.currentTimeMillis()) / 60_000} min" } ?: "unknown"))
         android.util.Log.i("PFHEALTH", "douyin feed refresh by id: " + (again?.fold({ if (it == null) "nothing" else "ok, plays from ${it.extras["media"]?.substringBefore('?')?.take(60)}" }, { "error ${it.message}" }) ?: "no post to try"))
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
