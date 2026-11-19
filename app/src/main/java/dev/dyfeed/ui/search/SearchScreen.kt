@@ -1063,7 +1063,7 @@ private fun ResultsPane(
                 ui.loading -> Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     dev.dyfeed.ui.common.BrandSpinner(size = 40.dp)
                     Spacer(Modifier.height(12.dp))
-                    Text("Searching every source…", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
+                    Text("Searching Douyin…", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f))
                 }
                 else -> Column(
                     Modifier.align(Alignment.Center).padding(32.dp),

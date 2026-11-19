@@ -293,7 +293,7 @@ private fun HealthCard(
                 }
                 else -> {
                     Text("Is everything loading?", style = MaterialTheme.typography.titleMedium)
-                    Text("Test every source from this phone and connection.", style = MaterialTheme.typography.bodySmall, color = TextMid)
+                    Text("Check Douyin and your other sources from this phone and connection.", style = MaterialTheme.typography.bodySmall, color = TextMid)
                 }
             }
             Spacer(Modifier.height(12.dp))

@@ -43,7 +43,7 @@ object Steer {
     private val FORMATS = mapOf(
         "video" to "video", "videos" to "video", "vids" to "video", "clips" to "video",
         "pics" to "image", "pictures" to "image", "photos" to "image", "images" to "image", "pics only" to "image",
-        "gifs" to "gif", "gif" to "gif", "comics" to "comic", "comic" to "comic", "hentai comics" to "comic",
+        "gifs" to "gif", "gif" to "gif", "photo posts" to "comic", "slideshows" to "comic",
     )
     private val LENGTHS = mapOf(
         "short videos" to "short", "short clips" to "short", "short ones" to "short", "quickies" to "short",

@@ -1807,7 +1807,7 @@ private fun TagHeader(
                 )
                 Spacer(Modifier.height(2.dp))
                 Text(
-                    if (items.isEmpty()) (if (loading) "Looking on every site…" else "Nothing here right now")
+                    if (items.isEmpty()) (if (loading) "Looking on Douyin…" else "Nothing here right now")
                     else "${items.size}${if (loading) "+" else ""} posts · $videos videos · $sites ${if (sites == 1) "site" else "sites"}",
                     style = MaterialTheme.typography.bodySmall,
                     color = Color.White.copy(alpha = 0.6f),

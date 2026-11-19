@@ -264,7 +264,6 @@ class FeedViewModel @Inject constructor(
         EVERYTHING("Everything", emptySet()),
         VIDEOS("Videos only", setOf("image", "gif", "comic")),
         PICTURES("Photo posts", setOf("video", "comic")),
-        COMICS("Comics only", setOf("video", "image", "gif")),
     }
 
     val showing: StateFlow<Showing?> = settingsRepo.flow.map { s -> Showing.entries.firstOrNull { it.hidden == s.hiddenFeedTypes } }
