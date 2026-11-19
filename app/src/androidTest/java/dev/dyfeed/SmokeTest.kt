@@ -510,6 +510,26 @@ class SmokeTest {
         shot("12_learn")
     }
 
+    /** Live subtitles: a frame with a subtitle burned in is read, and the line picked out. */
+    @Test
+    fun readsBurnedInSubtitles() {
+        val bmp = android.graphics.Bitmap.createBitmap(720, 1280, android.graphics.Bitmap.Config.ARGB_8888)
+        val canvas = android.graphics.Canvas(bmp)
+        canvas.drawColor(android.graphics.Color.rgb(40, 60, 80))
+        val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
+            color = android.graphics.Color.WHITE; textSize = 46f; textAlign = android.graphics.Paint.Align.CENTER
+        }
+        canvas.drawText("我们今天去吃火锅", 360f, 1000f, paint)
+        val top = (1280 * 0.42f).toInt()
+        val crop = android.graphics.Bitmap.createBitmap(bmp, 0, top, 720, (1280 * 0.96f).toInt() - top)
+        val lines = runBlocking { kotlinx.coroutines.withTimeoutOrNull(60_000) { dev.dyfeed.ui.learn.Reader.lines(crop, top, 720, 1280) } }.orEmpty()
+        val picked = dev.dyfeed.domain.learn.LiveSubs.pick(lines)
+        android.util.Log.i("PFHEALTH", "translate: live subtitles read ${lines.map { it.text }} → $picked")
+        // The reader comes from Play services; where the emulator has none, nothing to check.
+        org.junit.Assume.assumeTrue(lines.isNotEmpty())
+        assertTrue("subtitle read: $picked", picked?.contains("火锅") == true)
+    }
+
     /** A link shared into the app opens in the viewer. */
     @Test
     fun sharedLinkOpensInViewer() {

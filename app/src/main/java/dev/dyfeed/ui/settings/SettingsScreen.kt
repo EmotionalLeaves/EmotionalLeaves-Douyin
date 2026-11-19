@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.filled.ClosedCaption
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.positionInParent
@@ -308,6 +309,15 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     subtitle = "How every Chinese caption is said, tone by tone. Tap 词 Words under a caption for each word's meaning and voice.",
                     icon = Icons.Filled.School,
                     onChange = dev.dyfeed.ui.learn.LearnPrefs::setPinyin,
+                )
+                RowDivider()
+                val live by dev.dyfeed.ui.learn.LearnPrefs.liveSubs.collectAsStateWithLifecycle()
+                SwitchSetting(
+                    "Translate what's said",
+                    live,
+                    subtitle = "The subtitles in a video, read off the picture as they come up and shown in English just above them (on the phone). Tap one to learn its words.",
+                    icon = Icons.Filled.ClosedCaption,
+                    onChange = dev.dyfeed.ui.learn.LearnPrefs::setLiveSubs,
                 )
                 RowDivider()
                 val slow by dev.dyfeed.ui.learn.LearnPrefs.slowVoice.collectAsStateWithLifecycle()

@@ -40,6 +40,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Bookmark
+import dev.dyfeed.ui.learn.LiveSubtitles
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -408,6 +409,8 @@ fun VideoPage(
             onRelease = { view -> view.player = null },
             modifier = Modifier.fillMaxSize(),
         )
+        // What's said, in English, as it's said (read off the video's own subtitles).
+        LiveSubtitles(player, playerView, active = play && firstFrame && !detached && vScale <= 1.01f)
         // Same framing as the video (fit), so there's no jump when the first frame replaces it.
         if (!firstFrame) Thumbnail(item, contentScale = ContentScale.Fit)
         when {

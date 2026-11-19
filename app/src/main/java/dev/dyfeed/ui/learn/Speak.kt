@@ -51,6 +51,11 @@ object LearnPrefs {
     val pinyin: StateFlow<Boolean> = _pinyin
     @Volatile private var prefs: android.content.SharedPreferences? = null
 
+    private val _live = MutableStateFlow(true)
+    /** Subtitles burned into videos, read off the picture and shown in English as they're said. */
+    val liveSubs: StateFlow<Boolean> = _live
+    fun setLiveSubs(on: Boolean) { _live.value = on; prefs?.edit()?.putBoolean("live", on)?.apply() }
+
     private val _slow = MutableStateFlow(true)
     /** Read aloud a little slower than normal speech. */
     val slowVoice: StateFlow<Boolean> = _slow
@@ -59,6 +64,7 @@ object LearnPrefs {
         prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).also {
             _pinyin.value = it.getBoolean("pinyin", false)
             _slow.value = it.getBoolean("slow", true)
+            _live.value = it.getBoolean("live", true)
         }
     }
 

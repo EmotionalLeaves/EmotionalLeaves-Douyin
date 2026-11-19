@@ -108,6 +108,8 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.webkit)
     implementation(libs.mlkit.translate)
+    // Reads subtitles burned into a video (Chinese), to translate them as they're spoken.
+    implementation(libs.mlkit.text.chinese)
     implementation(libs.androidx.lifecycle.runtime.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.lifecycle.process)

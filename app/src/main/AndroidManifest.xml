@@ -28,6 +28,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.PFeed"
         tools:targetApi="31">
+        <!-- Chinese text recognition (live subtitles) is fetched by Play services with the app. -->
+        <meta-data android:name="com.google.mlkit.vision.DEPENDENCIES" android:value="ocr_chinese" />
 
         <!-- The real activity has no launcher intent-filter; the aliases below provide the icon. -->
         <activity
