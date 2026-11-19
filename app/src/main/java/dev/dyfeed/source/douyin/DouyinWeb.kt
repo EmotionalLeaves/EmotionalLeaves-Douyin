@@ -166,6 +166,16 @@ class DouyinWeb @Inject constructor(
     /** Loads the page now (if it isn't already), so the first feed request doesn't wait for it. */
     suspend fun warmUp() = ensurePage()
 
+    /**
+     * Closes both hidden pages (the app has been in the background a while): Douyin's scripts
+     * would otherwise keep running and draining the battery. The next request opens a fresh one.
+     */
+    suspend fun sleep() {
+        reload()
+        closeSecond?.cancel()
+        withContext(Dispatchers.Main) { searchWeb?.destroy(); searchWeb = null }
+    }
+
     /** How many page-fetched feed answers are waiting (without using them up). */
     fun waitingAnswers(): Int = captured.size
 

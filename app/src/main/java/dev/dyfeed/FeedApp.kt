@@ -27,6 +27,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
     @Inject lateinit var updater: dev.dyfeed.update.Updater
     @Inject lateinit var tasteEngine: dev.dyfeed.data.repo.TasteEngineStore
     @Inject lateinit var douyinWeb: dev.dyfeed.source.douyin.DouyinWeb
+    private var douyinSleep: kotlinx.coroutines.Job? = null
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder().setWorkerFactory(workerFactory).build()
@@ -72,12 +73,18 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
         // prompt is installed once you've left the app, so it never closes in front of you.
         androidx.lifecycle.ProcessLifecycleOwner.get().lifecycle.addObserver(object : androidx.lifecycle.DefaultLifecycleObserver {
             override fun onStart(owner: androidx.lifecycle.LifecycleOwner) {
+                douyinSleep?.cancel()
                 updater.auto()
                 // Open Douyin's page out of sight now, so it's ready by the time the feed asks
                 // (it takes ~10-15 s to load and set up its signer).
                 kotlinx.coroutines.MainScope().launch { runCatching { douyinWeb.warmUp() } }
             }
             override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
+                // Away for a minute: close the hidden Douyin pages (their scripts cost battery).
+                douyinSleep = kotlinx.coroutines.MainScope().launch {
+                    kotlinx.coroutines.delay(60_000)
+                    runCatching { douyinWeb.sleep() }
+                }
                 tasteEngine.flush()
                 dev.dyfeed.data.repo.DataMeter.month()
                 updater.install(quiet = true)
