@@ -133,3 +133,25 @@ object Dict {
         }.also { loaded = it }
     }
 }
+
+/** The words that keep coming up in what you watch: worth learning first. */
+object Frequent {
+    /**
+     * Words of two or more characters met in at least [minTimes] of [captions] (each caption counts
+     * once), most met first, leaving out [known] words. Single characters are mostly particles
+     * (的, 了, 是) and are left out.
+     */
+    fun words(dict: ZhDictionary, captions: List<String>, known: Set<String>, minTimes: Int = 2, limit: Int = 24): List<Pair<Token, Int>> {
+        val counts = HashMap<String, Int>()
+        val tokens = HashMap<String, Token>()
+        captions.forEach { c ->
+            dict.segment(c).filter { it.known && it.text.length >= 2 && it.text !in known }.distinctBy { it.text }.forEach { t ->
+                counts[t.text] = (counts[t.text] ?: 0) + 1
+                tokens.putIfAbsent(t.text, t)
+            }
+        }
+        return counts.entries.filter { it.value >= minTimes }
+            .sortedWith(compareByDescending<Map.Entry<String, Int>> { it.value }.thenBy { it.key.length }.thenBy { it.key })
+            .take(limit).map { tokens.getValue(it.key) to it.value }
+    }
+}

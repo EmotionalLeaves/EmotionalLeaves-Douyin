@@ -63,8 +63,9 @@ import dev.dyfeed.ui.theme.Accent
  * Words come from what you watch: "Words" under any caption breaks it apart and saves what you pick.
  */
 @Composable
-fun LearnScreen(nav: NavController) {
+fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigation.compose.hiltViewModel()) {
     val context = LocalContext.current
+    val captions by vm.captions.collectAsState(initial = emptyList())
     val cards by WordBook.cards.collectAsState()
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val due = remember(cards, now) { Srs.due(cards, now) }
@@ -117,6 +118,47 @@ fun LearnScreen(nav: NavController) {
                         Text("Every Chinese caption in the feed shows how it's said", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
                     }
                     Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
+                }
+            }
+            // The words that keep coming up in what you watch, not yet saved.
+            item {
+                val savedWords = cards.mapTo(HashSet()) { it.word }
+                val frequent by produceState<List<Pair<dev.dyfeed.domain.learn.Token, Int>>>(emptyList(), captions, cards.size, dictReady) {
+                    if (captions.isEmpty()) return@produceState
+                    value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                        dev.dyfeed.domain.learn.Frequent.words(Dict.get(context), captions, savedWords)
+                    }
+                }
+                if (frequent.isNotEmpty()) {
+                    Column {
+                        Section("Words you keep hearing · 常见词")
+                        androidx.compose.foundation.lazy.LazyRow(
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            items(frequent, key = { it.first.text }) { (t, n) ->
+                                val e = t.entries.first()
+                                Column(
+                                    Modifier.width(120.dp).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f))
+                                        .clickable { Speak.say(context, t.text) }.padding(12.dp),
+                                ) {
+                                    Text(e.pinyinMarks, color = toneColor(Pinyin.tones(e.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelMedium, maxLines = 1)
+                                    Text(t.text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                                    Text(e.english, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.height(32.dp))
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text("in $n videos", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.45f), modifier = Modifier.weight(1f))
+                                        Text(
+                                            "+ Save",
+                                            color = Accent,
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.clickable { WordBook.add(e, example = captions.firstOrNull { t.text in it }) },
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
             item { Section("Watch and learn · 看视频学中文") }

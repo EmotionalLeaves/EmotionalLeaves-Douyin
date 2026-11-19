@@ -90,4 +90,11 @@ class LearnTest {
         assertEquals(listOf("我", "喜欢", "吃", "重庆", "火锅"), real.segment("我喜欢吃重庆火锅").map { it.text })
         assertEquals("xǐ huan", real.lookup("喜欢").first().pinyinMarks)
     }
+
+    @Test
+    fun `words you keep meeting come first, without the ones you saved or lone characters`() {
+        val captions = listOf("重庆火锅太好吃了", "火锅好吃", "我喜欢吃火锅", "你好重庆", "好吃")
+        val top = dev.dyfeed.domain.learn.Frequent.words(dict, captions, known = setOf("重庆"))
+        assertEquals(listOf("好吃" to 3, "火锅" to 3), top.map { it.first.text to it.second })
+    }
 }
