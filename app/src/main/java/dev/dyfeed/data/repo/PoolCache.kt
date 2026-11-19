@@ -27,7 +27,7 @@ class PoolCache @Inject constructor(
         val row = runCatching { dao.get(ROW) }.getOrNull() ?: return emptyList()
         runCatching { dao.delete(ROW) }
         val saved = runCatching { json.decodeFromString(Saved.serializer(), row.json) }.getOrNull() ?: return emptyList()
-        return if (now - saved.at in 0..MAX_AGE_MS) saved.items else emptyList()
+        return if (now - saved.at in 0..MAX_AGE_MS) stillPlayable(saved.items, now) else emptyList()
     }
 
     suspend fun save(candidates: List<MediaItem>, now: Long = System.currentTimeMillis()) {
@@ -47,6 +47,13 @@ class PoolCache @Inject constructor(
         const val MAX_ITEMS = 36
 
         /** Not RedGIFs (its file links are signed and expire quickly) and not on-device files. */
+        /** Without posts whose video address says it has expired (or will within minutes): they'd only be skipped. */
+        internal fun stillPlayable(items: List<MediaItem>, now: Long): List<MediaItem> = items.filter { item ->
+            val expires = item.extras["media"]?.let(dev.dyfeed.source.douyin.DouyinParser::expiresAt) ?: return@filter true
+            expires - now > EXPIRY_MARGIN_MS
+        }
+        private const val EXPIRY_MARGIN_MS = 5 * 60_000L
+
         internal fun cacheable(candidates: List<MediaItem>): List<MediaItem> =
             candidates.filter { it.extras["media"]?.startsWith("http") != false }.take(MAX_ITEMS)
     }
