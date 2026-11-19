@@ -7,6 +7,8 @@ Feels more like Douyin
 - Faster: Douyin's page opens when the app does, so the first posts don't wait for it, and each refill takes the page's second batch too.
 - Faster: the Following tab no longer waits on every creator's page when you're signed out.
 - Lighter: the hidden page used for creator pages closes after 2 minutes unused.
+- New: Share (hold a post) sends the Douyin link to any app.
+- Better: search lists posts containing every word you typed first, related ones after.
 
 ## 1.3.0 — 2026-11-19
 Creator pages without signing in

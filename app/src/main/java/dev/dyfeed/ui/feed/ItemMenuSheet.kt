@@ -31,6 +31,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Brightness4
@@ -319,9 +320,19 @@ fun ItemMenuSheet(
             if (creator != null) {
                 MenuRow("Block @$creator", Icons.Filled.PersonOff, "Never show their posts") { vm.blockCreator(item); onDismiss() }
             }
-            if (item.pageUrl.isNotBlank()) MenuRow("Copy link", Icons.Filled.Link) {
-                dev.dyfeed.ui.common.copySensitive(context, "Link", item.pageUrl)
-                onDismiss()
+            if (item.pageUrl.isNotBlank()) {
+                MenuRow("Share", Icons.Filled.Share, "Send the Douyin link to another app") {
+                    val text = listOfNotNull(item.title?.take(80), item.pageUrl).joinToString("\n")
+                    val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                        .setType("text/plain")
+                        .putExtra(android.content.Intent.EXTRA_TEXT, text)
+                    runCatching { context.startActivity(android.content.Intent.createChooser(send, "Share").addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)) }
+                    onDismiss()
+                }
+                MenuRow("Copy link", Icons.Filled.Link) {
+                    dev.dyfeed.ui.common.copySensitive(context, "Link", item.pageUrl)
+                    onDismiss()
+                }
             }
             // Kept on the phone already: copy it out to Downloads (visible to the gallery and other apps).
             if (vm.canExport(item)) MenuRow("Save to phone", Icons.Filled.Download, "Into Downloads, where your gallery and other apps can see it") {
