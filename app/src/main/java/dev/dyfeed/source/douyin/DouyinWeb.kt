@@ -102,6 +102,12 @@ class DouyinWeb @Inject constructor(
     private val idleScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
     @Volatile private var closeSecond: kotlinx.coroutines.Job? = null
 
+    /** A trending topic's own page (douyin.com/hot/<sentence id>): the posts it carries. */
+    suspend fun trendPage(sentenceId: String, waitMs: Long = 8_000): List<String> =
+        secondPage("https://www.douyin.com/hot/" + android.net.Uri.encode(sentenceId), waitMs, withRenderData = true) { url, body ->
+            ("/hot/search" in url || "/aweme/" in url) && body.contains("aweme")
+        }
+
     /** One post's own page (douyin.com/video/<id>): its embedded data, and the detail it may fetch. */
     suspend fun postPage(awemeId: String, waitMs: Long = 8_000): List<String> =
         secondPage("https://www.douyin.com/video/" + android.net.Uri.encode(awemeId), waitMs, withRenderData = true) { url, body ->

@@ -166,6 +166,15 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `trending topics with their page ids`() {
+        val root = Json.parseToJsonElement(
+            """{"status_code":0,"data":{"word_list":[{"word":"中美元首会晤","sentence_id":"2305123","hot_value":11000000},
+               {"word":"累了就出去玩","sentence_id":0}],"trending_list":[{"word":"新歌","sentence_id":"77"}]}}""",
+        )
+        assertEquals(listOf("中美元首会晤" to "2305123", "累了就出去玩" to null, "新歌" to "77"), DouyinParser.trendingTopics(root))
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))

@@ -62,6 +62,18 @@ object DouyinParser {
         return out
     }
 
+    /** The hot list's topics: (word, its topic page id if given), in order. */
+    fun trendingTopics(root: JsonElement?): List<Pair<String, String?>> {
+        val data = (root as? JsonObject)?.get("data") as? JsonObject ?: return emptyList()
+        return listOf("word_list", "trending_list").flatMap { k ->
+            (data[k] as? JsonArray)?.mapNotNull { e ->
+                val o = e as? JsonObject ?: return@mapNotNull null
+                val word = o.str("word")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+                word to (o.str("sentence_id") ?: o.str("sentenceId"))?.takeIf { it.isNotBlank() && it != "0" }
+            }.orEmpty()
+        }
+    }
+
     /** A comment-list answer's comments: (who, what they said, likes), blanks skipped. */
     fun comments(root: JsonElement?): List<Triple<String, String, Int>> {
         val list = (root as? JsonObject)?.get("comments") as? JsonArray ?: return emptyList()

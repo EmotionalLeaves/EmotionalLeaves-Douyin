@@ -202,6 +202,7 @@ class DouyinAdapter @Inject constructor(
             val tag = async { runCatching { hashtagPosts(q) }.getOrDefault(emptyList()) }
             val related = async { runCatching { relatedPosts(fromFeed.take(5)) }.getOrDefault(emptyList()) }
             val trending = async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) }
+            val trendPage = async { runCatching { trendPosts(q) }.getOrDefault(emptyList()) }
             val page = async {
                 pageSearchGate.attempt {
                     runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
@@ -211,7 +212,7 @@ class DouyinAdapter @Inject constructor(
             }
             val engine = async { webSearchGate.attempt { runCatching { webSearch(q) }.getOrDefault(emptyList()) } }
             // Best evidence first: the tag's own list and Douyin's own results, then the rest.
-            tag.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
+            tag.await() + trendPage.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
         }
         // Posts that contain every word of the search first; related ones after (order kept within each).
         val all = found.distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
@@ -271,13 +272,27 @@ class DouyinAdapter @Inject constructor(
     }
 
     @Volatile private var trendingCache: Pair<Long, List<String>>? = null
+    /** Trending word → its topic page id (sentence_id), from the hot list. */
+    private val trendIds = ConcurrentHashMap<String, String>()
 
     /** Douyin's trending topics right now (its hot list), newest fetch at most 20 minutes old. */
     suspend fun trending(): List<String> {
         trendingCache?.let { (at, list) -> if (System.currentTimeMillis() - at < 20 * 60_000L && list.isNotEmpty()) return list }
-        val words = trendingWords(call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))).distinct()
+        val root = call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))
+        DouyinParser.trendingTopics(root).forEach { (word, sid) -> if (sid != null) trendIds[word] = sid }
+        val words = trendingWords(root).distinct()
         trendingCache = System.currentTimeMillis() to words
         return words
+    }
+
+    /** A trending topic's posts, from its own page, when [q] is (or is inside) a trending word. */
+    private suspend fun trendPosts(q: String): List<MediaItem> {
+        if (trendIds.isEmpty()) runCatching { trending() }
+        val key = q.trim()
+        val sid = trendIds[key] ?: trendIds.entries.firstOrNull { (w, _) -> w.contains(key) || key.contains(w) }?.value ?: return emptyList()
+        return runCatching { web.trendPage(sid) }.getOrDefault(emptyList()).flatMap { body ->
+            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+        }
     }
 
     /** The words of Douyin's trending list (data.word_list[].word, or trending_list). */

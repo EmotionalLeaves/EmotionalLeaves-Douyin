@@ -1,3 +1,9 @@
+## 1.4.2 — 2026-11-19
+Trending that opens
+
+- New: tapping a trending topic in Search shows that topic's own videos (from its Douyin page), signed in or not.
+- New: signed out, search says where its results come from, with one tap to sign in for Douyin's full search.
+
 ## 1.4.1 — 2026-11-19
 Search remembers
 
