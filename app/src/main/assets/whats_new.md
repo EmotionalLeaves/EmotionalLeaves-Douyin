@@ -3,6 +3,9 @@ Trending that opens
 
 - New: tapping a trending topic in Search shows that topic's own videos (from its Douyin page), signed in or not.
 - New: signed out, search says where its results come from, with one tap to sign in for Douyin's full search.
+- New: the trending list shows each topic's heat (1100万).
+- New: the post's sound under the caption (♪ song – artist).
+- New: creators' real pictures in every round avatar (Library, creator pages, Following).
 
 ## 1.4.1 — 2026-11-19
 Search remembers
