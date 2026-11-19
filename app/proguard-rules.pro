@@ -13,8 +13,6 @@
 }
 -keep,includedescriptorclasses class dev.dyfeed.**$$serializer { *; }
 
-# Retrofit service interface (Retrofit ships its own rules for the rest).
--keep,allowobfuscation interface dev.dyfeed.source.api.ApiService
 
 # Activity aliases are referenced by class name from LauncherDisguise.
 -keep class dev.dyfeed.MainActivity

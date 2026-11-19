@@ -21,7 +21,7 @@ data class BooruFeed(val host: String, val tags: String? = null) {
 
 /**
  * User-defined mapping for the Generic JSON adapter. [urlTemplate] may contain {cursor} and {query}.
- * Paths are dotted (see JsonPath), relative to each item after [wrapPath].
+ * Paths are dotted, relative to each item after [wrapPath] (kept so old settings still read).
  */
 @Serializable
 data class JsonFeed(

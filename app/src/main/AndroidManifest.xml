@@ -111,26 +111,6 @@
             </intent-filter>
         </activity-alias>
 
-        <!-- Receives the OAuth redirect (dyfeed://oauth/callback) from the Custom Tab. -->
-        <activity
-            android:name=".source.douyin.DouyinLoginActivity"
-            android:exported="false"
-            android:theme="@style/Theme.PFeed"
-            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden" />
-
-        <activity
-            android:name=".OAuthRedirectActivity"
-            android:exported="true"
-            android:excludeFromRecents="true"
-            android:noHistory="true"
-            android:theme="@style/Theme.PFeed.Transparent">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="dyfeed" android:host="oauth" />
-            </intent-filter>
-        </activity>
 
         <!-- WorkManager is initialised on demand with Hilt's worker factory (see FeedApp). -->
         <provider

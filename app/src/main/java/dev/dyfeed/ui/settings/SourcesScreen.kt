@@ -102,16 +102,14 @@ import dev.dyfeed.ui.theme.TextMid
 import dev.dyfeed.ui.theme.Warn
 
 /** Sources that only show what you add yourself; everything else is built in. */
-private val USER_FILLED = listOf("rss", "direct", "json", "local")
+private val USER_FILLED = listOf("direct", "local")
 
 /** Display order: the big built-in sources first, in roughly the order people use them. */
-private val ORDER = listOf("douyin", "api") + USER_FILLED
+private val ORDER = listOf("douyin") + USER_FILLED
 
 private fun iconFor(id: String): ImageVector = when (id) {
     "douyin" -> Icons.Filled.Videocam
-    "rss" -> Icons.Filled.RssFeed
     "direct" -> Icons.Filled.Link
-    "json" -> Icons.Filled.DataObject
     "local" -> Icons.Filled.Folder
     else -> Icons.Filled.Widgets
 }
@@ -394,9 +392,7 @@ private fun SourceSheet(
 @Composable
 private fun AddTo(id: String, vm: SettingsViewModel, onPickFolder: () -> Unit) {
     when (id) {
-        "rss" -> AddSection("Add a feed") { OneField("Feed URL", "https://site/feed.xml", KeyboardType.Uri) { vm.addFeed(it) } }
         "direct" -> AddSection("Add a link") { OneField("Video, image or page URL", "https://…/clip.mp4", KeyboardType.Uri) { vm.addDirect(it) } }
-        "json" -> AddSection("Add a JSON API") { JsonForm(vm) }
         "local" -> AddSection("Add a folder") {
             Button(onClick = onPickFolder, colors = ButtonDefaults.buttonColors(containerColor = Accent), modifier = Modifier.padding(12.dp)) {
                 Icon(Icons.Filled.Folder, null, Modifier.size(18.dp))
@@ -423,9 +419,7 @@ private fun Entries(id: String, s: AppSettings, vm: SettingsViewModel) {
         "reddit" -> s.redditSubs.map { sub -> "r/$sub" to { vm.removeReddit(sub); Unit } }
         "booru" -> s.booruFeeds.map { f -> f.label to { vm.removeBooru(f); Unit } }
         "mastodon" -> s.mastodonFeeds.map { f -> f.label to { vm.removeMastodon(f); Unit } }
-        "rss" -> s.rssFeeds.map { u -> u to { vm.removeFeed(u); Unit } }
         "direct" -> s.directUrls.map { u -> u to { vm.removeDirect(u); Unit } }
-        "json" -> s.jsonFeeds.map { f -> f.name to { vm.removeJson(f); Unit } }
         "local" -> s.localFolders.map { u -> (Uri.parse(u).lastPathSegment?.substringAfter(':') ?: u) to { vm.removeFolder(u); Unit } }
         else -> return
     }
@@ -502,78 +496,6 @@ private fun TwoField(label1: String, ph1: String, label2: String, ph2: String, o
     }
 }
 
-@Composable
-private fun JsonForm(vm: SettingsViewModel) {
-    var name by remember { mutableStateOf("") }
-    var url by remember { mutableStateOf("") }
-    var itemsPath by remember { mutableStateOf("") }
-    var mediaPath by remember { mutableStateOf("url") }
-    var advanced by remember { mutableStateOf(false) }
-    var wrapPath by remember { mutableStateOf("") }
-    var idPath by remember { mutableStateOf("id") }
-    var titlePath by remember { mutableStateOf("title") }
-    var creatorPath by remember { mutableStateOf("") }
-    var thumbPath by remember { mutableStateOf("") }
-    var tagsPath by remember { mutableStateOf("") }
-    var pagePath by remember { mutableStateOf("") }
-    var searchTemplate by remember { mutableStateOf("") }
-    var typeHint by remember { mutableStateOf("auto") }
-
-    Column(Modifier.padding(12.dp)) {
-        Text(
-            "Point at any JSON endpoint and say where the fields are. {query} and {cursor} in a URL are filled in.",
-            style = MaterialTheme.typography.bodySmall,
-            color = TextMid,
-        )
-        Field("Name", name) { name = it }
-        Field("URL", url, "https://host/api?tag={query}&page={cursor}") { url = it }
-        Field("List of items at", itemsPath, "e.g. data.children") { itemsPath = it }
-        Field("Media URL at", mediaPath, "e.g. url") { mediaPath = it }
-        TextButton(onClick = { advanced = !advanced }) { Text(if (advanced) "Fewer fields" else "More fields") }
-        AnimatedVisibility(advanced) {
-            Column {
-                Field("Each item inside", wrapPath, "e.g. data") { wrapPath = it }
-                Field("Id at", idPath) { idPath = it }
-                Field("Title at", titlePath) { titlePath = it }
-                Field("Creator at", creatorPath) { creatorPath = it }
-                Field("Thumbnail at", thumbPath) { thumbPath = it }
-                Field("Tags at", tagsPath) { tagsPath = it }
-                Field("Page link at", pagePath) { pagePath = it }
-                Field("Search URL", searchTemplate, "https://host/search?q={query}") { searchTemplate = it }
-                Row(Modifier.padding(top = 8.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    listOf("auto", "video", "image", "gif", "embed").forEach { t ->
-                        FilterChip(selected = typeHint == t, onClick = { typeHint = t }, label = { Text(t) })
-                    }
-                }
-            }
-        }
-        Button(
-            onClick = {
-                val ok = vm.addJson(
-                    JsonFeed(
-                        name = name.trim(),
-                        urlTemplate = url.trim(),
-                        itemsPath = itemsPath.trim(),
-                        mediaPath = mediaPath.trim().ifBlank { "url" },
-                        searchTemplate = searchTemplate.trim().ifBlank { null },
-                        wrapPath = wrapPath.trim(),
-                        idPath = idPath.trim().ifBlank { "id" },
-                        titlePath = titlePath.trim().ifBlank { "title" },
-                        creatorPath = creatorPath.trim(),
-                        thumbnailPath = thumbPath.trim(),
-                        tagsPath = tagsPath.trim(),
-                        pagePath = pagePath.trim(),
-                        typeHint = typeHint,
-                    ),
-                )
-                if (ok) { name = ""; url = ""; itemsPath = ""; mediaPath = "url" }
-            },
-            enabled = name.isNotBlank() && url.isNotBlank() && itemsPath.isNotBlank(),
-            colors = ButtonDefaults.buttonColors(containerColor = Accent),
-            modifier = Modifier.padding(top = 8.dp),
-        ) { Text("Add API") }
-    }
-}
 
 @Composable
 private fun Field(label: String, value: String, placeholder: String? = null, onChange: (String) -> Unit) {
@@ -593,9 +515,7 @@ internal fun feedCount(id: String, s: AppSettings): Int? = when (id) {
     "reddit" -> s.redditSubs.size
     "booru" -> s.booruFeeds.size
     "mastodon" -> s.mastodonFeeds.size
-    "rss" -> s.rssFeeds.size
     "direct" -> s.directUrls.size
-    "json" -> s.jsonFeeds.size
     "local" -> s.localFolders.size
     "kemono" -> s.kemonoHosts.size
     else -> null
@@ -614,9 +534,7 @@ internal fun feedSummary(id: String, s: AppSettings): String? = when (id) {
         "${"%,d".format(s.mastodonFeeds.size)} hashtag feeds on $servers servers"
     }
     "kemono" -> s.kemonoHosts.joinToString(" + ").ifBlank { null }
-    "rss" -> if (s.rssFeeds.isEmpty()) "Add any RSS or Atom feed" else "${s.rssFeeds.size} feeds"
     "direct" -> if (s.directUrls.isEmpty()) "Paste a video or image link" else "${s.directUrls.size} links"
-    "json" -> if (s.jsonFeeds.isEmpty()) "Map any JSON API" else "${s.jsonFeeds.size} APIs"
     "local" -> if (s.localFolders.isEmpty()) "Pick a folder on this phone" else "${s.localFolders.size} folders"
     else -> null
 }

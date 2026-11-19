@@ -61,10 +61,10 @@ dev.dyfeed
 │   ├── settings/      DataStore-backed AppSettings
 │   └── repo/          FeedSession (fetch → filter → dedup → rank → space), Search, Library, Signals, OfflineStore
 ├── source/            SourceAdapter, SourceRegistry
-│   ├── parse/         pure, unit-tested parsers (MediaTypes, JsonPath, GenericJson)
+│   ├── parse/         MediaTypes
 │   ├── net/           HttpJson, CachingAdapter (fetch-many + in-memory paging base)
-│   ├── douyin/ local/ direct/   the adapters (rss/ generic/ api/ are kept but not registered)
-│   └── auth/          OAuth PKCE (Custom Tabs)
+│   ├── local/ direct/ the other two adapters (a folder on the phone, a shared link)
+│   └── douyin/        DouyinWeb (signed requests via a hidden page), DouyinParser, DouyinAdapter, DouyinLoginActivity
 ├── player/            MediaCache (LRU + offline), PlayerPool, Preloader, ResumePoints
 ├── security/          AppLockManager, SecretStore (PIN + Keystore-wrapped DB key), LauncherDisguise
 ├── work/              MaintenanceWorker (history purge, compaction)
@@ -94,7 +94,7 @@ dev.dyfeed
    - Throw `SourceException(id, "message", isAuthError = …)` for anything the user should see. The feed shows the message and keeps going with the other sources.
    - `cursor == null` means "refresh from the top". Return `nextCursor = null` at the end.
    - Return `StreamInfo.Embed(url)` only for an **official** embed player. It renders in the sandboxed WebView.
-   - For OAuth, use `OAuthManager.authorize(ctx.activity, OAuthConfig(...))`, which runs PKCE in a Custom Tab with redirect `dyfeed://oauth/callback`. Store tokens with `CredentialDao`, which lives in the encrypted DB.
+   - Store any tokens with `CredentialDao`, which lives in the encrypted DB.
    - A source that works without signing in but gets more with it sets `offersSignIn = true` (Douyin does).
 
 ## Privacy

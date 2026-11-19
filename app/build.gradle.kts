@@ -15,7 +15,6 @@ val localProps = Properties().apply {
     if (f.exists()) f.inputStream().use { load(it) }
 }
 fun local(key: String): String = localProps.getProperty(key, "")
-fun quoted(key: String): String = "\"" + local(key).replace("\"", "\\\"") + "\""
 
 android {
     namespace = "dev.dyfeed"
@@ -30,13 +29,6 @@ android {
         versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // API source adapter configuration (see SOURCES.md). Empty = adapter stays disabled.
-        buildConfigField("String", "API_DISPLAY_NAME", quoted("api.displayName"))
-        buildConfigField("String", "API_BASE_URL", quoted("api.baseUrl"))
-        buildConfigField("String", "API_AUTH_URL", quoted("api.authUrl"))
-        buildConfigField("String", "API_TOKEN_URL", quoted("api.tokenUrl"))
-        buildConfigField("String", "API_CLIENT_ID", quoted("api.clientId"))
-        buildConfigField("String", "API_SCOPES", quoted("api.scopes"))
     }
 
     signingConfigs {

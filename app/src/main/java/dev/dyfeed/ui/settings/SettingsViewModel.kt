@@ -17,7 +17,6 @@ import dev.dyfeed.data.repo.WrongPasswordException
 import dev.dyfeed.data.settings.AppSettings
 import dev.dyfeed.data.settings.BooruFeed
 import dev.dyfeed.data.settings.Disguise
-import dev.dyfeed.data.settings.JsonFeed
 import dev.dyfeed.data.settings.MastodonFeed
 import dev.dyfeed.data.settings.SettingsRepository
 import dev.dyfeed.domain.model.AuthContext
@@ -309,12 +308,6 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun addFeed(url: String): Boolean {
-        val u = url.trim().toHttpUrlOrNull() ?: return false.also { _messages.tryEmit("That isn't a valid http(s) URL") }
-        update { s -> if (u.toString() in s.rssFeeds) s else s.copy(rssFeeds = s.rssFeeds + u.toString()) }
-        return true
-    }
-    fun removeFeed(url: String) = update { it.copy(rssFeeds = it.rssFeeds - url) }
 
     fun addDirect(url: String): Boolean {
         val u = url.trim().toHttpUrlOrNull() ?: return false.also { _messages.tryEmit("That isn't a valid http(s) URL") }
@@ -349,15 +342,6 @@ class SettingsViewModel @Inject constructor(
     }
     fun removeBooru(feed: BooruFeed) = update { it.copy(booruFeeds = it.booruFeeds - feed) }
 
-    fun addJson(feed: JsonFeed): Boolean {
-        if (feed.name.isBlank() || feed.urlTemplate.toHttpUrlOrNull() == null || feed.itemsPath.isBlank()) {
-            _messages.tryEmit("Fill in a name, a valid URL and where the items are")
-            return false
-        }
-        update { s -> s.copy(jsonFeeds = s.jsonFeeds.filterNot { it.name == feed.name } + feed) }
-        return true
-    }
-    fun removeJson(feed: JsonFeed) = update { it.copy(jsonFeeds = it.jsonFeeds - feed) }
 
     fun addFolder(uri: Uri) {
         runCatching { app.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
