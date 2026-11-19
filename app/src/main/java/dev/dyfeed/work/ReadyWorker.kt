@@ -38,6 +38,7 @@ class ReadyWorker @AssistedInject constructor(
     @Assisted params: WorkerParameters,
     private val sessions: FeedSessionFactory,
     private val preloader: dev.dyfeed.player.Preloader,
+    private val douyinWeb: dev.dyfeed.source.douyin.DouyinWeb,
 ) : CoroutineWorker(context, params) {
 
     override suspend fun doWork(): Result {
@@ -64,6 +65,11 @@ class ReadyWorker @AssistedInject constructor(
             if (clips.isNotEmpty()) kotlinx.coroutines.delay(CLIP_WAIT_MS)
         } finally {
             scope.cancel()
+            // Still in the background: don't leave Douyin's hidden page running.
+            val back = withContext(Dispatchers.Main) {
+                ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
+            }
+            if (!back) runCatching { douyinWeb.sleep() }
         }
         return Result.success()
     }
