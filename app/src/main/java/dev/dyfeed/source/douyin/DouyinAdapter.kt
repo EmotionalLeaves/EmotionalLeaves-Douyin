@@ -146,7 +146,23 @@ class DouyinAdapter @Inject constructor(
         return Page(all.sortedByDescending { it.publishedAt }, null)
     }
 
-    private suspend fun userPosts(secUid: String, maxCursor: Long): Page<MediaItem> {
+    private suspend fun userPosts(secUid: String, maxCursor: Long): Page<MediaItem> =
+        try {
+            directUserPosts(secUid, maxCursor)
+        } catch (e: SourceException) {
+            if (maxCursor > 0) throw e
+            // Signed out the post list answers 403: take what the creator's own page loads, plus
+            // their posts the app already has.
+            val fromPage = runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
+                runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+            }
+            val known = synchronized(loaded) { loaded.filter { it.extras["secUid"] == secUid } }
+            val all = (fromPage + known).distinctBy { it.id }.sortedByDescending { it.publishedAt }
+            if (all.isEmpty()) throw e
+            Page(all, null)
+        }
+
+    private suspend fun directUserPosts(secUid: String, maxCursor: Long): Page<MediaItem> {
         val root = call(
             "/aweme/v1/web/aweme/post/",
             mapOf("sec_user_id" to secUid, "max_cursor" to maxCursor.toString(), "count" to "18", "locate_query" to "false", "show_live_replay_strategy" to "1", "need_time_list" to "1", "time_list_query" to "0", "whale_cut_token" to "", "cut_version" to "1", "publish_video_strategy_type" to "2"),

@@ -1,6 +1,7 @@
-## 1.2.4 — 2026-11-19
-Quicker search
+## 1.3.0 — 2026-11-19
+Creator pages without signing in
 
+- Fixed: a creator's page (swipe left on a post) and the Following tab work without a Douyin sign-in. Douyin refuses its post list to visitors, so the app opens the creator's own page out of sight and takes the posts it shows.
 - Better: search stops waiting on ways Douyin keeps turning away (its search page shows a visitor a captcha), so results come in seconds instead of about 20.
 
 ## 1.2.3 — 2026-11-19

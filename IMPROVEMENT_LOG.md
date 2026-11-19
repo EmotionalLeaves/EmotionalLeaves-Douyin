@@ -30,6 +30,7 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 | `/aweme/v1/web/aweme/related/` | ✅ 10 per post: main source of signed-out search |
 | `/aweme/v1/web/hot/search/list/` | ✅ trending words (shown in Search) |
 | `/aweme/v1/web/comment/list/` | ✅ 20 comments signed out |
+| `/aweme/v1/web/aweme/post/` (a creator's posts) | 403 → app opens douyin.com/user/<sec_uid> in the second hidden page instead |
 | `/aweme/v1/web/challenge/aweme/` | times out |
 | Bing / DuckDuckGo `site:douyin.com/video` | no links from datacenter IPs |
 
@@ -54,4 +55,5 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   signed-out comments. 1.2.2.
 - 2026-11-19 (chat, round 16): hidden page alternates douyin.com home and /jingxuan on each fresh load. 1.2.3.
 - 2026-11-19 (chat, round 17): search skips the page search and web search after two empty tries in a
-  session (they cost ~20 s each and never answered in tests). Probe checks creator pages. 1.2.4.
+  session (they cost ~20 s each and never answered in tests). Probe found creator post lists answer 403
+  signed out; creator pages and Following now use the creator's own page. 1.3.0.

@@ -84,12 +84,31 @@ class DouyinWeb @Inject constructor(
      * page and take the results it loads for itself (its requests carry everything a visitor's
      * browser sends). Returns the raw answers; empty if Douyin showed it nothing.
      */
-    suspend fun pageSearch(keyword: String, waitMs: Long = 20_000): List<String> = searchMutex.withLock {
+    suspend fun pageSearch(keyword: String, waitMs: Long = 20_000): List<String> =
+        secondPage("https://www.douyin.com/search/" + android.net.Uri.encode(keyword) + "?type=video", waitMs) { url, body ->
+            "search" in url && body.contains("aweme_info")
+        }
+
+    /**
+     * A creator's posts without signing in: Douyin answers the post-list API with 403 for a visitor,
+     * but the creator's own page still loads their posts for itself, so open it and take those.
+     */
+    suspend fun creatorPage(secUid: String, waitMs: Long = 20_000): List<String> =
+        secondPage("https://www.douyin.com/user/" + android.net.Uri.encode(secUid), waitMs) { url, body ->
+            "/aweme/post" in url && body.contains("aweme_list")
+        }
+
+    /** What the second hidden page accepts as an answer worth keeping (url, body). */
+    @Volatile private var secondAccept: (String, String) -> Boolean = { _, _ -> false }
+
+    /** Opens [url] in the second hidden page and returns the answers it fetches that [accept] keeps. */
+    private suspend fun secondPage(url: String, waitMs: Long, accept: (String, String) -> Boolean): List<String> = searchMutex.withLock {
         searchCaptured.clear()
         searchSignal = CompletableDeferred()
+        secondAccept = accept
         withContext(Dispatchers.Main) {
             val w = searchWeb ?: WebView(context).also { configure(it, Bridge(search = true), onReady = null); searchWeb = it }
-            w.loadUrl("https://www.douyin.com/search/" + android.net.Uri.encode(keyword) + "?type=video")
+            w.loadUrl(url)
         }
         withTimeoutOrNull(waitMs) { searchSignal.await() }
         // Douyin often answers in two parts (the first screen, then the rest): give it a moment.
@@ -277,12 +296,12 @@ class DouyinWeb @Inject constructor(
             if (body.isBlank()) return
             val isSearch = "search" in url
             if (search) {
-                if (!isSearch || !body.contains("aweme_info")) return
+                if (!secondAccept(url, body)) return
                 searchCaptured.addLast(body)
                 while (searchCaptured.size > MAX_CAPTURED) searchCaptured.pollFirst()
                 searchSignal.complete(Unit)
             } else {
-                if (isSearch || !body.contains("aweme")) return
+                if (isSearch || "/aweme/post" in url || !body.contains("aweme")) return
                 captured.addLast(body)
                 while (captured.size > MAX_CAPTURED) captured.pollFirst()
                 capturedSignal.complete(Unit)
