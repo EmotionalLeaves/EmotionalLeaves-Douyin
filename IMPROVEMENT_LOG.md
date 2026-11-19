@@ -35,7 +35,8 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 ## Ideas not done yet
 
 - Grow signed-out search: related videos for trending words.
-- Douyin comments for signed-out visitors (check with the probe whether `/comment/list/` answers).
+- Douyin comments for signed-out visitors: see the probe's "douyin search comments" line.
+- Load more feed per page visit: simulated keys don't work; try real scrolling of the feed container or a second page.
 - Cache search results so going back doesn't search again.
 
 ## Log
@@ -48,3 +49,6 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 - 2026-11-19 (chat, round 14): feed moves the hidden page along (↓ key + scroll) before reloading it;
   search uses related videos of 5 matching posts (was 3); probe reports whether moving the page brings
   a batch (`nudgeNewAnswers`). 1.2.1.
+- 2026-11-19 (chat, round 15): probe showed Douyin ignores simulated ↓ keys (nudgeNewAnswers=0), so
+  nudging stops after two misses; comments show Douyin's reason instead of "No comments"; probe logs
+  signed-out comments. 1.2.2.

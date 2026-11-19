@@ -105,7 +105,12 @@ class DouyinWeb @Inject constructor(
     suspend fun harvest(waitMs: Long = 15_000): List<String> {
         // First the cheap way: move the open page along (as pressing ↓ does on douyin.com), which
         // makes it fetch its next batch. Only if that brings nothing, start a fresh page.
-        if (captured.isEmpty() && web != null && nudge(NUDGE_WAIT_MS) > 0) nudgesWorked++
+        // Stops trying once it has failed twice without ever working (the emulator showed Douyin
+        // ignoring the simulated keys): then each batch would just wait 7 s for nothing.
+        val worthNudging = nudgesWorked > 0 || nudgesFailed < 2
+        if (captured.isEmpty() && web != null && worthNudging) {
+            if (nudge(NUDGE_WAIT_MS) > 0) nudgesWorked++ else nudgesFailed++
+        }
         if (captured.isEmpty()) {
             capturedSignal = CompletableDeferred()
             reload()
@@ -117,9 +122,10 @@ class DouyinWeb @Inject constructor(
         return out
     }
 
-    /** How often moving the page along brought a new batch (for the health probe). */
+    /** How often moving the page along brought a new batch, or didn't (for the health probe). */
     @Volatile var nudgesWorked = 0
         private set
+    @Volatile private var nudgesFailed = 0
 
     /**
      * Presses ↓ on the open page a few times (and scrolls it), the way someone watching

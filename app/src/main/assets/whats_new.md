@@ -1,3 +1,9 @@
+## 1.2.2 — 2026-11-19
+Comments that explain themselves
+
+- Better: when Douyin doesn't share a post's comments, the Comments sheet says so (and that signing in usually helps) instead of "No comments to show".
+- Fixed: the next feed batch no longer waits 7 seconds for a page nudge Douyin ignores.
+
 ## 1.2.1 — 2026-11-19
 Faster scrolling
 
