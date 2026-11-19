@@ -89,10 +89,14 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
             if (!copied) { frame.recycle(); continue }
             // Subtitles live in the lower half: read only that.
             val top = (h * 0.42f).toInt()
-            val crop = Bitmap.createBitmap(frame, 0, top, w, (h * 0.96f).toInt() - top)
-            val lines = Reader.lines(crop, top, w, h)
-            crop.recycle(); frame.recycle()
-            val line = LiveSubs.pick(lines)
+            // Off the main thread: cropping, reading and picking the line.
+            val (lines, line) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                val crop = Bitmap.createBitmap(frame, 0, top, w, (h * 0.96f).toInt() - top)
+                frame.recycle()
+                val read = Reader.lines(crop, top, w, h)
+                crop.recycle()
+                read to LiveSubs.pick(read)
+            }
             val now = System.currentTimeMillis()
             if (line == null) {
                 misses++
