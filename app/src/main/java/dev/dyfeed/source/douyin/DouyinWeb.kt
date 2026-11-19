@@ -102,6 +102,12 @@ class DouyinWeb @Inject constructor(
     private val idleScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
     @Volatile private var closeSecond: kotlinx.coroutines.Job? = null
 
+    /** One post's own page (douyin.com/video/<id>): its embedded data, and the detail it may fetch. */
+    suspend fun postPage(awemeId: String, waitMs: Long = 8_000): List<String> =
+        secondPage("https://www.douyin.com/video/" + android.net.Uri.encode(awemeId), waitMs, withRenderData = true) { url, body ->
+            "/aweme/detail" in url && body.contains("aweme_detail")
+        }
+
     /** The second page's embedded data (RENDER_DATA, URL-decoded JSON), if it has any. */
     private suspend fun renderData(): String? = withContext(Dispatchers.Main) {
         val w = searchWeb ?: return@withContext null

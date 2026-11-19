@@ -348,8 +348,13 @@ class DouyinAdapter @Inject constructor(
     suspend fun fresh(awemeId: String): MediaItem? =
         runCatching {
             val root = call("/aweme/v1/web/aweme/detail/", mapOf("aweme_id" to awemeId))
-            items(root).firstOrNull()
-        }.getOrNull() ?: sharePage(awemeId)
+            items(root).firstOrNull { it.id == awemeId }
+        }.getOrNull()
+            ?: sharePage(awemeId)
+            // The post's own page, read in the second hidden page (its embedded data carries it).
+            ?: runCatching { web.postPage(awemeId) }.getOrDefault(emptyList()).asSequence()
+                .flatMap { body -> runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList()).asSequence() }
+                .firstOrNull { it.id == awemeId }
 
     /** A link shared to the app: v.douyin.com short links, douyin.com/video|note/<id>, ?modal_id=<id>, iesdouyin share pages. */
     suspend fun fromLink(url: HttpUrl): MediaItem? {
