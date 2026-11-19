@@ -166,10 +166,11 @@ class OfflineStore @Inject constructor(
         index.entries.removeIf { (h, f) -> (h !in wantedHashes).also { drop -> if (drop) forget(f) } }
         updateSize()
         if (!on) return
-        // On mobile data only pictures and comics are kept (small); videos wait for Wi-Fi.
+        // On mobile data only pictures and comics are kept (small); videos wait for Wi-Fi, except
+        // Douyin's short clips, whose addresses expire within hours (unless Data saver is on).
         val metered = network.isMetered
         for (item in saved) {
-            if (metered && isVideoish(item)) { problem(item, "waiting for Wi-Fi"); continue }
+            if (metered && waitsForWifi(item)) { problem(item, "waiting for Wi-Fi"); continue }
             if (running.containsKey(item.key)) continue
             if (parts(item).all { (k, _) -> index.containsKey(hash(k)) }) continue
             val job = scope.launch(start = kotlinx.coroutines.CoroutineStart.LAZY) {
@@ -195,7 +196,7 @@ class OfflineStore @Inject constructor(
         for ((key, pageUrl) in parts(item)) {
             if (index.containsKey(hash(key))) continue
             when {
-                network.isMetered && isVideoish(item) -> return problem(item, "waiting for Wi-Fi")
+                network.isMetered && waitsForWifi(item) -> return problem(item, "waiting for Wi-Fi")
                 dir.usableSpace < MIN_FREE_BYTES -> return problem(item, "phone storage nearly full (${dir.usableSpace shr 20} MB free)")
                 _bytes.value > MAX_TOTAL_BYTES -> return problem(item, "offline copies at their ${MAX_TOTAL_BYTES shr 30} GB limit")
             }
@@ -310,7 +311,14 @@ class OfflineStore @Inject constructor(
         _bytes.value = index.values.sumOf { it.length() } + runCatching { mediaCache.offline.cacheSpace }.getOrDefault(0L)
     }
 
+    /** Videos wait for Wi-Fi, but not a Douyin clip (small, and its address won't keep) unless Data saver is on. */
+    private fun waitsForWifi(item: MediaItem): Boolean =
+        isVideoish(item) && !(item.sourceId == "douyin" && !dataSaver)
+
     companion object {
+        /** Settings → Data saver, set at startup and on change. */
+        @Volatile var dataSaver = false
+
         private const val PART = ".part"
         private const val HLS_EXT = "hls"
         const val REMOTE_THUMB = "remoteThumb"

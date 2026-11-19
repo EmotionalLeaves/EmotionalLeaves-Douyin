@@ -60,6 +60,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
                 dev.dyfeed.source.net.EncryptedDns.always = it.encryptedDns
                 dev.dyfeed.source.net.AppProxy.configure(proxyConfig(it))
                 dataSaver = it.dataSaver
+                dev.dyfeed.data.repo.OfflineStore.dataSaver = it.dataSaver
                 bestQuality = it.bestQuality
                 dev.dyfeed.player.Battery.saverOn = it.batterySaver
                 if (it.readyAhead != readyScheduled) { readyScheduled = it.readyAhead; dev.dyfeed.work.ReadyWorker.schedule(this@FeedApp, it.readyAhead) }
