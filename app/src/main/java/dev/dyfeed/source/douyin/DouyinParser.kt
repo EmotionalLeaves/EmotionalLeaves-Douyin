@@ -19,6 +19,7 @@ import java.time.Instant
  */
 object DouyinParser {
     const val SOURCE_ID = "douyin"
+    private val LENIENT = kotlinx.serialization.json.Json { ignoreUnknownKeys = true; isLenient = true }
 
     /** Every aweme in a feed / user-posts answer (`aweme_list`) or a search answer (`data[].aweme_info`). */
     fun awemes(root: JsonElement?): List<JsonObject> {
@@ -32,6 +33,16 @@ object DouyinParser {
             }
         }
         (o["aweme_detail"] as? JsonObject)?.let { return listOf(it) }
+        // The module feed: cards[].aweme, an object or the same object as a JSON string.
+        (o["cards"] as? JsonArray)?.let { cards ->
+            return cards.mapNotNull { c ->
+                when (val a = (c as? JsonObject)?.get("aweme")) {
+                    is JsonObject -> a
+                    is JsonPrimitive -> a.contentOrNull?.let { str -> runCatching { LENIENT.parseToJsonElement(str) as? JsonObject }.getOrNull() }
+                    else -> null
+                }
+            }
+        }
         return emptyList()
     }
 

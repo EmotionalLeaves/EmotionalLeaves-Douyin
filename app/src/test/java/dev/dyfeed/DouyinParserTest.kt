@@ -86,6 +86,20 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `module feed cards carry each post, sometimes as a JSON string`() {
+        val inner = """{"aweme_id":"7322222222222222222","desc":"猫 #萌宠","video":{"play_addr":{"url_list":["https://v.douyinvod.com/a.mp4"]}}}"""
+        val root = Json.parseToJsonElement(
+            """{"status_code":0,"has_more":true,"cards":[{"type":1,"aweme":${Json.encodeToString(kotlinx.serialization.json.JsonPrimitive.serializer(), kotlinx.serialization.json.JsonPrimitive(inner))}},
+               {"type":1,"aweme":{"aweme_id":"7333333333333333333","video":{"play_addr":{"url_list":["https://v.douyinvod.com/b.mp4"]}}}},
+               {"type":2,"live":{}}]}""",
+        )
+        val items = DouyinParser.parseAll(root, 1080)
+        assertEquals(listOf("7322222222222222222", "7333333333333333333"), items.map { it.id })
+        assertEquals("猫", items[0].title)
+        assertTrue(DouyinParser.hasMore(root))
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))
