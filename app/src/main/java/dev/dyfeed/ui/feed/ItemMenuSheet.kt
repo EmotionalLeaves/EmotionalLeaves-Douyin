@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Autorenew
@@ -338,6 +339,9 @@ fun ItemMenuSheet(
                 if (!item.title.isNullOrBlank() || item.tags.isNotEmpty()) {
                     MenuRow("Translate", Icons.Filled.Translate, "The caption and tags in English") { pickTag = "translate" }
                 }
+            }
+            if (item.type == dev.dyfeed.domain.model.MediaType.VIDEO) {
+                MenuRow("Save this moment", Icons.Filled.BookmarkAdd, "Marks where you are (a line worth hearing again): it shows on the scrub bar, and Saved → Moments plays it from there") { MomentGrab.request.value = item.key; onDismiss() }
             }
             MenuRow("Not interested", Icons.Filled.ThumbDown, "Show fewer posts like this") { vm.notInterested(item); onDismiss() }
             if (tags.isNotEmpty()) MenuRow("Hide a tag…", Icons.Filled.Block, "Never show posts with that tag") { pickTag = "block" }

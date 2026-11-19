@@ -39,6 +39,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -202,7 +203,8 @@ fun VideoPage(
                     .apply { s.mimeType?.let { setMimeType(it) } }
                     .build(),
                 // Carry on where you left a long video, if you did; else past the intro, if asked.
-                dev.dyfeed.player.ResumePoints.get(item.key) ?: vm.introSkipMs(item),
+                (if (vm.fromMoments) dev.dyfeed.player.Moments.of(item.key).firstOrNull() else null)
+                    ?: dev.dyfeed.player.ResumePoints.get(item.key) ?: vm.introSkipMs(item),
             )
             p.prepare()
         }
@@ -301,6 +303,14 @@ fun VideoPage(
     }
     LaunchedEffect(player, muted) { player?.let { dev.dyfeed.player.PlayerPool.applyMute(it, muted) } }
 
+    // "Save this moment": mark where this video is now.
+    val momentAsk by MomentGrab.request.collectAsState()
+    LaunchedEffect(momentAsk) {
+        if (momentAsk != item.key) return@LaunchedEffect
+        MomentGrab.request.value = null
+        val p = player?.takeIf { it.currentMediaItem?.mediaId == item.key } ?: return@LaunchedEffect
+        vm.saveMoment(item, p.currentPosition)
+    }
     // "Save this frame": copy what's on the video surface right now into Saved (a "Frames" collection).
     var playerView by remember { mutableStateOf<PlayerView?>(null) }
     val grab by FrameGrab.request.collectAsState()

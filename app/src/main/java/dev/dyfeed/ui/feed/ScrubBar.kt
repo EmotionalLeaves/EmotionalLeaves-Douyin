@@ -48,7 +48,13 @@ import kotlinx.coroutines.delay
  */
 @OptIn(UnstableApi::class)
 @Composable
-fun ScrubBar(player: ExoPlayer?, modifier: Modifier = Modifier, onScrubbedBack: () -> Unit = {}) {
+fun ScrubBar(
+    player: ExoPlayer?,
+    modifier: Modifier = Modifier,
+    onScrubbedBack: () -> Unit = {},
+    /** Moments you saved in this video: always marked on the bar. */
+    moments: List<Long> = emptyList(),
+) {
     if (player == null) return
     var duration by remember(player) { mutableLongStateOf(0L) }
     var position by remember(player) { mutableLongStateOf(0L) }
@@ -145,6 +151,14 @@ fun ScrubBar(player: ExoPlayer?, modifier: Modifier = Modifier, onScrubbedBack: 
             Box(
                 Modifier.fillMaxHeight().fillMaxWidth(fraction)
                     .then(if (dragging) Modifier.background(dev.dyfeed.ui.theme.BrandGradient) else Modifier.background(Color.White)),
+            )
+        }
+        // Your saved moments: small amber dots just above the bar.
+        moments.forEach { ms ->
+            Box(
+                Modifier.align(Alignment.BottomStart)
+                    .offset(x = width * (ms.toFloat() / duration).coerceIn(0f, 1f) - 3.dp, y = -trackHeight - 2.dp)
+                    .size(6.dp).clip(CircleShape).background(Color(0xFFFFB547)),
             )
         }
         if (dragging) {

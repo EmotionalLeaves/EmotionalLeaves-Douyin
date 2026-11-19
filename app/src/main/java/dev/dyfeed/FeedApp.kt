@@ -46,6 +46,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         dev.dyfeed.player.ResumePoints.init(this)
+        dev.dyfeed.player.Moments.init(this)
         dev.dyfeed.player.ComicPages.init(this)
         dev.dyfeed.source.net.GeoBlock.init(this)
         dev.dyfeed.source.douyin.CreatorAvatars.init(this)

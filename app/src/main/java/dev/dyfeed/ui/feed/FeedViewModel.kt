@@ -796,6 +796,24 @@ class FeedViewModel @Inject constructor(
             .map { dev.dyfeed.domain.reco.Features.label(it.first) }
     }
 
+    /** "Save this moment": marks [atMs] in the video and keeps it in Saved → Moments. */
+    fun saveMoment(item: MediaItem, atMs: Long) {
+        dev.dyfeed.player.Moments.add(item.key, atMs)
+        val wasSaved = item.key in saved.value
+        viewModelScope.launch {
+            runCatching { library.addToCollection(MOMENTS, item) }
+            // Marking a moment is keeping the video: as strong a "yes" as saving it.
+            if (!wasSaved && !settings.value.privateMode) {
+                statsFor(item.key).explicit = true
+                runCatching { signals.record(item, Signal(SignalType.SAVE)) }
+            }
+        }
+        offer("Moment saved at ${dev.dyfeed.ui.common.formatDuration((atMs / 1000).toInt())}", "Undo") { dev.dyfeed.player.Moments.remove(item.key, atMs) }
+    }
+
+    /** Opened from Saved → Moments: each video starts at its first moment. */
+    val fromMoments: Boolean get() = viewerTitle == MOMENTS
+
     /**
      * Keeps a still from a video: written as a JPEG in the app's own storage (encrypted along with
      * the rest of the app's data by the phone), saved, and put in the "Frames" collection.
@@ -989,6 +1007,7 @@ class FeedViewModel @Inject constructor(
         @Volatile private var carryOnOffered = false
         private const val CARRY_ON_MIN_MS = 60_000L
         const val FRAMES = "Frames"
+        const val MOMENTS = "Moments"
         const val FAVOURITES = "Favourites"
         private const val ROAD_COUNT = 20
         private const val ELSEWHERE_TIMEOUT_MS = 10_000L
