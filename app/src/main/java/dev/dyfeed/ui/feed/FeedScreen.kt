@@ -1681,7 +1681,8 @@ private fun Overlay(
                     ordered.forEach { (label, raw) ->
                         val yours = dev.dyfeed.domain.reco.Features.normalizeTag(raw) in likedTags
                         Text(
-                            "#$label",
+                            // Common topics carry their English hint: #美食 · food.
+                            "#" + dev.dyfeed.data.settings.SourceCatalog.label(label),
                             color = Color.White,
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
