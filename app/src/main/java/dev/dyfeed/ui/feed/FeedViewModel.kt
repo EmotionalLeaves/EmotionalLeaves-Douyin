@@ -825,6 +825,10 @@ class FeedViewModel @Inject constructor(
         }
     }
 
+    /** A creator's profile picture, when the app has seen one. */
+    fun creatorAvatar(name: String): String? =
+        (registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter)?.avatarFor(name)
+
     /** What people said under a Douyin post (empty for anything else, or if Douyin won't say). */
     suspend fun comments(item: MediaItem): Result<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>> {
         val douyin = registry.byId(item.sourceId) as? dev.dyfeed.source.douyin.DouyinAdapter ?: return Result.success(emptyList())

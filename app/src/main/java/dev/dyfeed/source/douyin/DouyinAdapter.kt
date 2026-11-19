@@ -532,6 +532,7 @@ class DouyinAdapter @Inject constructor(
                 val cid = pair.substringAfter('=', "")
                 if (name.isNotEmpty() && cid.isNotEmpty()) hashtagIds[name] = cid
             }
+            item.creator?.let { name -> item.extras["avatar"]?.let { rememberAvatar(name, it) } }
             val sec = item.extras["secUid"] ?: return@onEach
             item.creator?.let { remember(it, sec) }
         }
@@ -541,6 +542,19 @@ class DouyinAdapter @Inject constructor(
     private fun remember(name: String, secUid: String) {
         val k = key(name)
         if (creators.put(k, secUid) != secUid) prefs.edit { putString(k, secUid) }
+    }
+
+    private val avatars = ConcurrentHashMap<String, String>()
+
+    private fun rememberAvatar(name: String, url: String) {
+        val k = "avatar:" + key(name)
+        if (avatars.put(k, url) != url) prefs.edit { putString(k, url) }
+    }
+
+    /** A creator's profile picture, if one of their posts has come by (kept across restarts). */
+    fun avatarFor(name: String): String? {
+        val k = "avatar:" + key(name)
+        return avatars[k] ?: prefs.getString(k, null)?.also { avatars[k] = it }
     }
 
     private fun secUidFor(name: String): String? {

@@ -672,7 +672,7 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
                         Modifier.width(52.dp).clip(RoundedCornerShape(10.dp)).clickable { nav.openTag("@$name") },
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        dev.dyfeed.ui.common.InitialAvatar(name, size = 40.dp, modifier = Modifier.border(1.5.dp, Color.White.copy(alpha = 0.8f), CircleShape))
+                        dev.dyfeed.ui.common.InitialAvatar(name, size = 40.dp, modifier = Modifier.border(1.5.dp, Color.White.copy(alpha = 0.8f), CircleShape), imageUrl = remember(name) { vm.creatorAvatar(name) })
                         Spacer(Modifier.height(3.dp))
                         Text(name, color = Color.White, style = MaterialTheme.typography.labelSmall.shadowed(), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
