@@ -134,6 +134,7 @@ class LibraryRepository @Inject constructor(
         libraryDao.clearHistory()
         dev.dyfeed.player.ResumePoints.clear() // where you left videos is history too
         dev.dyfeed.player.ComicPages.clear()
+        dev.dyfeed.domain.privacy.Forget.all() // e.g. the posts signed-out search remembers
         itemDao.deleteOrphans()
     }
 

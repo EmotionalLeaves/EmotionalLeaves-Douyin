@@ -18,6 +18,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
@@ -327,6 +328,7 @@ class DouyinAdapter @Inject constructor(
     /** Posts brought in this session (feed, creators, links) whose caption, tags or creator contain every word of [q]. */
     fun loadedMatching(q: String): List<MediaItem> {
         if (q.isBlank()) return emptyList()
+        ensureIndex()
         return synchronized(loaded) { loaded.toList() }.asReversed().filter { DouyinParser.matches(it, q) }
     }
 
@@ -468,9 +470,55 @@ class DouyinAdapter @Inject constructor(
     /** The last [MAX_LOADED] posts parsed this session, for search without signing in. */
     private val loaded = ArrayDeque<MediaItem>()
 
+    /**
+     * The posts behind signed-out search survive restarts: the last [MAX_LOADED] are kept in the
+     * app's private storage (not in Private mode), so a search can match what you saw yesterday.
+     */
+    private val indexFile by lazy { java.io.File(context.filesDir, "douyin_index.json") }
+    private val indexScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.IO)
+    @Volatile private var indexLoaded = false
+    private var unsaved = 0
+
+    init {
+        dev.dyfeed.domain.privacy.Forget.register {
+            synchronized(loaded) { loaded.clear(); unsaved = 0 }
+            runCatching { indexFile.delete() }
+        }
+    }
+
+    private fun ensureIndex() {
+        if (indexLoaded) return
+        synchronized(loaded) {
+            if (indexLoaded) return
+            indexLoaded = true
+            val saved = runCatching {
+                json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(MediaItem.serializer()), indexFile.readText())
+            }.getOrDefault(emptyList())
+            val have = loaded.mapTo(HashSet()) { it.id }
+            saved.filter { it.id !in have }.asReversed().forEach { loaded.addFirst(it) }
+            while (loaded.size > MAX_LOADED) loaded.removeFirst()
+        }
+    }
+
+    private fun saveIndexSoon(added: Int) {
+        if (dev.dyfeed.domain.privacy.Incognito.active) return
+        unsaved += added
+        if (unsaved < SAVE_EVERY) return
+        unsaved = 0
+        val snapshot = synchronized(loaded) { loaded.toList() }
+        indexScope.launch {
+            runCatching {
+                val tmp = java.io.File(indexFile.path + ".tmp")
+                tmp.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(MediaItem.serializer()), snapshot))
+                tmp.renameTo(indexFile)
+            }
+        }
+    }
+
     private fun items(root: JsonElement): List<MediaItem> =
-        DouyinParser.parseAll(root, PlayerPool.maxHeight).onEach { item ->
+        DouyinParser.parseAll(root, PlayerPool.maxHeight).also { ensureIndex(); saveIndexSoon(it.size) }.onEach { item ->
             synchronized(loaded) {
+                loaded.removeAll { it.id == item.id }
                 loaded.addLast(item)
                 while (loaded.size > MAX_LOADED) loaded.removeFirst()
             }
@@ -531,7 +579,8 @@ class DouyinAdapter @Inject constructor(
 
     companion object {
         private const val MAX_FEED_PULLS = 500
-        private const val MAX_LOADED = 1_000
+        private const val MAX_LOADED = 3_000
+        private const val SAVE_EVERY = 25
         private const val MAX_WEB_RESULTS = 16
         private const val GIVE_UP_AFTER = 2
 

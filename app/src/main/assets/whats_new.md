@@ -1,3 +1,9 @@
+## 1.4.1 — 2026-11-19
+Search remembers
+
+- Better: signed-out search remembers the last 3,000 Douyin posts you've scrolled past (on the phone, not in Private mode; Clear history clears it), so it finds more, even right after opening the app.
+- Better: creator pages read the posts Douyin puts inside the page itself, so they show more than a couple.
+
 ## 1.4.0 — 2026-11-19
 Feels more like Douyin
 
