@@ -1732,6 +1732,8 @@ private fun RailButton(
     /** On: the icon is painted in the brand gradient (a liked heart, a saved bookmark). */
     branded: Boolean = false,
     onLongClick: (() -> Unit)? = null,
+    /** What a screen reader says, when the visible label alone isn't enough (a bare count). */
+    description: String = label,
 ) {
     // A little give when pressed, like a physical button.
     val press = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
@@ -1751,7 +1753,7 @@ private fun RailButton(
         ) {
             Icon(
                 icon,
-                contentDescription = label,
+                contentDescription = description,
                 tint = tint,
                 modifier = Modifier.size(28.dp)
                     .graphicsLayer {
@@ -2010,6 +2012,7 @@ private fun LikeButton(liked: Boolean, onLike: () -> Unit, onSuperLike: (() -> U
         icon = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
         // Douyin's own like count (yours added), the way Douyin writes it: 8,421 · 1.2万 · 3.4亿.
         label = count?.let { Display.count(it + if (liked) 1 else 0) } ?: if (liked) "Liked" else "Like",
+        description = (if (liked) "Liked" else "Like") + (count?.let { ", ${Display.count(it + if (liked) 1 else 0)} likes" } ?: ""),
         onClick = onLike,
         tint = Color.White,
         iconScale = pop.value,
