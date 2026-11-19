@@ -51,7 +51,7 @@ Download the APK from the latest GitHub release on your phone, open it, and allo
 ## Architecture
 
 ```
-dev.pfeed
+dev.dyfeed
 ├── domain/            pure Kotlin, unit-tested
 │   ├── model/         MediaItem, Page, StreamInfo, FeedPrefs…
 │   ├── filter/        Blocklist

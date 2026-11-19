@@ -18,7 +18,7 @@ fun local(key: String): String = localProps.getProperty(key, "")
 fun quoted(key: String): String = "\"" + local(key).replace("\"", "\\\"") + "\""
 
 android {
-    namespace = "dev.pfeed"
+    namespace = "dev.dyfeed"
     compileSdk = 36
 
     defaultConfig {
