@@ -43,6 +43,7 @@ Download the APK from the latest GitHub release on your phone, open it, and allo
 
 - **Feed:** For You (learned from what you watch), Following (creators you follow here) and Latest. Swipe up for the next post; tap to pause, double-tap to like, hold for the menu (Comments, Not interested, hide a tag or creator, open on Douyin…). Swipe left on a post for everything by its creator.
 - **Photo posts** turn sideways picture by picture.
+- **Translate:** hold a post → Translate for the caption and tags in English; Comments has a Translate button too. Runs on the phone after a one-time download.
 - **Search:** type in Chinese for best results (美食, 重庆, 猫…); the topic chips do it for you. Combos work: `美食 + 重庆 -火锅`.
 - **Share to the app:** share a Douyin link from anywhere and it plays here.
 - **Library:** Saved, Liked, History and Following; saved posts download for offline.
@@ -104,7 +105,8 @@ dev.pfeed
 | Encrypted database (SQLCipher, key wrapped by the Android Keystore) | `SecretStore.databasePassphrase` |
 | Private mode (always incognito): no history, seen marks or learning | Settings → Privacy |
 | Weekly encrypted backups to a folder you choose | Settings → Backup |
-| Everything For You learns stays on the phone; no accounts, analytics or notifications | — |
+| Everything For You learns stays on the phone; no accounts, analytics or notifications of the app's own | — |
+| Translate (hold a post) runs on the phone with Google ML Kit. Its Chinese model (~30 MB) downloads on first use; ML Kit may send Google anonymous usage statistics | `ChineseToEnglish` |
 
 Douyin itself sees what any visitor to douyin.com sees: the hidden page and your sign-in (if any) are a normal browser session with Douyin.
 

@@ -28,6 +28,7 @@ import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrlOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import androidx.core.content.edit
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -231,7 +232,7 @@ class DouyinAdapter @Inject constructor(
 
     private fun remember(name: String, secUid: String) {
         val k = key(name)
-        if (creators.put(k, secUid) != secUid) prefs.edit().putString(k, secUid).apply()
+        if (creators.put(k, secUid) != secUid) prefs.edit { putString(k, secUid) }
     }
 
     private fun secUidFor(name: String): String? {

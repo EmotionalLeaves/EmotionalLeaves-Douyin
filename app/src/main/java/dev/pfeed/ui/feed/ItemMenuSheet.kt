@@ -30,6 +30,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowUpward
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.Brightness4
 import androidx.compose.material.icons.filled.FlightTakeoff
@@ -103,29 +105,74 @@ fun ItemMenuSheet(
                 CollectionPicker(item, vm, onBack = { pickTag = null }, onDone = onDismiss)
                 return@Column
             }
+            if (mode == "translate") {
+                ListItem(
+                    headlineContent = { Text("Translation", fontWeight = FontWeight.Bold) },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") },
+                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                    modifier = Modifier.clickable { pickTag = null },
+                )
+                HorizontalDivider()
+                val original = listOfNotNull(item.title, item.tags.takeIf { it.isNotEmpty() }?.joinToString("  ") { "#$it" }).joinToString("\n")
+                val english by androidx.compose.runtime.produceState<Result<String>?>(initialValue = null, item.key) {
+                    value = dev.pfeed.ui.common.ChineseToEnglish.translate(original)
+                }
+                Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(original, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
+                    val r = english
+                    when {
+                        r == null -> Row(verticalAlignment = Alignment.CenterVertically) {
+                            dev.pfeed.ui.common.BrandSpinner()
+                            Spacer(Modifier.width(12.dp))
+                            Text(if (dev.pfeed.ui.common.ChineseToEnglish.ready) "Translating…" else "Getting the translator ready (first time only, about 30 MB)…", style = MaterialTheme.typography.bodyMedium)
+                        }
+                        r.isSuccess -> Text(r.getOrThrow(), style = MaterialTheme.typography.bodyLarge)
+                        else -> Text("Couldn't translate: ${r.exceptionOrNull()?.message ?: "no connection for the first download?"}", color = MaterialTheme.colorScheme.error)
+                    }
+                }
+                return@Column
+            }
             if (mode == "comments") {
+                var translateOn by remember { mutableStateOf(false) }
                 ListItem(
                     headlineContent = { Text("评论 · Comments", fontWeight = FontWeight.Bold) },
                     leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") },
+                    trailingContent = {
+                        androidx.compose.material3.TextButton(onClick = { translateOn = !translateOn }) {
+                            Text(if (translateOn) "Original" else "Translate")
+                        }
+                    },
                     colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
                     modifier = Modifier.clickable { pickTag = null },
                 )
                 HorizontalDivider()
                 val comments by androidx.compose.runtime.produceState<List<dev.pfeed.source.douyin.DouyinAdapter.Comment>?>(initialValue = null, item.key) { value = vm.comments(item) }
                 val list = comments
+                val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
+                    value = if (translateOn && list != null) dev.pfeed.ui.common.ChineseToEnglish.translateAll(list.map { it.body }) else emptyList()
+                }
                 when {
                     list == null -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.pfeed.ui.common.BrandSpinner() }
                     list.isEmpty() -> Text("No comments to show", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.padding(20.dp))
-                    else -> list.forEach { c ->
+                    else -> list.forEachIndexed { i, c ->
                         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(c.author, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
                                 Spacer(Modifier.width(8.dp))
-                                Icon(Icons.Filled.ArrowUpward, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                Icon(Icons.Filled.Favorite, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                                 Text("${c.score}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                             }
                             Spacer(Modifier.height(3.dp))
                             Text(c.body, style = MaterialTheme.typography.bodyMedium, maxLines = 8, overflow = TextOverflow.Ellipsis)
+                            if (translateOn) {
+                                Text(
+                                    english.getOrNull(i) ?: "…",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.75f),
+                                    modifier = Modifier.padding(top = 2.dp),
+                                )
+                            }
                         }
                     }
                 }
@@ -253,7 +300,10 @@ fun ItemMenuSheet(
                 )
             }
             if (item.sourceId == dev.pfeed.source.douyin.DouyinParser.SOURCE_ID) {
-                MenuRow("Comments", Icons.Filled.ChatBubbleOutline, "What people said under it on Douyin") { pickTag = "comments" }
+                MenuRow("Comments", Icons.Filled.ChatBubbleOutline, "What people said under it on Douyin, with translation") { pickTag = "comments" }
+                if (!item.title.isNullOrBlank() || item.tags.isNotEmpty()) {
+                    MenuRow("Translate", Icons.Filled.Translate, "The caption and tags in English") { pickTag = "translate" }
+                }
             }
             MenuRow("Not interested", Icons.Filled.ThumbDown, "Show fewer posts like this") { vm.notInterested(item); onDismiss() }
             if (tags.isNotEmpty()) MenuRow("Hide a tag…", Icons.Filled.Block, "Never show posts with that tag") { pickTag = "block" }
