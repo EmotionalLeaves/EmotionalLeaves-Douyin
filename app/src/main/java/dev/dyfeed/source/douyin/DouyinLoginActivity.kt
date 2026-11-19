@@ -61,6 +61,19 @@ class DouyinLoginActivity : ComponentActivity() {
                 },
                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
             )
+            if (DouyinWeb.isSignedIn()) {
+                // Signed in already: offer the way out too (clears Douyin's cookies in this app).
+                addView(Button(context).apply {
+                    text = "Sign out"
+                    setOnClickListener {
+                        CookieManager.getInstance().removeAllCookies {
+                            CookieManager.getInstance().flush()
+                            visibility = android.view.View.GONE
+                            web.loadUrl(DouyinWeb.HOME)
+                        }
+                    }
+                })
+            }
             addView(Button(context).apply { text = "Done"; setOnClickListener { finish() } })
         }
 
