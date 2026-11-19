@@ -30,7 +30,9 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 | `/aweme/v1/web/aweme/related/` | ✅ 10 per post: main source of signed-out search |
 | `/aweme/v1/web/hot/search/list/` | ✅ trending words (shown in Search) |
 | `/aweme/v1/web/comment/list/` | ✅ 20 comments signed out |
-| `/aweme/v1/web/aweme/post/` (a creator's posts) | 403 → app opens douyin.com/user/<sec_uid> in the second hidden page instead |
+| `/aweme/v1/web/aweme/post/` (a creator's posts) | 403 to the app; even Douyin's own creator page gets 200 with an empty body signed out, and its RENDER_DATA (~210 KB) has no posts. Signed out, creator pages can only show related videos / posts already seen |
+| `/aweme/v1/web/aweme/detail/`, share page, douyin.com/video/<id> page | nothing signed out: expired addresses can't be refreshed (hence: trust URL expiry, download saved clips at once) |
+| douyin.com/hot/<sentence_id> (trending topic page) | no posts for a visitor |
 | `/aweme/v1/web/challenge/aweme/` | times out |
 | Bing / DuckDuckGo `site:douyin.com/video` | no links from datacenter IPs |
 
@@ -66,3 +68,8 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   creator pages read RENDER_DATA (deep post search, tested); search index of 3,000 posts kept across
   restarts (cleared by Clear history, not saved incognito); Sign out; refresh by id via the post's own
   page; followed creators' pictures; Check sources gives Douyin 50 s; More comments.
+- 2026-11-19 (chat, rounds 41–54, batches → 1.4.2, 1.5.0): signed-out hint in search; comment parsing
+  tested; trending topic pages (no posts signed out) and heat; avatars everywhere (CreatorAvatars);
+  sound line; creator posts via related videos + signed-out note; URL expiry trusted; saved clips
+  download at once; hidden pages close in the background; like-button screen-reader text; More
+  comments; Translate captions automatically (setting).
