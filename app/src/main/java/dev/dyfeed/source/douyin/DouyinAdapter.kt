@@ -176,11 +176,17 @@ class DouyinAdapter @Inject constructor(
         // Signed out, Douyin's search API asks you to sign in. Its own search page still shows a
         // visitor results, so open that and take what it loads; and add matching posts the feed
         // has already brought in, so a search is never empty.
-        val fromPage = runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
-            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+        val (fromPage, fromWeb) = coroutineScope {
+            val page = async {
+                runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
+                    runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+                }
+            }
+            val engine = async { runCatching { webSearch(q) }.getOrDefault(emptyList()) }
+            page.await() to engine.await()
         }
         val fromFeed = loadedMatching(q)
-        val all = (fromPage + fromFeed).distinctBy { it.id }
+        val all = (fromPage + fromWeb + fromFeed).distinctBy { it.id }
         if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
         return Page(all, null)
     }
@@ -199,6 +205,43 @@ class DouyinAdapter @Inject constructor(
         val items = items(root)
         val next = (DouyinParser.long(root, "cursor") ?: (offset + 16).toLong()).toString()
         return Page(items, next.takeIf { DouyinParser.hasMore(root) && items.isNotEmpty() })
+    }
+
+    /**
+     * Douyin videos for [q] found the way anyone finds them: a public web search limited to
+     * douyin.com (Bing, then DuckDuckGo), each post then read by id like a shared link.
+     * Needs no Douyin sign-in; finds fewer and older posts than Douyin's own search.
+     */
+    private suspend fun webSearch(q: String): List<MediaItem> {
+        val ids = engineIds(q)
+        if (ids.isEmpty()) return emptyList()
+        return coroutineScope {
+            ids.map { awemeId -> async { kotlinx.coroutines.withTimeoutOrNull(15_000) { runCatching { fresh(awemeId) }.getOrNull() } } }
+                .awaitAll().filterNotNull()
+        }
+    }
+
+    /** Douyin post ids in public web-search results for [q]. */
+    internal suspend fun engineIds(q: String): List<String> = withContext(Dispatchers.IO) {
+        val enc = { t: String -> java.net.URLEncoder.encode(t, "UTF-8") }
+        val pages = listOf(
+            "https://www.bing.com/search?q=" + enc("site:douyin.com/video $q") + "&count=50&setlang=zh-Hans",
+            "https://html.duckduckgo.com/html/?q=" + enc("site:douyin.com/video $q"),
+        )
+        val ids = LinkedHashSet<String>()
+        for (u in pages) {
+            val html = runCatching {
+                http.newCall(
+                    Request.Builder().url(u)
+                        .header("User-Agent", DouyinWeb.DESKTOP_UA)
+                        .header("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.6")
+                        .build(),
+                ).execute().use { if (it.isSuccessful) it.body?.string() else null }
+            }.getOrNull() ?: continue
+            idsInHtml(html).forEach { ids += it }
+            if (ids.size >= MAX_WEB_RESULTS) break
+        }
+        ids.take(MAX_WEB_RESULTS)
     }
 
     /** Posts brought in this session (feed, creators, links) whose caption, tags or creator contain every word of [q]. */
@@ -266,9 +309,9 @@ class DouyinAdapter @Inject constructor(
             val root = runCatching { json.parseToJsonElement(r.body) }.getOrNull()
             val n = root?.let { runCatching { items(it).size }.getOrNull() }
             "${path.removePrefix("/aweme/").removeSuffix("/")}=${r.status}/${r.body.length}B/items=$n" +
-                (if (root != null && n == 0) " first=" + DouyinParser.awemes(root).firstOrNull()?.let { a ->
-                    a.entries.take(40).joinToString(",") { (k, v) -> k + ":" + shape(v, 1) }
-                }.orEmpty().take(1500) else "")
+                (if (root != null && n == 0) " rejected=" + DouyinParser.awemes(root).take(3).joinToString(" | ") { a ->
+                    DouyinParser.whyNot(a, PlayerPool.maxHeight) ?: "ok"
+                }.take(900) else "")
         }
         return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()}"
     }
@@ -278,7 +321,26 @@ class DouyinAdapter @Inject constructor(
         val direct = runCatching { directSearch(q, 0).items.size }.fold({ "$it" }, { "error(${it.message?.take(40)})" })
         val answers = runCatching { web.pageSearch(q) }.getOrDefault(emptyList())
         val pageItems = answers.sumOf { b -> runCatching { items(json.parseToJsonElement(b)).size }.getOrDefault(0) }
-        return "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size}"
+        val ids = runCatching { engineIds(q) }.getOrDefault(emptyList())
+        val first = ids.firstOrNull()
+        val viaApi = first?.let { id -> runCatching { items(call("/aweme/v1/web/aweme/detail/", mapOf("aweme_id" to id))).size }.fold({ "$it" }, { "error(${it.message?.take(30)})" }) }
+        val viaShare = first?.let { id -> runCatching { sharePage(id) != null }.getOrDefault(false) }
+        // Candidate endpoints that may answer a visitor; each: HTTP status / Douyin status / posts.
+        val candidates = listOf(
+            "/aweme/v1/web/general/search/single/" to mapOf("keyword" to q, "search_channel" to "aweme_general", "search_source" to "normal_search", "query_correct_type" to "1", "is_filter_search" to "0", "offset" to "0", "count" to "10"),
+            "/aweme/v1/web/search/challenge/" to mapOf("keyword" to q, "offset" to "0", "count" to "10", "search_source" to "normal_search"),
+            "/aweme/v1/web/hot/search/list/" to mapOf("detail_list" to "1"),
+        ).joinToString(" ") { (path, params) ->
+            val r = web.get(path, params)
+            val root = runCatching { json.parseToJsonElement(r.body) }.getOrNull()
+            val sc = root?.let { DouyinParser.statusCode(it) }
+            val n = root?.let { runCatching { items(it).size }.getOrNull() }
+            path.removePrefix("/aweme/v1/web/").removeSuffix("/") + "=${r.status}/sc$sc/${r.body.length}B/posts=$n" +
+                (if (sc != null && sc != 0) "(" + ((root as? JsonObject)?.get("status_msg") as? JsonPrimitive)?.contentOrNull?.take(20) + ")" else "")
+        }
+        return "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size} " +
+            "web=${ids.size} ids detailApi=$viaApi sharePage=$viaShare | $candidates | searchPageCalls=" +
+            web.searchTrace().takeLast(12).joinToString("; ")
     }
 
     /** A short sketch of a JSON answer's layout: keys, array sizes, the first element of each array. */
@@ -376,6 +438,12 @@ class DouyinAdapter @Inject constructor(
     companion object {
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 1_000
+        private const val MAX_WEB_RESULTS = 16
+
+        /** douyin.com/video/<id> (or /note/), plain or URL-encoded inside a search engine's redirect link. */
+        private val VIDEO_LINK = Regex("""douyin\.com(?:/|%2F)(?:video|note)(?:/|%2F)(\d{15,21})""", RegexOption.IGNORE_CASE)
+
+        fun idsInHtml(html: String): List<String> = VIDEO_LINK.findAll(html).map { it.groupValues[1] }.distinct().toList()
         private val FEED_PATHS = listOf("/aweme/v2/web/module/feed/", "/aweme/v1/web/module/feed/", "/aweme/v1/web/tab/feed/")
         private const val MAX_FOLLOWED = 30
         /** Douyin's video addresses stop working after a few hours. */

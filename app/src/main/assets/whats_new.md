@@ -1,3 +1,9 @@
+## 1.1.1 — 2026-11-19
+More posts, more ways to search
+
+- Fixed: posts from Douyin's main feed were being skipped as "live" because of an empty field; they show now.
+- New: Search also looks up Douyin videos through public web search (no sign-in needed), alongside what's already loaded.
+
 ## 1.1.0 — 2026-11-19
 Search without signing in
 

@@ -192,5 +192,23 @@ object DouyinParser {
 
     private fun JsonObject.str(key: String): String? = (this[key] as? JsonPrimitive)?.contentOrNull
 
-    private fun JsonElement?.isPresent(): Boolean = this != null && this !is kotlinx.serialization.json.JsonNull
+    /** Set to something: not missing, null, "", 0, false, {} or []. Many posts carry empty `live_reason` / `cell_room`. */
+    private fun JsonElement?.isPresent(): Boolean = when (this) {
+        null, is kotlinx.serialization.json.JsonNull -> false
+        is JsonPrimitive -> content.isNotBlank() && content != "0" && content != "false"
+        is JsonObject -> isNotEmpty()
+        is JsonArray -> isNotEmpty()
+    }
+
+    /** Why [parse] turned a post down, for the health probe; null if it didn't. */
+    fun whyNot(a: JsonObject, maxHeight: Int): String? {
+        if (parse(a, maxHeight) != null) return null
+        if (a.str("aweme_id") == null && a.str("awemeId") == null) return "no id"
+        if (a.str("is_ads") == "true") return "ad"
+        if (a["cell_room"].isPresent()) return "live room"
+        if (a["live_reason"].isPresent()) return "live reason=" + a["live_reason"].toString().take(30)
+        val v = a["video"] as? JsonObject ?: return "no video (keys: " + a.keys.take(30).joinToString(",") + ")"
+        return "no playable address (video keys: " + v.keys.joinToString(",") +
+            "; play_addr=" + (v["play_addr"] ?: v["playAddr"]).toString().take(160) + ")"
+    }
 }

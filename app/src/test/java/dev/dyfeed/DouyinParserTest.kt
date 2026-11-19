@@ -121,6 +121,24 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `empty live fields don't make a post a live room`() {
+        val a = Json.parseToJsonElement(
+            """{"aweme_id":"7355555555555555555","live_reason":"","cell_room":null,"is_ads":false,
+               "video":{"play_addr":{"url_list":["https://v.douyinvod.com/c.mp4"]}}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals("7355555555555555555", DouyinParser.parse(a, 1080)?.id)
+        assertNull(DouyinParser.whyNot(a, 1080))
+    }
+
+    @Test
+    fun `video ids in web search results, plain and inside redirect links`() {
+        val html = """<a href="https://www.douyin.com/video/7366666666666666666">x</a>
+            <a href="//duckduckgo.com/l/?uddg=https%3A%2F%2Fwww.douyin.com%2Fvideo%2F7377777777777777777&rut=1">y</a>
+            <a href="https://www.douyin.com/user/MS4w">no</a> douyin.com/video/7366666666666666666"""
+        assertEquals(listOf("7366666666666666666", "7377777777777777777"), DouyinAdapter.idsInHtml(html))
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))

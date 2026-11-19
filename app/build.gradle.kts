@@ -26,7 +26,7 @@ android {
         targetSdk = 36
         // Always higher than the last CI build, so Android accepts every new APK as an update.
         versionCode = 100 + (System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 0)
-        versionName = "1.1.0"
+        versionName = "1.1.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
     }

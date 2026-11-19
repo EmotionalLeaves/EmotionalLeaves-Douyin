@@ -64,6 +64,10 @@ class DouyinWeb @Inject constructor(
     private val searchCaptured = java.util.concurrent.ConcurrentLinkedDeque<String>()
     @Volatile private var searchSignal = CompletableDeferred<Unit>()
     private val searchMutex = Mutex()
+    /** The last Douyin API calls the search page made ("path status size"), for the health probe. */
+    private val searchTrace = java.util.concurrent.ConcurrentLinkedDeque<String>()
+
+    fun searchTrace(): List<String> = searchTrace.toList()
 
     /**
      * Search without signing in: open Douyin's own search page for [keyword] in a second hidden
@@ -221,6 +225,13 @@ class DouyinWeb @Inject constructor(
         }
 
         @JavascriptInterface
+        fun saw(url: String, status: Int, size: Int) {
+            if (!search) return
+            searchTrace.addLast(url.substringBefore('?').removePrefix("https://www.douyin.com") + " $status ${size}B")
+            while (searchTrace.size > 30) searchTrace.pollFirst()
+        }
+
+        @JavascriptInterface
         fun captured(url: String, body: String) {
             if (body.isBlank()) return
             val isSearch = "search" in url
@@ -271,6 +282,11 @@ class DouyinWeb @Inject constructor(
               var send = XMLHttpRequest.prototype.send;
               XMLHttpRequest.prototype.send = function () {
                 var x = this;
+                if (!x.__dyMine && /\/aweme\//.test(x.__dyUrl || '')) {
+                  x.addEventListener('loadend', function () {
+                    try { DYB.saw(String(x.__dyUrl), x.status, (x.responseText || '').length); } catch (e) {}
+                  });
+                }
                 if (!x.__dyMine && FEED.test(x.__dyUrl || '')) {
                   x.addEventListener('load', function () { if (x.status === 200) pass(x.__dyUrl, x.responseText); });
                 }
@@ -281,7 +297,13 @@ class DouyinWeb @Inject constructor(
                 window.fetch = function (input) {
                   var url = typeof input === 'string' ? input : (input && input.url) || '';
                   var p = f.apply(this, arguments);
-                  if (FEED.test(url)) p.then(function (r) { if (r && r.ok) r.clone().text().then(function (t) { pass(url, t); }); }).catch(function () {});
+                  if (/\/aweme\//.test(url)) p.then(function (r) {
+                    if (!r) return;
+                    r.clone().text().then(function (t) {
+                      try { DYB.saw(String(url), r.status, t.length); } catch (e) {}
+                      if (r.ok && FEED.test(url)) pass(url, t);
+                    });
+                  }).catch(function () {});
                   return p;
                 };
               }
