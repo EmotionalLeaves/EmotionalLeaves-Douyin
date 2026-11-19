@@ -1,3 +1,8 @@
+## 1.1.2 — 2026-11-19
+Search that doesn't need a sign-in
+
+- New: Signed out, Douyin won't search for you, so search is built from what Douyin does show a visitor: a hashtag's own video list when your search is a tag the feed has seen, Douyin's related videos for posts that match, its trending topics, and everything the feed has loaded.
+
 ## 1.1.1 — 2026-11-19
 More posts, more ways to search
 

@@ -77,8 +77,16 @@ object DouyinParser {
         val likes = ((a["statistics"] ?: a["stats"]) as? JsonObject)?.let { it.str("digg_count") ?: it.str("diggCount") }
         val video = a["video"] as? JsonObject
 
+        // Hashtag ids ("美食=1575..."), so a search for a tag can open that tag's own video list.
+        val tagIds = ((a["text_extra"] ?: a["textExtra"]) as? JsonArray)?.mapNotNull { t ->
+            val o = t as? JsonObject ?: return@mapNotNull null
+            val name = (o.str("hashtag_name") ?: o.str("hashtagName"))?.trim()?.lowercase()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val cid = (o.str("hashtag_id") ?: o.str("hashtagId") ?: o.str("cid"))?.takeIf { it.length > 3 && it.all(Char::isDigit) } ?: return@mapNotNull null
+            "$name=$cid"
+        }.orEmpty()
         val common = buildMap {
             secUid?.let { put("secUid", it) }
+            if (tagIds.isNotEmpty()) put("tagIds", tagIds.joinToString(";"))
             likes?.let { put("score", it) }
             put("at", fetchedAt.toString())
         }

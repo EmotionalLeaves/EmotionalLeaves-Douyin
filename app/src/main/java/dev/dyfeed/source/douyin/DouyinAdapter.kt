@@ -176,17 +176,21 @@ class DouyinAdapter @Inject constructor(
         // Signed out, Douyin's search API asks you to sign in. Its own search page still shows a
         // visitor results, so open that and take what it loads; and add matching posts the feed
         // has already brought in, so a search is never empty.
-        val (fromPage, fromWeb) = coroutineScope {
+        val fromFeed = loadedMatching(q)
+        val found = coroutineScope {
+            val tag = async { runCatching { hashtagPosts(q) }.getOrDefault(emptyList()) }
+            val related = async { runCatching { relatedPosts(fromFeed.take(3)) }.getOrDefault(emptyList()) }
+            val trending = async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) }
             val page = async {
                 runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
                     runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
                 }
             }
             val engine = async { runCatching { webSearch(q) }.getOrDefault(emptyList()) }
-            page.await() to engine.await()
+            // Best evidence first: the tag's own list and Douyin's own results, then the rest.
+            tag.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
         }
-        val fromFeed = loadedMatching(q)
-        val all = (fromPage + fromWeb + fromFeed).distinctBy { it.id }
+        val all = found.distinctBy { it.id }
         if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
         return Page(all, null)
     }
@@ -205,6 +209,46 @@ class DouyinAdapter @Inject constructor(
         val items = items(root)
         val next = (DouyinParser.long(root, "cursor") ?: (offset + 16).toLong()).toString()
         return Page(items, next.takeIf { DouyinParser.hasMore(root) && items.isNotEmpty() })
+    }
+
+    /** A hashtag's own video list, for a search that is (or contains) a hashtag seen in the feed. */
+    private suspend fun hashtagPosts(q: String): List<MediaItem> {
+        val key = q.trim().lowercase().removePrefix("#")
+        val cid = hashtagIds[key]
+            ?: hashtagIds.entries.firstOrNull { (name, _) -> name.contains(key) || key.contains(name) }?.value
+            ?: return emptyList()
+        return challengePosts(cid)
+    }
+
+    private suspend fun challengePosts(cid: String): List<MediaItem> =
+        items(call("/aweme/v1/web/challenge/aweme/", mapOf("ch_id" to cid, "cursor" to "0", "count" to "20", "sort_type" to "1", "query_type" to "0")))
+
+    /** Douyin's "related videos" for a few posts that match: more of the same thing. */
+    private suspend fun relatedPosts(seeds: List<MediaItem>): List<MediaItem> = coroutineScope {
+        seeds.map { seed ->
+            async {
+                runCatching {
+                    items(call("/aweme/v1/web/aweme/related/", mapOf("aweme_id" to seed.id, "count" to "20", "filterGids" to "", "awemePcRecRawData" to """{"is_client":false}""", "sub_channel_id" to "3")))
+                }.getOrDefault(emptyList())
+            }
+        }.awaitAll().flatten()
+    }
+
+    /** Trending topics matching [q]: each topic's word goes through the tag and related paths. */
+    private suspend fun trendingPosts(q: String): List<MediaItem> {
+        val root = call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))
+        val words = trendingWords(root)
+        val key = q.trim().lowercase()
+        val hits = words.filter { it.lowercase().contains(key) || key.contains(it.lowercase()) }.take(2)
+        return hits.flatMap { w -> runCatching { hashtagPosts(w) }.getOrDefault(emptyList()) + loadedMatching(w) }
+    }
+
+    /** The words of Douyin's trending list (data.word_list[].word, or trending_list). */
+    private fun trendingWords(root: JsonElement): List<String> {
+        val data = (root as? JsonObject)?.get("data") as? JsonObject ?: return emptyList()
+        return listOf("word_list", "trending_list").flatMap { k ->
+            (data[k] as? kotlinx.serialization.json.JsonArray)?.mapNotNull { ((it as? JsonObject)?.get("word") as? JsonPrimitive)?.contentOrNull }.orEmpty()
+        }
     }
 
     /**
@@ -338,7 +382,15 @@ class DouyinAdapter @Inject constructor(
             path.removePrefix("/aweme/v1/web/").removeSuffix("/") + "=${r.status}/sc$sc/${r.body.length}B/posts=$n" +
                 (if (sc != null && sc != 0) "(" + ((root as? JsonObject)?.get("status_msg") as? JsonPrimitive)?.contentOrNull?.take(20) + ")" else "")
         }.joinToString(" ")
-        return "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size} " +
+        val anyTag = hashtagIds.entries.firstOrNull()
+        val tagProbe = anyTag?.let { (name, cid) -> runCatching { "$name:" + challengePosts(cid).size }.getOrElse { "$name:error(${it.message?.take(30)})" } } ?: "no tag ids yet"
+        val relProbe = synchronized(loaded) { loaded.lastOrNull() }?.let { seed ->
+            runCatching { relatedPosts(listOf(seed)).size.toString() }.getOrElse { "error(${it.message?.take(30)})" }
+        } ?: "no posts yet"
+        val trendProbe = runCatching { trendingWords(call("/aweme/v1/web/hot/search/list/", mapOf("detail_list" to "1"))).take(5).joinToString("/") }.getOrElse { "error(${it.message?.take(30)})" }
+        val pageInfo = web.searchPageInfo()
+        return "tags=${hashtagIds.size} challenge=$tagProbe related=$relProbe trending=$trendProbe page=[$pageInfo] " +
+            "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size} " +
             "web=${ids.size} ids detailApi=$viaApi sharePage=$viaShare | $candidates | searchPageCalls=" +
             web.searchTrace().takeLast(12).joinToString("; ")
     }
@@ -376,6 +428,9 @@ class DouyinAdapter @Inject constructor(
         return root
     }
 
+    /** Hashtag name → Douyin's id for it, learned from posts as they arrive. */
+    private val hashtagIds = ConcurrentHashMap<String, String>()
+
     /** The last [MAX_LOADED] posts parsed this session, for search without signing in. */
     private val loaded = ArrayDeque<MediaItem>()
 
@@ -384,6 +439,11 @@ class DouyinAdapter @Inject constructor(
             synchronized(loaded) {
                 loaded.addLast(item)
                 while (loaded.size > MAX_LOADED) loaded.removeFirst()
+            }
+            item.extras["tagIds"]?.split(';')?.forEach { pair ->
+                val name = pair.substringBefore('=')
+                val cid = pair.substringAfter('=', "")
+                if (name.isNotEmpty() && cid.isNotEmpty()) hashtagIds[name] = cid
             }
             val sec = item.extras["secUid"] ?: return@onEach
             item.creator?.let { remember(it, sec) }

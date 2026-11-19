@@ -69,6 +69,16 @@ class DouyinWeb @Inject constructor(
 
     fun searchTrace(): List<String> = searchTrace.toList()
 
+    /** Where the hidden search page ended up and what it shows, for the health probe. */
+    suspend fun searchPageInfo(): String = withContext(Dispatchers.Main) {
+        val w = searchWeb ?: return@withContext "no search page"
+        val done = CompletableDeferred<String>()
+        w.evaluateJavascript(
+            "(function(){var r=document.getElementById('RENDER_DATA');return location.href.slice(0,80)+' | '+document.title.slice(0,40)+' | render='+(r?r.textContent.length:0)+' | login='+(!!document.querySelector('[class*=login],[id*=login]'))})()",
+        ) { done.complete(it ?: "") }
+        withTimeoutOrNull(3_000) { done.await() } ?: "no answer"
+    }
+
     /**
      * Search without signing in: open Douyin's own search page for [keyword] in a second hidden
      * page and take the results it loads for itself (its requests carry everything a visitor's
