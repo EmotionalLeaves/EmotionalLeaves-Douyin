@@ -330,14 +330,14 @@ class DouyinAdapter @Inject constructor(
             "/aweme/v1/web/general/search/single/" to mapOf("keyword" to q, "search_channel" to "aweme_general", "search_source" to "normal_search", "query_correct_type" to "1", "is_filter_search" to "0", "offset" to "0", "count" to "10"),
             "/aweme/v1/web/search/challenge/" to mapOf("keyword" to q, "offset" to "0", "count" to "10", "search_source" to "normal_search"),
             "/aweme/v1/web/hot/search/list/" to mapOf("detail_list" to "1"),
-        ).joinToString(" ") { (path, params) ->
+        ).map { (path, params) ->
             val r = web.get(path, params)
             val root = runCatching { json.parseToJsonElement(r.body) }.getOrNull()
             val sc = root?.let { DouyinParser.statusCode(it) }
             val n = root?.let { runCatching { items(it).size }.getOrNull() }
             path.removePrefix("/aweme/v1/web/").removeSuffix("/") + "=${r.status}/sc$sc/${r.body.length}B/posts=$n" +
                 (if (sc != null && sc != 0) "(" + ((root as? JsonObject)?.get("status_msg") as? JsonPrimitive)?.contentOrNull?.take(20) + ")" else "")
-        }
+        }.joinToString(" ")
         return "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size} " +
             "web=${ids.size} ids detailApi=$viaApi sharePage=$viaShare | $candidates | searchPageCalls=" +
             web.searchTrace().takeLast(12).joinToString("; ")
