@@ -1,3 +1,9 @@
+## 1.2.1 — 2026-11-19
+Faster scrolling
+
+- Better: more For You loads by moving Douyin's page along (like pressing ↓ on the site) instead of opening it again each time, so the next batch comes sooner.
+- Better: signed-out search asks for related videos from more of the matching posts, so it finds more.
+
 ## 1.2.0 — 2026-11-19
 Trending on Douyin
 

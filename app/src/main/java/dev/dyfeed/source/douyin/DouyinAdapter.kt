@@ -179,7 +179,7 @@ class DouyinAdapter @Inject constructor(
         val fromFeed = loadedMatching(q)
         val found = coroutineScope {
             val tag = async { runCatching { hashtagPosts(q) }.getOrDefault(emptyList()) }
-            val related = async { runCatching { relatedPosts(fromFeed.take(3)) }.getOrDefault(emptyList()) }
+            val related = async { runCatching { relatedPosts(fromFeed.take(5)) }.getOrDefault(emptyList()) }
             val trending = async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) }
             val page = async {
                 runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
@@ -367,7 +367,9 @@ class DouyinAdapter @Inject constructor(
                     DouyinParser.whyNot(a, PlayerPool.maxHeight) ?: "ok"
                 }.take(900) else "")
         }
-        return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()}"
+        // Does moving the open page along bring a new batch? (Uses nothing up: only counts.)
+        val nudged = runCatching { web.nudge(8_000) }.getOrDefault(-1)
+        return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()} nudgeNewAnswers=$nudged nudgesWorkedSoFar=${web.nudgesWorked}"
     }
 
     /** How each way of searching does right now, for the health test. */

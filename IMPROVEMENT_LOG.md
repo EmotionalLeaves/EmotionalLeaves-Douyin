@@ -34,8 +34,7 @@ this file first, adds one entry at the bottom, and keeps the rules below.
 
 ## Ideas not done yet
 
-- Load more feed per page visit (scroll the hidden page instead of reloading it) so later pages come faster.
-- Grow signed-out search: related videos for more seeds, and for trending words.
+- Grow signed-out search: related videos for trending words.
 - Douyin comments for signed-out visitors (check with the probe whether `/comment/list/` answers).
 - Cache search results so going back doesn't search again.
 
@@ -46,3 +45,6 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   hold menu; Douyin row at top of Settings; translate captions/comments (ML Kit); camelCase and
   `cards[]` post formats; signed-out search (related, trending, loaded posts); trending list in Search.
   Releases 1.0.0 → 1.2.0, all green.
+- 2026-11-19 (chat, round 14): feed moves the hidden page along (↓ key + scroll) before reloading it;
+  search uses related videos of 5 matching posts (was 3); probe reports whether moving the page brings
+  a batch (`nudgeNewAnswers`). 1.2.1.

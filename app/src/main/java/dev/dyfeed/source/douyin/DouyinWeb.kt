@@ -103,6 +103,9 @@ class DouyinWeb @Inject constructor(
     fun waitingAnswers(): Int = captured.size
 
     suspend fun harvest(waitMs: Long = 15_000): List<String> {
+        // First the cheap way: move the open page along (as pressing ↓ does on douyin.com), which
+        // makes it fetch its next batch. Only if that brings nothing, start a fresh page.
+        if (captured.isEmpty() && web != null && nudge(NUDGE_WAIT_MS) > 0) nudgesWorked++
         if (captured.isEmpty()) {
             capturedSignal = CompletableDeferred()
             reload()
@@ -112,6 +115,24 @@ class DouyinWeb @Inject constructor(
         val out = ArrayList<String>()
         while (true) out += captured.pollFirst() ?: break
         return out
+    }
+
+    /** How often moving the page along brought a new batch (for the health probe). */
+    @Volatile var nudgesWorked = 0
+        private set
+
+    /**
+     * Presses ↓ on the open page a few times (and scrolls it), the way someone watching
+     * douyin.com moves to the next videos, then waits up to [waitMs] for the batch it fetches.
+     * Returns how many new feed answers arrived.
+     */
+    suspend fun nudge(waitMs: Long): Int {
+        val before = captured.size
+        capturedSignal = CompletableDeferred()
+        withContext(Dispatchers.Main) { web?.evaluateJavascript(NUDGE_JS, null) }
+        withTimeoutOrNull(waitMs) { capturedSignal.await() }
+        delay(500)
+        return (captured.size - before).coerceAtLeast(0)
     }
 
     /**
@@ -274,6 +295,30 @@ class DouyinWeb @Inject constructor(
 
         private const val PAGE_TTL_MS = 30 * 60_000L
         private const val MAX_CAPTURED = 6
+        private const val NUDGE_WAIT_MS = 7_000L
+
+        /** ↓ ten times, a third of a second apart, on the page and whatever has focus, plus a scroll. */
+        private val NUDGE_JS = """
+            (function () {
+              var n = 0;
+              function press() {
+                try {
+                  var opts = { key: 'ArrowDown', code: 'ArrowDown', keyCode: 40, which: 40, bubbles: true, cancelable: true };
+                  var targets = [document, document.body, document.activeElement];
+                  for (var i = 0; i < targets.length; i++) if (targets[i]) {
+                    targets[i].dispatchEvent(new KeyboardEvent('keydown', opts));
+                    targets[i].dispatchEvent(new KeyboardEvent('keyup', opts));
+                  }
+                  window.scrollBy(0, window.innerHeight || 800);
+                  var sc = document.querySelector('[data-e2e="feed-active-video"]');
+                  if (sc && sc.parentElement) sc.parentElement.scrollTop += 2000;
+                } catch (e) {}
+                if (++n < 10) setTimeout(press, 330);
+              }
+              press();
+              return true;
+            })()
+        """.trimIndent()
 
         /**
          * Wraps XMLHttpRequest and fetch so feed answers the page asks for itself are passed to the
