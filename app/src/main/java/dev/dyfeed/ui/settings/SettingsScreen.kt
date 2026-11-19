@@ -16,6 +16,8 @@ import dev.dyfeed.ui.theme.Accent
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.School
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.positionInParent
@@ -296,6 +298,26 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
 
             Section("Look", modifier = Modifier.anchor("Look")) {
                 AccentPicker(dev.dyfeed.ui.theme.Palette.current, onPick = vm::setAccent)
+            }
+
+            Section("学习 Learn", modifier = Modifier.anchor("Learn")) {
+                val pinyinOn by dev.dyfeed.ui.learn.LearnPrefs.pinyin.collectAsStateWithLifecycle()
+                SwitchSetting(
+                    "Pinyin over captions",
+                    pinyinOn,
+                    subtitle = "How every Chinese caption is said, tone by tone. Tap 词 Words under a caption for each word's meaning and voice.",
+                    icon = Icons.Filled.School,
+                    onChange = dev.dyfeed.ui.learn.LearnPrefs::setPinyin,
+                )
+                RowDivider()
+                val slow by dev.dyfeed.ui.learn.LearnPrefs.slowVoice.collectAsStateWithLifecycle()
+                SwitchSetting(
+                    "Slower voice",
+                    slow,
+                    subtitle = "Words and sentences read aloud a little slower, to catch every tone",
+                    icon = Icons.Filled.RecordVoiceOver,
+                    onChange = dev.dyfeed.ui.learn.LearnPrefs::setSlowVoice,
+                )
             }
 
             Section("Playback", modifier = Modifier.anchor("Playback")) {

@@ -18,8 +18,8 @@ object Speak {
     val problem: StateFlow<String?> = _problem
     private var pending: String? = null
 
-    /** Slower than normal while learning: 0.85×. */
-    var rate = 0.85f
+    /** Slower than normal while learning (Settings → Learn → Slower voice). */
+    val rate: Float get() = if (LearnPrefs.slowVoice.value) 0.75f else 1.0f
 
     fun say(context: Context, text: String) {
         val t = tts
@@ -51,11 +51,19 @@ object LearnPrefs {
     val pinyin: StateFlow<Boolean> = _pinyin
     @Volatile private var prefs: android.content.SharedPreferences? = null
 
+    private val _slow = MutableStateFlow(true)
+    /** Read aloud a little slower than normal speech. */
+    val slowVoice: StateFlow<Boolean> = _slow
+
     fun init(context: Context) {
-        prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).also { _pinyin.value = it.getBoolean("pinyin", false) }
+        prefs = context.getSharedPreferences(FILE, Context.MODE_PRIVATE).also {
+            _pinyin.value = it.getBoolean("pinyin", false)
+            _slow.value = it.getBoolean("slow", true)
+        }
     }
 
     fun setPinyin(on: Boolean) { _pinyin.value = on; prefs?.edit()?.putBoolean("pinyin", on)?.apply() }
+    fun setSlowVoice(on: Boolean) { _slow.value = on; prefs?.edit()?.putBoolean("slow", on)?.apply() }
 }
 
 /** "Learn the words" asked for this text (a caption, a comment): the app shows its words. */
