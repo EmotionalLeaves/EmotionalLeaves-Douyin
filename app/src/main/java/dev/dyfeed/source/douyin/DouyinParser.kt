@@ -67,6 +67,13 @@ object DouyinParser {
         val author = (a["author"] ?: a["authorInfo"]) as? JsonObject
         val creator = author?.str("nickname")?.trim()?.takeIf { it.isNotEmpty() }
         val secUid = author?.str("sec_uid") ?: author?.str("secUid")
+        val avatar = listOf("avatar_thumb", "avatarThumb", "avatar_168x168", "avatar_medium").firstNotNullOfOrNull { k ->
+            when (val v = author?.get(k)) {
+                is JsonObject -> ((v["url_list"] ?: v["urlList"]) as? JsonArray).urls().let(::pickImage)
+                is JsonPrimitive -> v.contentOrNull?.let(::https)
+                else -> null
+            }
+        }
         // The caption without its #hashtags and @mentions: those show as tappable tags already.
         val desc = a.str("desc")?.let(::caption)
         val tags = buildList {
@@ -86,6 +93,7 @@ object DouyinParser {
         }.orEmpty()
         val common = buildMap {
             secUid?.let { put("secUid", it) }
+            avatar?.let { put("avatar", it) }
             if (tagIds.isNotEmpty()) put("tagIds", tagIds.joinToString(";"))
             likes?.let { put("score", it) }
             put("at", fetchedAt.toString())

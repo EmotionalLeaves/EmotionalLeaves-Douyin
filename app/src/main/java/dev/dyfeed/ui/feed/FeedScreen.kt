@@ -1613,7 +1613,7 @@ private fun Overlay(
             }
             if (creator != null) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    dev.dyfeed.ui.common.InitialAvatar(creator, size = 30.dp, modifier = Modifier.clickable { onTag("@" + (item.creator ?: creator)) })
+                    dev.dyfeed.ui.common.InitialAvatar(creator, size = 30.dp, modifier = Modifier.clickable { onTag("@" + (item.creator ?: creator)) }, imageUrl = item.extras["avatar"])
                     Spacer(Modifier.width(8.dp))
                     Text(
                         "@$creator",

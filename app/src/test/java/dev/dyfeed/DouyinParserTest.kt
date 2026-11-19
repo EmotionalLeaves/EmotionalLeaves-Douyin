@@ -14,7 +14,7 @@ class DouyinParserTest {
         """
         {"status_code":0,"has_more":1,"aweme_list":[
           {"aweme_id":"7300000000000000001","desc":"重庆火锅太好吃了 #美食 #重庆","create_time":1700000000,
-           "author":{"nickname":"小王吃遍中国","sec_uid":"MS4wLjABAAAA_x"},
+           "author":{"nickname":"小王吃遍中国","sec_uid":"MS4wLjABAAAA_x","avatar_thumb":{"url_list":["https://p3.douyinpic.com/a.jpeg"]}},
            "statistics":{"digg_count":123456},
            "text_extra":[{"hashtag_name":"美食","hashtag_id":"1575791821492238"},{"hashtag_name":"重庆"}],
            "video":{"duration":15300,
@@ -48,6 +48,7 @@ class DouyinParserTest {
         assertEquals(15, v.durationSec)
         assertEquals("123456", v.extras["score"])
         assertEquals("MS4wLjABAAAA_x", v.extras["secUid"])
+        assertEquals("https://p3.douyinpic.com/a.jpeg", v.extras["avatar"])
         assertEquals("42", v.extras["at"])
         assertEquals("美食=1575791821492238", v.extras["tagIds"])
         assertTrue(v.thumbnailUrl!!.contains("c.jpeg"))

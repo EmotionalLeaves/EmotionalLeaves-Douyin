@@ -401,7 +401,7 @@ fun BrandSpinner(modifier: Modifier = Modifier, size: androidx.compose.ui.unit.D
  * name): the feed's caption and Library → Following use it, so a creator looks the same in both.
  */
 @Composable
-fun InitialAvatar(name: String, size: androidx.compose.ui.unit.Dp = 32.dp, modifier: Modifier = Modifier) {
+fun InitialAvatar(name: String, size: androidx.compose.ui.unit.Dp = 32.dp, modifier: Modifier = Modifier, imageUrl: String? = null) {
     val clean = name.removePrefix("@").trim()
     val hue = androidx.compose.runtime.remember(clean) { ((clean.lowercase().hashCode() and 0x7fffffff) % 360).toFloat() }
     Box(
@@ -415,6 +415,16 @@ fun InitialAvatar(name: String, size: androidx.compose.ui.unit.Dp = 32.dp, modif
             fontSize = (size.value * 0.42f).sp,
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
         )
+        // Their real picture over the initial, when the post carries one (the initial shows while
+        // it loads, or if it can't).
+        if (imageUrl != null) {
+            coil.compose.AsyncImage(
+                model = imageUrl,
+                contentDescription = null,
+                contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                modifier = Modifier.matchParentSize(),
+            )
+        }
     }
 }
 
