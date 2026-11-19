@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.Vibration
 import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Autorenew
@@ -338,6 +339,9 @@ fun ItemMenuSheet(
                 MenuRow("Comments", Icons.Filled.ChatBubbleOutline, "What people said under it on Douyin, with translation") { pickTag = "comments" }
                 if (!item.title.isNullOrBlank() || item.tags.isNotEmpty()) {
                     MenuRow("Translate", Icons.Filled.Translate, "The caption and tags in English") { pickTag = "translate" }
+                    if (dev.dyfeed.domain.lang.Zh.has(item.title)) MenuRow("Learn the words", Icons.Filled.School, "The caption word by word: pinyin, meaning, a voice, and save them to review") {
+                        dev.dyfeed.ui.learn.LearnWords.request.value = item.title; onDismiss()
+                    }
                 }
             }
             if (item.type == dev.dyfeed.domain.model.MediaType.VIDEO) {

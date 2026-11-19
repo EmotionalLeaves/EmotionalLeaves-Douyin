@@ -22,6 +22,7 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -221,6 +222,9 @@ class SmokeTest {
         // 4. Every tab opens.
         tab("Search")
         waitFor(what = "search screen") { exists("Search Douyin · 搜索") && exists("Surprise me") }
+
+        tab("Learn")
+        waitFor(what = "learn screen") { exists("学习 Learn") && exists("Watch and learn · 看视频学中文") }
 
         tab("Library")
         waitFor(what = "library screen") { exists("Saved", substring = true) && exists("Following", substring = true) }
@@ -486,6 +490,24 @@ class SmokeTest {
         val douyin = rule.activity.sourceRegistry.byId("douyin") as dev.dyfeed.source.douyin.DouyinAdapter
         val hits = runCatching { runBlocking { douyin.search("cat", null).items.size } }
         android.util.Log.i("PFHEALTH", "translate: English search 'cat' → " + hits.fold({ "$it posts" }, { "error ${it.message}" }))
+    }
+
+    /** Learn: a caption taken apart into words, saved, and reviewed. */
+    @Test
+    fun learnFromACaption() {
+        val ctx = rule.activity
+        val dict = runBlocking { dev.dyfeed.domain.learn.Dict.get(ctx) }
+        val words = dict.segment("我喜欢吃重庆火锅").map { it.text }
+        android.util.Log.i("PFHEALTH", "learn: 我喜欢吃重庆火锅 → ${words.joinToString(" / ")}")
+        assertEquals(listOf("我", "喜欢", "吃", "重庆", "火锅"), words)
+        rule.waitForIdle()
+        dev.dyfeed.ui.learn.LearnWords.request.value = "我喜欢吃重庆火锅"
+        waitFor(timeoutMs = 20_000, what = "words sheet") { exists("词 Words") && exists("hotpot", substring = true) }
+        shot("11_words")
+        dev.dyfeed.ui.learn.LearnWords.request.value = null
+        tab("Learn")
+        waitFor(what = "learn screen") { exists("学习 Learn") }
+        shot("12_learn")
     }
 
     /** A link shared into the app opens in the viewer. */

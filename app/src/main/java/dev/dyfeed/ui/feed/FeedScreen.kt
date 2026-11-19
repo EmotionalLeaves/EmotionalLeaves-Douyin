@@ -1678,6 +1678,17 @@ private fun Overlay(
                 }
             }
             item.title?.takeIf { it.isNotBlank() }?.let {
+                // Learn → Pinyin over captions: how the caption is said, tone by tone.
+                val pinyinOn by dev.dyfeed.ui.learn.LearnPrefs.pinyin.collectAsStateWithLifecycle()
+                if (pinyinOn && dev.dyfeed.domain.lang.Zh.has(it)) {
+                    val ctx = androidx.compose.ui.platform.LocalContext.current
+                    val line by androidx.compose.runtime.produceState(dev.dyfeed.ui.learn.pinyinLine(it), it) {
+                        dev.dyfeed.domain.learn.Dict.get(ctx); value = dev.dyfeed.ui.learn.pinyinLine(it)
+                    }
+                    line?.let { p ->
+                        Text(p, color = Color(0xFFFFD58A), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium.shadowed())
+                    }
+                }
                 // Two lines; tap for the rest (and again to fold it away).
                 var expanded by remember(item.key) { mutableStateOf(false) }
                 var cut by remember(item.key) { mutableStateOf(false) }
@@ -1713,13 +1724,23 @@ private fun Overlay(
                             style = MaterialTheme.typography.bodyMedium.shadowed(),
                         )
                     }
-                    Text(
-                        if (showing) "Show original" else "See translation",
-                        color = Color.White.copy(alpha = 0.75f),
-                        fontWeight = FontWeight.SemiBold,
-                        style = MaterialTheme.typography.labelMedium.shadowed(),
-                        modifier = Modifier.clickable { showing = !showing }, // the effect above fetches it
-                    )
+                    Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                        Text(
+                            if (showing) "Show original" else "See translation",
+                            color = Color.White.copy(alpha = 0.75f),
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium.shadowed(),
+                            modifier = Modifier.clickable { showing = !showing }, // the effect above fetches it
+                        )
+                        // Learn: the caption taken apart, word by word, with pinyin and a voice.
+                        Text(
+                            "词 Words",
+                            color = Color(0xFFFFD58A),
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.labelMedium.shadowed(),
+                            modifier = Modifier.clickable { dev.dyfeed.ui.learn.LearnWords.request.value = it },
+                        )
+                    }
                 }
             }
             // The sound, as Douyin shows it: ♪ song – artist.

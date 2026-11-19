@@ -6,6 +6,7 @@ import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material.icons.outlined.VideoLibrary
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Home
+import androidx.compose.material.icons.outlined.School
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -38,6 +39,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.VideoLibrary
@@ -82,6 +84,7 @@ object Routes {
     const val VIEWER = "viewer/{token}"
     const val SEARCH = "search"
     const val LIBRARY = "library"
+    const val LEARN = "learn"
     const val SETTINGS = "settings"
     const val SOURCES = "settings/sources"
     const val BLOCKLIST = "settings/blocklist"
@@ -98,6 +101,7 @@ private data class Tab(val route: String, val label: String, val icon: ImageVect
 private val tabs = listOf(
     Tab(Routes.FEED, "Feed", Icons.Filled.Home, Icons.Outlined.Home, "首页"),
     Tab(Routes.SEARCH, "Search", Icons.Filled.Search, Icons.Outlined.Search, "发现"),
+    Tab(Routes.LEARN, "Learn", Icons.Filled.School, Icons.Outlined.School, "学习"),
     Tab(Routes.LIBRARY, "Library", Icons.Filled.VideoLibrary, Icons.Outlined.VideoLibrary, "收藏"),
     Tab(Routes.SETTINGS, "Settings", Icons.Filled.Settings, Icons.Outlined.Settings, "设置"),
 )
@@ -222,12 +226,16 @@ private fun MainNav(locked: Boolean) {
             }
             composable(Routes.SEARCH) { SearchScreen(nav) }
             composable(Routes.LIBRARY) { LibraryScreen(nav) }
+            composable(Routes.LEARN) { dev.dyfeed.ui.learn.LearnScreen(nav) }
             composable(Routes.SETTINGS) { SettingsScreen(nav) }
             composable(Routes.SOURCES) { SourcesScreen(nav) }
             composable(Routes.BLOCKLIST) { BlocklistScreen(nav) }
             composable(Routes.TASTE) { TasteScreen(nav) }
             composable(Routes.NETWORK) { dev.dyfeed.ui.settings.NetworkScreen(nav) }
         }
+        // "Words" under a caption (anywhere): the sentence taken apart, to learn from.
+        val learnText by dev.dyfeed.ui.learn.LearnWords.request.collectAsStateWithLifecycle()
+        learnText?.let { t -> dev.dyfeed.ui.learn.WordsSheet(t) { dev.dyfeed.ui.learn.LearnWords.request.value = null } }
         // Shared links: open each one in the viewer as it arrives.
         val shared by SharedLink.pending.collectAsStateWithLifecycle()
         val appContext = androidx.compose.ui.platform.LocalContext.current.applicationContext
