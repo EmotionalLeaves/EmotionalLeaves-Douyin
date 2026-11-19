@@ -134,7 +134,10 @@ class DouyinWeb @Inject constructor(
             capturedSignal = CompletableDeferred()
             reload()
             ensurePage()
-            withTimeoutOrNull(waitMs) { capturedSignal.await() }
+            if (withTimeoutOrNull(waitMs) { capturedSignal.await() } != null) {
+                // A fresh page often fetches a second batch right after the first: take it too.
+                delay(SECOND_BATCH_WAIT_MS)
+            }
         }
         val out = ArrayList<String>()
         while (true) out += captured.pollFirst() ?: break
@@ -326,6 +329,7 @@ class DouyinWeb @Inject constructor(
         private const val PAGE_TTL_MS = 30 * 60_000L
         private const val MAX_CAPTURED = 6
         private const val NUDGE_WAIT_MS = 7_000L
+        private const val SECOND_BATCH_WAIT_MS = 2_000L
 
         /** ↓ ten times, a third of a second apart, on the page and whatever has focus, plus a scroll. */
         private val NUDGE_JS = """
