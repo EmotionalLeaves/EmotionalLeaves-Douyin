@@ -147,11 +147,11 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onSpeak).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(word, fontSize = 26.sp, color = Color.White, modifier = Modifier.width(92.dp))
+        Text(word, fontSize = 26.sp, color = Color.White, modifier = Modifier.width(if (word.length <= 2) 72.dp else 104.dp))
         Column(Modifier.weight(1f)) {
             entries.take(3).forEach { e ->
                 Text(e.pinyinMarks, color = toneColor(Pinyin.tones(e.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
-                Text(e.english, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 3)
+                Text(e.english, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
             if (entries.firstOrNull()?.traditional?.let { it != word } == true) {
                 Text("Traditional: ${entries.first().traditional}", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.45f))

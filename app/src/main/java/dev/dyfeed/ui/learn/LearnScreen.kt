@@ -153,7 +153,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                                     Text(t.text, fontSize = 24.sp, fontWeight = FontWeight.Bold)
                                     Text(e.english, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f), maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis, modifier = Modifier.height(32.dp))
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text("in $n videos", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.45f), modifier = Modifier.weight(1f))
+                                        Text("×$n", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.45f), modifier = Modifier.weight(1f))
                                         Text(
                                             "+ Save",
                                             color = Accent,
