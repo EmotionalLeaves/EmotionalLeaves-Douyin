@@ -214,7 +214,7 @@ class DouyinWeb @Inject constructor(
         private val HOOK_JS = """
             (function () {
               if (window.__dyHooked) return; window.__dyHooked = true;
-              var FEED = /\/aweme\/v1\/web\/(tab\/feed|module\/feed|aweme\/post)\//;
+              var FEED = /\/aweme\/v[12]\/web\/(tab\/feed|module\/feed|aweme\/post)\//;
               function pass(t) { try { if (t && t.length > 50) DYB.captured(t); } catch (e) {} }
               var open = XMLHttpRequest.prototype.open;
               XMLHttpRequest.prototype.open = function (m, u) {

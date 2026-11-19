@@ -177,7 +177,7 @@ class SmokeTest {
     fun searchFindsPlaysAndSaves() {
         waitFor(timeoutMs = 30_000, what = "feed tab") { exists("For You") }
         tap("Search")
-        waitFor(timeoutMs = 30_000, what = "search screen") { exists("Popular") }
+        waitFor(timeoutMs = 30_000, what = "search screen") { exists("Surprise me") }
         tap("美食 · food")
         // Results stream in as sources answer. On a slow test machine every source can miss its
         // deadline; that's a finished search with nothing found, not a failure of the app.
@@ -209,7 +209,7 @@ class SmokeTest {
 
         // 4. Every tab opens.
         tab("Search")
-        waitFor(what = "search screen") { exists("Search every site") && exists("Popular") }
+        waitFor(what = "search screen") { exists("Search Douyin · 搜索") && exists("Surprise me") }
 
         tab("Library")
         waitFor(what = "library screen") { exists("Saved", substring = true) && exists("Following", substring = true) }
@@ -271,7 +271,7 @@ class SmokeTest {
                 waitFor(what = "back from the wall") { !exists("Tap one to watch it") }
             }.onFailure { android.util.Log.i("PFHEALTH", "wall: ${it.message?.take(120)}") }
             tab("Search")
-            waitFor(what = "search screen") { exists("Popular") }
+            waitFor(what = "search screen") { exists("Surprise me") }
             // Topic rows arrive once the video sites answer.
             runCatching { waitFor(timeoutMs = 25_000, what = "topic rows") { exists("See all") } }
             android.util.Log.i("PFHEALTH", "search landing: topic rows ${if (exists("See all")) "shown" else "not shown"}")

@@ -92,24 +92,44 @@ class DouyinAdapter @Inject constructor(
         return Page(items, (index + 1).toString().takeIf { index < MAX_FEED_PULLS })
     }
 
-    private suspend fun callFeed(index: Int): JsonElement =
-        call(
-            "/aweme/v1/web/tab/feed/",
-            mapOf(
-                "count" to "15",
-                "refresh_index" to index.toString(),
-                "video_type_select" to "1",
-                "aweme_pc_rec_raw_data" to """{"is_client":false,"ff_danmaku_status":1,"danmaku_switch_status":1}""",
-                "globalwid" to "",
-                "pull_type" to if (index == 1) "0" else "2",
-                "min_window" to "0",
-                "free_right" to "0",
-                "ug_source" to "",
-                "creative_id" to "",
-                "is_main_tab" to "true",
-                "module_id" to "3003101",
-            ),
+    /**
+     * Douyin's web client has moved its recommended feed between endpoints over time (the old
+     * `tab/feed` now answers 403). Try the current one first, then the older ones; remember the
+     * one that answered so the next pull goes straight there.
+     */
+    @Volatile private var feedPath: String? = null
+
+    private suspend fun callFeed(index: Int): JsonElement {
+        val params = mapOf(
+            "module_id" to "3003101",
+            "count" to "15",
+            "refresh_index" to index.toString(),
+            "pull_type" to if (index == 1) "0" else "2",
+            "video_type_select" to "1",
+            "filterGids" to "",
+            "presented_ids" to "",
+            "refer_id" to "",
+            "refer_type" to "10",
+            "awemePcRecRawData" to """{"is_xigua_user":0,"is_client":false}""",
+            "aweme_pc_rec_raw_data" to """{"is_client":false,"ff_danmaku_status":1,"danmaku_switch_status":1}""",
+            "is_main_tab" to "true",
+            "tag_id" to "",
         )
+        val paths = listOfNotNull(feedPath) + FEED_PATHS.filter { it != feedPath }
+        var last: SourceException? = null
+        for (path in paths) {
+            try {
+                val root = call(path, params)
+                if (DouyinParser.awemes(root).isEmpty() && path != paths.last()) continue
+                feedPath = path
+                return root
+            } catch (e: SourceException) {
+                if (e.httpCode == 429) throw e
+                last = e
+            }
+        }
+        throw last ?: SourceException(id, "Douyin's feed came back empty")
+    }
 
     /** Followed creators' newest posts, newest first. Cursor = page number across them. */
     private suspend fun followingFeed(cursor: String?, prefs: FeedPrefs): Page<MediaItem> {
@@ -203,12 +223,14 @@ class DouyinAdapter @Inject constructor(
      * the signed feed request's status, size and first bytes, then the backup path.
      */
     suspend fun probe(): String {
-        val r = web.get("/aweme/v1/web/tab/feed/", mapOf("count" to "10", "refresh_index" to "1", "video_type_select" to "1", "module_id" to "3003101"))
-        val head = r.body.take(160).replace('\n', ' ')
-        val parsed = runCatching { items(json.parseToJsonElement(r.body)).size }.getOrNull()
-        val harvested = if (parsed == null || parsed == 0) runCatching { web.harvest(20_000).size }.getOrDefault(-1) else null
-        return "signedIn=${web.signedIn()} feed=${r.status} ${r.body.length}B items=$parsed" +
-            (harvested?.let { " pageOwnAnswers=$it" } ?: "") + " head=$head"
+        val perPath = FEED_PATHS.map { path ->
+            val r = web.get(path, mapOf("module_id" to "3003101", "count" to "10", "refresh_index" to "1", "pull_type" to "0", "video_type_select" to "1"))
+            val n = runCatching { items(json.parseToJsonElement(r.body)).size }.getOrNull()
+            val code = runCatching { DouyinParser.statusCode(json.parseToJsonElement(r.body)) }.getOrNull()
+            "${path.removePrefix("/aweme/").removeSuffix("/")}=${r.status}/${r.body.length}B/items=$n/sc=$code"
+        }
+        val harvested = runCatching { web.harvest(20_000).size }.getOrDefault(-1)
+        return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageOwnAnswers=$harvested"
     }
 
     // ── internals ──
@@ -289,6 +311,7 @@ class DouyinAdapter @Inject constructor(
 
     companion object {
         private const val MAX_FEED_PULLS = 500
+        private val FEED_PATHS = listOf("/aweme/v2/web/module/feed/", "/aweme/v1/web/module/feed/", "/aweme/v1/web/tab/feed/")
         private const val MAX_FOLLOWED = 30
         /** Douyin's video addresses stop working after a few hours. */
         private const val URL_TTL_MS = 90 * 60_000L
