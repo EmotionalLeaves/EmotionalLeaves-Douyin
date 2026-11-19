@@ -169,7 +169,7 @@ fun ItemMenuSheet(
                     shown.isEmpty() -> Text(
                         when {
                             failed == null -> "No comments yet"
-                            !dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() -> "Douyin didn't share the comments (${failed.message?.removePrefix("Douyin: ") ?: "no answer"}). Signed in, it usually does: Settings → 抖音 Douyin."
+                            !dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() -> "Douyin didn't share the comments this time (${failed.message?.removePrefix("Douyin: ") ?: "no answer"}). Try again in a moment."
                             else -> "Couldn't load comments: ${failed.message ?: "no answer"}"
                         },
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),

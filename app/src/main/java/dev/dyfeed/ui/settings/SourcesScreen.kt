@@ -373,13 +373,13 @@ private fun SourceSheet(
                     onClick = { context.findActivity()?.let { vm.authenticate(it, a.id) } },
                     colors = ButtonDefaults.buttonColors(containerColor = Accent),
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
-                ) { Text("Sign in") }
+                ) { Text(if (a.id == "douyin") "Verify I'm human" else "Sign in") }
             }
 
             AddTo(a.id, vm, onPickFolder)
             Entries(a.id, s, vm)
             if (a.id == "douyin") Text(
-                "Douyin's own recommended feed, re-ranked here by what you watch. Sign in (or pass its \"verify you're human\" check) if the feed stops loading; search works best signed in.",
+                "Douyin's own recommended feed, re-ranked here by what you watch. No account needed (Douyin accounts need a Chinese phone number). If the feed stops loading, Douyin may want its \"verify you're human\" check: tap the button above.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = TextMid,
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),

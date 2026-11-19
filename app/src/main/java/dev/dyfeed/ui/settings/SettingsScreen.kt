@@ -220,7 +220,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 SettingRow(
                     "抖音 Douyin",
                     subtitle = authStatus["douyin"] ?: if (signedIn) "Signed in: full search and creator pages"
-                    else "Not signed in: the feed, comments and trending work; search and creator pages show less",
+                    else "Works without an account (Douyin accounts need a Chinese phone number). Tap if Douyin asks you to prove you're human.",
                     icon = Icons.Filled.PlayCircle,
                     iconTint = if (signedIn) Good else Accent,
                     chevron = true,

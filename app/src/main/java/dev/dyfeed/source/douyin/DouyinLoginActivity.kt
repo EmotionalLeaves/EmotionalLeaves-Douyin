@@ -55,7 +55,7 @@ class DouyinLoginActivity : ComponentActivity() {
             setPadding(32, 16, 16, 16)
             addView(
                 TextView(context).apply {
-                    text = "Sign in or pass Douyin's check, then tap Done"
+                    text = "Pass Douyin's check (or sign in, with a Chinese account), then tap Done"
                     setTextColor(Color.WHITE)
                     textSize = 14f
                 },

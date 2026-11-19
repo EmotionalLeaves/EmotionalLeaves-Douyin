@@ -203,7 +203,7 @@ class DouyinAdapter @Inject constructor(
         val offset = cursor?.toIntOrNull() ?: 0
         // Signed out, the search API always says "sign in first": don't spend the time asking.
         val direct = if (web.signedIn() || offset > 0) runCatching { directSearch(q, offset) }
-        else Result.failure(SourceException(id, "Douyin search needs you to sign in: Settings → 抖音 Douyin", isAuthError = true))
+        else Result.failure(SourceException(id, "Douyin's own search is only for account holders; found what it could another way", isAuthError = true))
         direct.getOrNull()?.takeIf { it.items.isNotEmpty() }?.let { return it }
         if (offset > 0) return Page(emptyList(), null)
         // Signed out, Douyin's search API asks you to sign in. Its own search page still shows a
@@ -528,7 +528,7 @@ class DouyinAdapter @Inject constructor(
         if (reply.status !in 200..299) throw SourceException(id, "Douyin answered ${reply.status}", httpCode = reply.status)
         if (reply.body.isBlank()) throw SourceException(
             id,
-            if (searching && !web.signedIn()) "Douyin search needs you to sign in: Settings → 抖音 Douyin"
+            if (searching && !web.signedIn()) "Douyin's own search is only for account holders; found what it could another way"
             else "Douyin turned the request away. Open Settings → 抖音 Douyin and pass its check",
             isAuthError = searching,
         )

@@ -2010,19 +2010,6 @@ private fun CreatorHeader(
                 IconButton(onClick = onShuffle) { Icon(Icons.Filled.Shuffle, "Shuffle", tint = Color.White.copy(alpha = 0.8f)) }
             }
         }
-        // Signed out, Douyin shows a visitor only some of a creator's posts: say so, with the fix.
-        if (!dev.dyfeed.source.douyin.DouyinWeb.isSignedIn()) {
-            val activityContext = androidx.compose.ui.platform.LocalContext.current
-            Spacer(Modifier.height(12.dp))
-            Text(
-                "Signed out, Douyin shows only some of their posts here. Sign in to see them all ›",
-                style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.55f),
-                modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                    .clickable { activityContext.findActivity()?.let { dev.dyfeed.source.douyin.DouyinLoginActivity.open(it) } }
-                    .padding(4.dp),
-            )
-        }
         // Who else makes this kind of thing (by where their posts sit on your map), tap to open.
         if (similar.isNotEmpty()) {
             Spacer(Modifier.height(18.dp))

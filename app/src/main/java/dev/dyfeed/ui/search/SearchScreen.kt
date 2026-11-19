@@ -1097,19 +1097,6 @@ private fun ResultsPane(
         }
     }
     Column(Modifier.fillMaxSize()) {
-        // Signed out, Douyin won't search for you: say so once, with the way to fix it.
-        val signedIn = remember(ui.searched) { dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() }
-        if (!signedIn) {
-            val activityContext = androidx.compose.ui.platform.LocalContext.current
-            Text(
-                "Signed out, results come from related videos and posts you've scrolled past. Sign in to Douyin for its full search ›",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                modifier = Modifier.fillMaxWidth()
-                    .clickable { activityContext.findActivity()?.let { dev.dyfeed.source.douyin.DouyinLoginActivity.open(it) } }
-                    .padding(horizontal = 16.dp, vertical = 6.dp),
-            )
-        }
         if (ui.alsoTry.isNotEmpty()) {
             androidx.compose.foundation.lazy.LazyRow(
                 Modifier.fillMaxWidth().padding(vertical = 6.dp),
