@@ -73,3 +73,5 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   sound line; creator posts via related videos + signed-out note; URL expiry trusted; saved clips
   download at once; hidden pages close in the background; like-button screen-reader text; More
   comments; Translate captions automatically (setting).
+- 2026-11-19 (chat, rounds 55–60 → 1.5.1): creator/trend/post-page look-ups behind give-up gates
+  (reset on any sign-in change); Settings wording on signed-out limits; lint 0 errors; Library wording.

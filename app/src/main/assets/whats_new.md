@@ -1,3 +1,10 @@
+## 1.5.1 — 2026-11-19
+Less waiting signed out
+
+- Faster: creator pages, trending topics and old posts stop waiting ~10 s on Douyin pages that show a signed-out visitor nothing (they're tried again once you sign in).
+- Clearer: Settings → 抖音 Douyin says what works signed out (feed, comments, trending) and what shows less (search, creator pages).
+- Clearing watch history also clears the posts search remembers, and says so.
+
 ## 1.5.0 — 2026-11-19
 In English, all the way
 
