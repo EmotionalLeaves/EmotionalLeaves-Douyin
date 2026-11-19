@@ -105,6 +105,15 @@ object Display {
             .toList()
     }
 
+    /** A count the way Douyin writes it: up to 9,999 as is, then 万 (10 thousand) and 亿 (100 million). */
+    fun count(n: Long): String = when {
+        n < 10_000 -> "%,d".format(n)
+        n < 100_000_000 -> trim(n / 10_000.0) + "万"
+        else -> trim(n / 100_000_000.0) + "亿"
+    }
+
+    private fun trim(x: Double): String = if (x >= 100) "%.0f".format(x) else "%.1f".format(x).removeSuffix(".0")
+
     private val META_PREFIXES = setOf("rating", "score", "order", "sort", "source", "md5", "id", "width", "height", "status", "language", "artist", "group")
 
     /** Named-thing prefixes (nhentai, boards): shown and searched without the prefix. */

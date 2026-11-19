@@ -1668,7 +1668,7 @@ private fun Overlay(
         }
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            LikeButton(liked = liked, onLike = onLike, onSuperLike = onSuperLike)
+            LikeButton(liked = liked, onLike = onLike, onSuperLike = onSuperLike, count = item.extras["score"]?.toLongOrNull())
             SaveButton(saved = saved, onSave = onSave)
             if (isVideo) {
                 RailButton(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "Muted" else "Sound", onMute)
@@ -1940,7 +1940,7 @@ private fun SaveButton(saved: Boolean, onSave: () -> Unit) {
 
 /** Like with a little pop when it turns on (not when the page appears already liked). */
 @Composable
-private fun LikeButton(liked: Boolean, onLike: () -> Unit, onSuperLike: (() -> Unit)? = null) {
+private fun LikeButton(liked: Boolean, onLike: () -> Unit, onSuperLike: (() -> Unit)? = null, count: Long? = null) {
     val pop = remember { Animatable(1f) }
     val scope = rememberCoroutineScope()
     var previous by remember { mutableStateOf(liked) }
@@ -1953,7 +1953,8 @@ private fun LikeButton(liked: Boolean, onLike: () -> Unit, onSuperLike: (() -> U
     }
     RailButton(
         icon = if (liked) Icons.Filled.Favorite else Icons.Filled.FavoriteBorder,
-        label = if (liked) "Liked" else "Like",
+        // Douyin's own like count (yours added), the way Douyin writes it: 8,421 · 1.2万 · 3.4亿.
+        label = count?.let { Display.count(it + if (liked) 1 else 0) } ?: if (liked) "Liked" else "Like",
         onClick = onLike,
         tint = Color.White,
         iconScale = pop.value,

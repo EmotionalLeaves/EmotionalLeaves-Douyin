@@ -51,4 +51,13 @@ class DisplayTest {
         org.junit.Assert.assertEquals(null, Display.age(base.copy(extras = mapOf(dev.dyfeed.domain.model.MediaItem.APPROX_DATE to "1")), now))
         org.junit.Assert.assertEquals("2d", Display.age(base.copy(publishedAt = now.minusSeconds(2 * 86_400 + 5)), now))
     }
+
+    @Test
+    fun `counts read the way Douyin writes them`() {
+        assertEquals("8,421", Display.count(8_421))
+        assertEquals("1万", Display.count(10_000))
+        assertEquals("1.2万", Display.count(12_345))
+        assertEquals("123万", Display.count(1_234_567))
+        assertEquals("3.4亿", Display.count(340_000_000))
+    }
 }
