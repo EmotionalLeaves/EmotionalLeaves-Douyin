@@ -13,6 +13,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -98,11 +99,15 @@ class DouyinWeb @Inject constructor(
             "/aweme/post" in url && body.contains("aweme_list")
         }
 
+    private val idleScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
+    @Volatile private var closeSecond: kotlinx.coroutines.Job? = null
+
     /** What the second hidden page accepts as an answer worth keeping (url, body). */
     @Volatile private var secondAccept: (String, String) -> Boolean = { _, _ -> false }
 
     /** Opens [url] in the second hidden page and returns the answers it fetches that [accept] keeps. */
     private suspend fun secondPage(url: String, waitMs: Long, accept: (String, String) -> Boolean): List<String> = searchMutex.withLock {
+        closeSecond?.cancel()
         searchCaptured.clear()
         searchSignal = CompletableDeferred()
         secondAccept = accept
@@ -115,6 +120,11 @@ class DouyinWeb @Inject constructor(
         delay(1_500)
         val out = ArrayList<String>()
         while (true) out += searchCaptured.pollFirst() ?: break
+        // A whole browser page in memory: close it once it's gone unused for a while.
+        closeSecond = idleScope.launch {
+            delay(SECOND_PAGE_IDLE_MS)
+            withContext(Dispatchers.Main) { searchWeb?.destroy(); searchWeb = null }
+        }
         out
     }
 
@@ -333,6 +343,7 @@ class DouyinWeb @Inject constructor(
         private const val MAX_CAPTURED = 6
         private const val NUDGE_WAIT_MS = 7_000L
         private const val SECOND_BATCH_WAIT_MS = 2_000L
+        private const val SECOND_PAGE_IDLE_MS = 120_000L
 
         /** ↓ ten times, a third of a second apart, on the page and whatever has focus, plus a scroll. */
         private val NUDGE_JS = """
