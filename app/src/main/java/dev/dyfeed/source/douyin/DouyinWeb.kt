@@ -75,7 +75,9 @@ class DouyinWeb @Inject constructor(
         val w = searchWeb ?: return@withContext "no search page"
         val done = CompletableDeferred<String>()
         w.evaluateJavascript(
-            "(function(){var r=document.getElementById('RENDER_DATA');return location.href.slice(0,80)+' | '+document.title.slice(0,40)+' | render='+(r?r.textContent.length:0)+' | login='+(!!document.querySelector('[class*=login],[id*=login]'))})()",
+            "(function(){var r=document.getElementById('RENDER_DATA');var t=r?decodeURIComponent(r.textContent):'';" +
+                "function n(s){return t.split(s).length-1}" +
+                "return location.href.slice(0,80)+' | '+document.title.slice(0,40)+' | render='+t.length+' awemeId='+n('awemeId')+' aweme_id='+n('aweme_id')+' playAddr='+n('playAddr')+' | login='+(!!document.querySelector('[class*=login],[id*=login]'))})()",
         ) { done.complete(it ?: "") }
         withTimeoutOrNull(3_000) { done.await() } ?: "no answer"
     }

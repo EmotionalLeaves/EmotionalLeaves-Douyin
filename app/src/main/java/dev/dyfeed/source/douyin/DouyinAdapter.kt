@@ -161,8 +161,12 @@ class DouyinAdapter @Inject constructor(
             val fromPage = if (!allowPage) emptyList() else runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
                 runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
             }
+            ensureIndex()
             val known = synchronized(loaded) { loaded.filter { it.extras["secUid"] == secUid } }
-            val all = (fromPage + known).distinctBy { it.id }.sortedByDescending { it.publishedAt }
+            // Douyin's related videos for their posts often include more of theirs.
+            val viaRelated = if (!allowPage) emptyList() else runCatching { relatedPosts(known.take(3)) }.getOrDefault(emptyList())
+                .filter { it.extras["secUid"] == secUid }
+            val all = (fromPage + known + viaRelated).distinctBy { it.id }.sortedByDescending { it.publishedAt }
             if (all.isEmpty()) throw e
             Page(all, null)
         }
