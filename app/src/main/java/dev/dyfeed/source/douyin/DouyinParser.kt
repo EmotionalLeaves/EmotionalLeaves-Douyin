@@ -62,6 +62,17 @@ object DouyinParser {
         return out
     }
 
+    /** A comment-list answer's comments: (who, what they said, likes), blanks skipped. */
+    fun comments(root: JsonElement?): List<Triple<String, String, Int>> {
+        val list = (root as? JsonObject)?.get("comments") as? JsonArray ?: return emptyList()
+        return list.mapNotNull { c ->
+            val o = c as? JsonObject ?: return@mapNotNull null
+            val text = o.str("text")?.trim()?.takeIf { it.isNotEmpty() } ?: return@mapNotNull null
+            val who = (o["user"] as? JsonObject)?.str("nickname")?.takeIf { it.isNotBlank() } ?: "?"
+            Triple(who, text, o.str("digg_count")?.toIntOrNull() ?: 0)
+        }
+    }
+
     fun parseAll(root: JsonElement?, maxHeight: Int, fetchedAt: Long = System.currentTimeMillis()): List<MediaItem> =
         awemes(root).mapNotNull { parse(it, maxHeight, fetchedAt) }.distinctBy { it.id }
 

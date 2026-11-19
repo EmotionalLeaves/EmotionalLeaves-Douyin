@@ -154,6 +154,18 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `comments with their authors and likes, blanks skipped`() {
+        val root = Json.parseToJsonElement(
+            """{"status_code":0,"cursor":20,"has_more":1,"comments":[
+               {"text":"太香了","digg_count":1520,"user":{"nickname":"吃货一号"}},
+               {"text":"   ","user":{"nickname":"x"}},
+               {"text":"在哪里？","user":{}}]}""",
+        )
+        assertEquals(listOf(Triple("吃货一号", "太香了", 1520), Triple("?", "在哪里？", 0)), DouyinParser.comments(root))
+        assertEquals(20L, DouyinParser.long(root, "cursor"))
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))

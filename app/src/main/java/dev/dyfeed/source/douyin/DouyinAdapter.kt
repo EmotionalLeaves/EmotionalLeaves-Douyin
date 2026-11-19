@@ -371,14 +371,7 @@ class DouyinAdapter @Inject constructor(
     /** One page of comments from [cursor]; the second value is where the next page starts, if there is one. */
     suspend fun commentsPage(item: MediaItem, cursor: Long): Pair<List<Comment>, Long?> {
         val root = call("/aweme/v1/web/comment/list/", mapOf("aweme_id" to item.id, "cursor" to cursor.toString(), "count" to "20", "item_type" to "0"))
-        val list = (root as? JsonObject)?.get("comments") as? kotlinx.serialization.json.JsonArray ?: return emptyList<Comment>() to null
-        val comments = list.mapNotNull { c ->
-            val o = c as? JsonObject ?: return@mapNotNull null
-            val text = (o["text"] as? JsonPrimitive)?.contentOrNull?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
-            val who = ((o["user"] as? JsonObject)?.get("nickname") as? JsonPrimitive)?.contentOrNull ?: "?"
-            val likes = (o["digg_count"] as? JsonPrimitive)?.contentOrNull?.toIntOrNull() ?: 0
-            Comment(who, text, likes)
-        }
+        val comments = DouyinParser.comments(root).map { (who, text, likes) -> Comment(who, text, likes) }
         val next = DouyinParser.long(root, "cursor")?.takeIf { DouyinParser.hasMore(root) && it > cursor && comments.isNotEmpty() }
         return comments to next
     }
