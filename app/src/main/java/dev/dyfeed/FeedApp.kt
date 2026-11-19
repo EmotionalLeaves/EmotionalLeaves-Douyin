@@ -62,7 +62,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
                 dev.dyfeed.source.net.AppProxy.configure(proxyConfig(it))
                 dataSaver = it.dataSaver
                 dev.dyfeed.data.repo.OfflineStore.dataSaver = it.dataSaver
-                dev.dyfeed.ui.common.ChineseToEnglish.auto = it.autoTranslate
+                dev.dyfeed.domain.lang.ChineseToEnglish.auto = it.autoTranslate
                 bestQuality = it.bestQuality
                 dev.dyfeed.player.Battery.saverOn = it.batterySaver
                 if (it.readyAhead != readyScheduled) { readyScheduled = it.readyAhead; dev.dyfeed.work.ReadyWorker.schedule(this@FeedApp, it.readyAhead) }

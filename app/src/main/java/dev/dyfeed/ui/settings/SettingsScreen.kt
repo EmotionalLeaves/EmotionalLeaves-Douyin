@@ -300,9 +300,9 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
 
             Section("Playback", modifier = Modifier.anchor("Playback")) {
                 SwitchSetting(
-                    "Translate captions automatically",
+                    "Show Chinese in English",
                     s.autoTranslate,
-                    subtitle = "Chinese captions show in English right away (on the phone; a one-time 30 MB download)",
+                    subtitle = "Captions, tags, sounds, comments, trending and search results, translated on the phone (a one-time 30 MB download). Searching in English finds Chinese posts either way.",
                     icon = Icons.Filled.Translate,
                     onChange = vm::setAutoTranslate,
                 )

@@ -117,7 +117,7 @@ fun ItemMenuSheet(
                 HorizontalDivider()
                 val original = listOfNotNull(item.title, item.tags.takeIf { it.isNotEmpty() }?.joinToString("  ") { "#$it" }).joinToString("\n")
                 val english by androidx.compose.runtime.produceState<Result<String>?>(initialValue = null, item.key) {
-                    value = dev.dyfeed.ui.common.ChineseToEnglish.translate(original)
+                    value = dev.dyfeed.domain.lang.ChineseToEnglish.translate(original)
                 }
                 Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(original, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f))
@@ -126,7 +126,7 @@ fun ItemMenuSheet(
                         r == null -> Row(verticalAlignment = Alignment.CenterVertically) {
                             dev.dyfeed.ui.common.BrandSpinner()
                             Spacer(Modifier.width(12.dp))
-                            Text(if (dev.dyfeed.ui.common.ChineseToEnglish.ready) "Translating…" else "Getting the translator ready (first time only, about 30 MB)…", style = MaterialTheme.typography.bodyMedium)
+                            Text(if (dev.dyfeed.domain.lang.ChineseToEnglish.ready) "Translating…" else "Getting the translator ready (first time only, about 30 MB)…", style = MaterialTheme.typography.bodyMedium)
                         }
                         r.isSuccess -> Text(r.getOrThrow(), style = MaterialTheme.typography.bodyLarge)
                         else -> Text("Couldn't translate: ${r.exceptionOrNull()?.message ?: "no connection for the first download?"}", color = MaterialTheme.colorScheme.error)
@@ -135,7 +135,7 @@ fun ItemMenuSheet(
                 return@Column
             }
             if (mode == "comments") {
-                var translateOn by remember { mutableStateOf(false) }
+                var translateOn by remember { mutableStateOf(dev.dyfeed.domain.lang.ChineseToEnglish.auto) }
                 ListItem(
                     headlineContent = { Text("评论 · Comments", fontWeight = FontWeight.Bold) },
                     leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") },
@@ -158,7 +158,7 @@ fun ItemMenuSheet(
                     vm.comments(item).onSuccess { (page, more) -> list = page; next = more }.onFailure { failure = it; list = emptyList() }
                 }
                 val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
-                    value = list?.takeIf { translateOn }?.let { l -> dev.dyfeed.ui.common.ChineseToEnglish.translateAll(l.map { it.body }) } ?: emptyList()
+                    value = list?.takeIf { translateOn }?.let { l -> dev.dyfeed.domain.lang.ChineseToEnglish.translateAll(l.map { it.body }) } ?: emptyList()
                 }
                 val shown = list
                 val failed = failure

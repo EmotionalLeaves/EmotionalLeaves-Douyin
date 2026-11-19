@@ -1672,12 +1672,12 @@ private fun Overlay(
                 // "See translation" under a Chinese caption: English right there, on the phone.
                 val chinese = remember(it) { it.any { c -> Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN } }
                 if (chinese) {
-                    var showing by remember(item.key) { mutableStateOf(dev.dyfeed.ui.common.ChineseToEnglish.auto) }
+                    var showing by remember(item.key) { mutableStateOf(dev.dyfeed.domain.lang.ChineseToEnglish.auto) }
                     var english by remember(item.key) { mutableStateOf<String?>(null) }
                     // Settings → Translate captions automatically: fetch it as the post comes up.
                     androidx.compose.runtime.LaunchedEffect(item.key, showing) {
                         if (showing && english == null) {
-                            english = dev.dyfeed.ui.common.ChineseToEnglish.translate(it).getOrElse { e -> "Couldn't translate (${e.message ?: "no connection for the first download?"})" }
+                            english = dev.dyfeed.domain.lang.ChineseToEnglish.translate(it).getOrElse { e -> "Couldn't translate (${e.message ?: "no connection for the first download?"})" }
                         }
                     }
                     if (showing) {
@@ -1701,8 +1701,9 @@ private fun Overlay(
             }
             // The sound, as Douyin shows it: ♪ song – artist.
             item.extras["music"]?.let { sound ->
+                val soundEnglish = dev.dyfeed.ui.common.rememberEnglish(sound)
                 Text(
-                    "♪ $sound",
+                    "♪ $sound" + (soundEnglish?.let { "  ($it)" } ?: ""),
                     color = Color.White.copy(alpha = 0.85f),
                     style = MaterialTheme.typography.labelMedium.shadowed(),
                     maxLines = 1,
@@ -1716,9 +1717,12 @@ private fun Overlay(
                     val ordered = remember(tags, likedTags) { tags.sortedByDescending { dev.dyfeed.domain.reco.Features.normalizeTag(it.second) in likedTags } }
                     ordered.forEach { (label, raw) ->
                         val yours = dev.dyfeed.domain.reco.Features.normalizeTag(raw) in likedTags
+                        val hinted = dev.dyfeed.data.settings.SourceCatalog.label(label)
+                        // Show Chinese in English: every other tag gets its English too.
+                        val english = dev.dyfeed.ui.common.rememberEnglish(label.takeIf { hinted == label })
                         Text(
                             // Common topics carry their English hint: #美食 · food.
-                            "#" + dev.dyfeed.data.settings.SourceCatalog.label(label),
+                            "#" + (english?.let { "$label · ${it.lowercase()}" } ?: hinted),
                             color = Color.White,
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,

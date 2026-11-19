@@ -187,8 +187,12 @@ class DouyinAdapter @Inject constructor(
 
     override suspend fun search(query: String, cursor: String?): Page<MediaItem> {
         resetIfSignInChanged()
-        val q = query.trim()
-        if (q.isEmpty()) return Page(emptyList(), null)
+        val typed = query.trim()
+        if (typed.isEmpty()) return Page(emptyList(), null)
+        // Typed in English ("hot pot"): Douyin is searched in Chinese (火锅), translated on the phone.
+        val q = if (dev.dyfeed.domain.lang.Zh.isLatinQuery(typed) && !typed.startsWith("@"))
+            dev.dyfeed.domain.lang.EnglishToChinese.translate(typed).getOrNull()?.trim()?.takeIf { dev.dyfeed.domain.lang.Zh.has(it) } ?: typed
+        else typed
         // A creator page: their own posts.
         secUidFor(q)?.let { sec ->
             val max = cursor?.removePrefix("u:")?.toLongOrNull() ?: 0L

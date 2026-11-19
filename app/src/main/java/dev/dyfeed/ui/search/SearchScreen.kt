@@ -61,6 +61,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -765,7 +766,12 @@ private fun SuggestionsPane(
                             color = if (i < 3) Accent else Color.White.copy(alpha = 0.45f),
                             modifier = Modifier.width(28.dp),
                         )
-                        Text(word, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+                        Column(Modifier.weight(1f)) {
+                            Text(word, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            dev.dyfeed.ui.common.rememberEnglish(word)?.let { en ->
+                                Text(en, style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.55f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            }
+                        }
                         if (heat != null) {
                             Text(
                                 dev.dyfeed.ui.feed.Display.count(heat),
@@ -1080,6 +1086,16 @@ private fun ResultsPane(
     onResetFilters: () -> Unit,
     onSearch: (String) -> Unit = {},
 ) {
+    // Each result's caption under it (as Douyin shows them), in English while "Show Chinese in English" is on.
+    val translating by dev.dyfeed.domain.lang.ChineseToEnglish.on.collectAsState()
+    val captions by androidx.compose.runtime.produceState(initialValue = emptyMap<String, String>(), visible, translating) {
+        if (!translating) { value = emptyMap(); return@produceState }
+        val out = HashMap<String, String>()
+        for (chunk in visible.filter { dev.dyfeed.domain.lang.Zh.has(it.title) }.chunked(12)) {
+            chunk.forEach { item -> dev.dyfeed.domain.lang.ChineseToEnglish.translate(item.title!!).getOrNull()?.let { out[item.key] = it } }
+            value = HashMap(out)
+        }
+    }
     Column(Modifier.fillMaxSize()) {
         // Signed out, Douyin won't search for you: say so once, with the way to fix it.
         val signedIn = remember(ui.searched) { dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() }
@@ -1142,7 +1158,7 @@ private fun ResultsPane(
         Box(Modifier.fillMaxSize()) {
             when {
                 // Results come from every site at once: each tile says which.
-                visible.isNotEmpty() -> MediaGrid(visible, onOpen = onOpen, label = { Display.source(it, it.sourceId) }, seen = { it.key in watched }, onLongPress = onLongPress)
+                visible.isNotEmpty() -> MediaGrid(visible, onOpen = onOpen, label = { captions[it.key] ?: it.title?.takeIf { t -> t.isNotBlank() } ?: Display.source(it, it.sourceId) }, seen = { it.key in watched }, onLongPress = onLongPress)
                 ui.loading -> Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
                     dev.dyfeed.ui.common.BrandSpinner(size = 40.dp)
                     Spacer(Modifier.height(12.dp))
