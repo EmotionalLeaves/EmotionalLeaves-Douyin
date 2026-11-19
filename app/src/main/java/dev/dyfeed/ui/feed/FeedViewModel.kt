@@ -475,7 +475,12 @@ class FeedViewModel @Inject constructor(
      * won't load or play. Null if there's none, or for anything that isn't a tube video.
      */
     @Suppress("UNUSED_PARAMETER")
-    suspend fun findElsewhere(item: MediaItem): StreamInfo? = null
+    /** Another address for the same video after [failed] wouldn't play (Douyin has several mirror servers). */
+    suspend fun findElsewhere(item: MediaItem, failed: String? = null, tried: Set<String> = emptySet()): StreamInfo? {
+        val douyin = registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter ?: return null
+        val next = douyin.nextAddress(item, failed.orEmpty(), tried) ?: return null
+        return StreamInfo.Direct(next, if (item.type == dev.dyfeed.domain.model.MediaType.VIDEO) "video/mp4" else null)
+    }
 
     /**
      * Where a long video starts when you've not watched it before: past the studio intro, if

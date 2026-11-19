@@ -181,7 +181,8 @@ object DouyinParser {
         }
 
         video ?: return null
-        val media = pickVideo(video, maxHeight) ?: return null
+        val addresses = videoAddresses(video, maxHeight)
+        val media = addresses.firstOrNull() ?: return null
         val cover = listOf("cover", "origin_cover", "originCover", "dynamic_cover", "dynamicCover").firstNotNullOfOrNull { k ->
             when (val c = video[k]) {
                 is JsonObject -> ((c["url_list"] ?: c["urlList"]) as? JsonArray).urls().let(::pickImage)
@@ -201,7 +202,8 @@ object DouyinParser {
             thumbnailUrl = cover,
             pageUrl = "https://www.douyin.com/video/$id",
             publishedAt = created,
-            extras = common + mapOf("media" to media, "mime" to "video/mp4"),
+            extras = common + mapOf("media" to media, "mime" to "video/mp4") +
+                (addresses.drop(1).take(MAX_ALTERNATES).takeIf { it.isNotEmpty() }?.let { mapOf(ALTERNATES to it.joinToString(" ")) } ?: emptyMap()),
         )
     }
 
@@ -210,17 +212,24 @@ object DouyinParser {
      * than [maxHeight] (H.265 only if nothing else), else `play_addr`. Share-page answers carry the
      * watermarked "playwm" address, which plays clean as "play".
      */
-    fun pickVideo(video: JsonObject, maxHeight: Int): String? {
-        data class R(val url: String, val height: Int, val h265: Boolean, val bitrate: Long)
+    fun pickVideo(video: JsonObject, maxHeight: Int): String? = videoAddresses(video, maxHeight).firstOrNull()
+
+    /**
+     * Every address the post's video can be fetched from, best first: the chosen rendition on each
+     * of Douyin's mirror servers, then the other renditions, then `play_addr`. When one server
+     * refuses (403/404), the player moves on to the next instead of skipping the video.
+     */
+    fun videoAddresses(video: JsonObject, maxHeight: Int): List<String> {
+        data class R(val urls: List<String>, val height: Int, val h265: Boolean, val bitrate: Long)
         val renditions = ((video["bit_rate"] ?: video["bitRateList"]) as? JsonArray)?.mapNotNull { b ->
             val bo = b as? JsonObject ?: return@mapNotNull null
             val addr = bo["play_addr"] ?: bo["playAddr"]
-            val url = addrUrls(addr).firstOrNull() ?: return@mapNotNull null
+            val urls = addrUrls(addr).takeIf { it.isNotEmpty() } ?: return@mapNotNull null
             val ao = addr as? JsonObject
             val w = (ao?.str("width") ?: bo.str("width"))?.toIntOrNull() ?: 0
             val h = (ao?.str("height") ?: bo.str("height"))?.toIntOrNull() ?: 0
             R(
-                url = url,
+                urls = urls,
                 // "1080p" means the short side, for portrait and landscape alike.
                 height = if (w > 0 && h > 0) minOf(w, h) else maxOf(w, h),
                 h265 = listOf("is_h265", "isH265", "is_bytevc1", "isBytevc1").any { bo.str(it) == "1" || bo.str(it) == "true" } ||
@@ -228,14 +237,18 @@ object DouyinParser {
                 bitrate = (bo.str("bit_rate") ?: bo.str("bitRate"))?.toLongOrNull() ?: 0,
             )
         }.orEmpty()
-        val pick = renditions
+        val ranked = renditions
             .sortedWith(compareBy<R> { it.h265 }.thenByDescending { if (it.height in 1..maxHeight) it.height else -it.height }.thenByDescending { it.bitrate })
-            .firstOrNull()
-        val url = pick?.url
-            ?: listOf("play_addr", "playAddr", "play_addr_h264", "playAddrH264").firstNotNullOfOrNull { addrUrls(video[it]).firstOrNull() }
-            ?: return null
-        return url.replace("/playwm/", "/play/").replace("http://", "https://")
+        val plain = listOf("play_addr", "playAddr", "play_addr_h264", "playAddrH264").flatMap { addrUrls(video[it]) }
+        return (ranked.filterNot { it.h265 }.flatMap { it.urls } + plain + ranked.filter { it.h265 }.flatMap { it.urls })
+            .map { it.replace("/playwm/", "/play/").replace("http://", "https://") }
+            .filter { it.startsWith("https://") }
+            .distinct()
     }
+
+    /** Extra key: other addresses for the same video, space-separated, tried in order if the first fails. */
+    const val ALTERNATES = "media_alt"
+    private const val MAX_ALTERNATES = 6
 
     /** A play address in either spelling: {url_list:[…]} / {urlList:[…]}, or [{src:…}, …]. */
     private fun addrUrls(addr: JsonElement?): List<String> = when (addr) {
@@ -246,9 +259,12 @@ object DouyinParser {
 
     /**
      * When a media address stops working, if it says (milliseconds): CDN addresses carry their
-     * expiry as a Unix time in a query parameter such as x-expires, expire or Expires.
+     * expiry as a Unix time in a query parameter such as x-expires, expire or Expires. Douyin's
+     * own video servers (…douyinvod.com/<signature>/<expiry in hex>/video/…) put it in the path.
      */
     fun expiresAt(url: String): Long? {
+        VOD_PATH.find(url.substringBefore('?'))?.groupValues?.get(1)?.toLongOrNull(16)
+            ?.takeIf { it in 1_500_000_000L..4_000_000_000L }?.let { return it * 1000 }
         val query = url.substringAfter('?', "")
         if (query.isEmpty()) return null
         return query.split('&').firstNotNullOfOrNull { kv ->
@@ -257,6 +273,7 @@ object DouyinParser {
         }
     }
 
+    private val VOD_PATH = Regex("""^https?://[^/]+/[0-9a-f]{16,64}/([0-9a-f]{8})/""")
     private val EXPIRY_KEYS = setOf("x-expires", "expires", "expire", "x-oss-expires", "deadline")
 
     /** "//host/path" (the site's own addresses) → "https://host/path". */

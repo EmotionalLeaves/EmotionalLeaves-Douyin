@@ -1,3 +1,11 @@
+## 1.5.2 — 2026-11-19
+Fewer skipped videos, smarter For You
+
+- Fixed: when one of Douyin's video servers refuses a clip (403/404), it now plays from the next mirror, or a fresh address, instead of being skipped.
+- Better: video addresses that carry their expiry in the path are now trusted exactly that long.
+- New: enjoy a video (watch it through, replay, like) and what Douyin shows beside it comes next in For You; "More like this" starts from it too.
+- From Feed: taste chips in Search, voice search, and a "For you" sort for results.
+
 ## 1.5.1 — 2026-11-19
 Less waiting signed out
 

@@ -401,6 +401,19 @@ class DouyinAdapter @Inject constructor(
 
     override fun reportUrl(item: MediaItem): String? = item.pageUrl
 
+    /**
+     * Where to try next when [failed] wouldn't play (a mirror server said 403/404): the post's other
+     * addresses in order, then a fresh read of the post. Null when there's nothing left to try.
+     */
+    suspend fun nextAddress(item: MediaItem, failed: String, tried: Set<String>): String? {
+        val all = listOfNotNull(item.extras["media"]) + item.extras[DouyinParser.ALTERNATES].orEmpty().split(' ').filter { it.isNotBlank() }
+        all.firstOrNull { it != failed && it !in tried }?.let { return it }
+        if (item.type != MediaType.VIDEO) return null
+        val again = runCatching { fresh(item.id) }.getOrNull() ?: return null
+        return (listOfNotNull(again.extras["media"]) + again.extras[DouyinParser.ALTERNATES].orEmpty().split(' '))
+            .firstOrNull { it.isNotBlank() && it != failed && it !in tried }
+    }
+
     /** One post by id, with addresses fetched now: the signed API first, else the public share page. */
     suspend fun fresh(awemeId: String): MediaItem? =
         runCatching {

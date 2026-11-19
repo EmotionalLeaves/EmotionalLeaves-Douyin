@@ -182,6 +182,28 @@ class DouyinParserTest {
         assertEquals(1_763_600_000_000L, DouyinParser.expiresAt("https://x.zjcdn.com/v.mp4?Expires=1763600000"))
         assertNull(DouyinParser.expiresAt("https://v3-web.douyinvod.com/a/b.mp4?a=6383"))
         assertNull(DouyinParser.expiresAt("https://v.douyinvod.com/x.mp4?expire=12"))
+        // Douyin's own video servers carry it in the path, in hex.
+        assertEquals(0x691e2a80L * 1000, DouyinParser.expiresAt("https://v26-web.douyinvod.com/2c3a4c5d6e7f80912a3b4c5d6e7f8091/691e2a80/video/tos/cn/x/?a=6383&ch=26"))
+    }
+
+    @Test
+    fun `a video keeps its other mirrors for when one server refuses`() {
+        val video = Json.parseToJsonElement(
+            """{"bit_rate":[{"is_h265":0,"play_addr":{"width":720,"height":1280,"url_list":["https://v3-web.douyinvod.com/a.mp4","https://v26-web.douyinvod.com/a.mp4","https://www.douyin.com/aweme/v1/play/?video_id=x"]}},
+               {"is_h265":1,"play_addr":{"width":720,"height":1280,"url_list":["https://v3-web.douyinvod.com/h.mp4"]}}],
+               "play_addr":{"url_list":["http://v9-web.douyinvod.com/playwm/p.mp4","https://v3-web.douyinvod.com/a.mp4"]}}""",
+        ) as kotlinx.serialization.json.JsonObject
+        assertEquals(
+            listOf(
+                "https://v3-web.douyinvod.com/a.mp4", "https://v26-web.douyinvod.com/a.mp4",
+                "https://www.douyin.com/aweme/v1/play/?video_id=x", "https://v9-web.douyinvod.com/play/p.mp4",
+                "https://v3-web.douyinvod.com/h.mp4",
+            ),
+            DouyinParser.videoAddresses(video, 1080),
+        )
+        val post = DouyinParser.parse(DouyinParser.awemes(feed).first(), 1080)!!
+        assertEquals("https://v3-web.douyinvod.com/1080.mp4", post.extras["media"])
+        assertTrue(post.extras[DouyinParser.ALTERNATES].orEmpty().contains("720.mp4"))
     }
 
     @Test
