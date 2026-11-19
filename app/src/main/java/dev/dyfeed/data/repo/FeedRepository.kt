@@ -376,11 +376,14 @@ class FeedSession(
         // gallery post (30 images on Coomer) contributes a few images, not all of them.
         // Everything admitted also teaches the taste engine's map which tags go together.
         val admitted = ArrayList<MediaItem>()
+        // For You: room for each source by how often its posts land for you.
+        val sourceRoom: Map<String, Double> = if (spec is FeedSpec.Main && mode == FeedMode.FOR_YOU)
+            signals.engine.use { e -> items.map { it.sourceId }.distinct().associateWith(e::sourceWeight) } else emptyMap()
         val perSource = candidates.groupingBy { it.sourceId }.eachCount().toMutableMap()
         val perOrigin = candidates.groupingBy { Spread.origin(it) }.eachCount().toMutableMap()
         items.shuffled().forEach { item ->
             val n = perSource[item.sourceId] ?: 0
-            if (n >= (SOURCE_POOL_CAPS[item.sourceId] ?: PER_SOURCE_POOL_CAP)) return@forEach
+            if (n >= ((SOURCE_POOL_CAPS[item.sourceId] ?: PER_SOURCE_POOL_CAP) * (sourceRoom[item.sourceId] ?: 1.0)).toInt()) return@forEach
             val origin = Spread.origin(item)
             val o = perOrigin[origin] ?: 0
             if (o >= PER_ORIGIN_POOL_CAP) return@forEach
@@ -490,13 +493,23 @@ class FeedSession(
             val t = Features.normalizeTag(spec.tag)
             // "@name" is a creator page: their own posts first, then what searching their name found.
             val creatorName = spec.tag.takeIf { it.startsWith("@") }?.removePrefix("@")?.let(Blocklist::normalize)
+            // Among the exact matches: the ones you'd most enjoy first, with newer ones a little ahead
+            // (a tag page is still a place for what's new). Before, it was newest first only.
+            val personal = signals.engine.use { e ->
+                candidates.associate { item ->
+                    val v = e.vectorOf(item)
+                    val days = item.publishedAt?.let { java.time.Duration.between(it, now).toHours() / 24.0 }
+                    val fresh = days?.let { kotlin.math.exp(-it.coerceAtLeast(0.0) / 14.0) } ?: 0.3
+                    item.key to ((v?.let { 0.9 * e.interestScore(it) - 0.8 * e.aversion(it) } ?: 0.0) + 0.3 * e.visualScore(item) + 0.5 * fresh)
+                }
+            }
             Spread.order(
                 candidates.sortedWith(
                     compareByDescending<MediaItem> { item ->
                         if (creatorName != null) item.creator?.let(Blocklist::normalize) == creatorName
                         else item.tags.any { Features.normalizeTag(it) == t }
                     }
-                        .thenByDescending { it.publishedAt ?: Instant.EPOCH },
+                        .thenByDescending { personal[it.key] ?: 0.0 },
                 ),
                 recentShown,
                 BATCH,
@@ -555,11 +568,11 @@ class FeedSession(
         /** Most candidates one source may hold at once (~40% of POOL_TARGET), to keep the feed mixed. */
         private const val PER_SOURCE_POOL_CAP = 20
         /**
-         * Tube sites are eleven sites behind one source and the app's main video supply; capped like a
-         * single site they made up about one post in eight. Each site is still held to
-         * [PER_ORIGIN_POOL_CAP], and For You learns from there whether you want videos.
+         * Douyin is millions of creators behind one source and the app's whole supply: held to the
+         * per-source cap the pool could never fill (the ranker saw 20 posts at most and the feed kept
+         * fetching for a target it couldn't reach). Each creator is still held to [PER_ORIGIN_POOL_CAP].
          */
-        private val SOURCE_POOL_CAPS = mapOf("tube" to 40)
+        private val SOURCE_POOL_CAPS = mapOf("douyin" to POOL_MAX)
         /** Most candidates one subreddit / board site / server may hold at once. */
         private const val PER_ORIGIN_POOL_CAP = 10
         /** Most images taken from one multi-image post per session. */
