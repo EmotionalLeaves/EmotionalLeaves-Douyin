@@ -473,6 +473,21 @@ class SmokeTest {
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }
 
+    /** On-phone translation both ways (the model downloads on first use), and an English search. */
+    @Test
+    fun translatesBothWays() {
+        val en = runBlocking { dev.dyfeed.domain.lang.ChineseToEnglish.translate("你好，世界") }
+        val zh = runBlocking { dev.dyfeed.domain.lang.EnglishToChinese.translate("hot pot") }
+        android.util.Log.i("PFHEALTH", "translate: 你好，世界 → ${en.getOrElse { "error ${it.message}" }} | hot pot → ${zh.getOrElse { "error ${it.message}" }}")
+        // The download needs Google Play services; where the emulator can't get the model, nothing to check.
+        org.junit.Assume.assumeTrue(en.isSuccess && zh.isSuccess)
+        assertTrue("Chinese → English: ${en.getOrNull()}", en.getOrThrow().lowercase().contains("hello"))
+        assertTrue("English → Chinese: ${zh.getOrNull()}", dev.dyfeed.domain.lang.Zh.has(zh.getOrThrow()))
+        val douyin = rule.activity.sourceRegistry.byId("douyin") as dev.dyfeed.source.douyin.DouyinAdapter
+        val hits = runCatching { runBlocking { douyin.search("cat", null).items.size } }
+        android.util.Log.i("PFHEALTH", "translate: English search 'cat' → " + hits.fold({ "$it posts" }, { "error ${it.message}" }))
+    }
+
     /** A link shared into the app opens in the viewer. */
     @Test
     fun sharedLinkOpensInViewer() {
