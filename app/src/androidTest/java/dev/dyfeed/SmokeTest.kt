@@ -451,6 +451,9 @@ class SmokeTest {
         android.util.Log.i("PFHEALTH", "douyin feed: " + feed.fold({ "$it posts" }, { "error ${it.message}" }))
         val ways = runCatching { runBlocking { douyin.probeSearch("美食") } }.getOrElse { "failed: ${it.message}" }
         android.util.Log.i("PFHEALTH", "douyin probe search: $ways")
+        val anyPost = runCatching { runBlocking { douyin.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)).items.firstOrNull() } }.getOrNull()
+        val comments = anyPost?.let { p -> runCatching { runBlocking { douyin.comments(p).size } } }
+        android.util.Log.i("PFHEALTH", "douyin search comments: " + (comments?.fold({ "$it comments" }, { "error ${it.message}" }) ?: "no post to try"))
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }

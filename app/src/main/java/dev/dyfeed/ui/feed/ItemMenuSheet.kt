@@ -146,14 +146,23 @@ fun ItemMenuSheet(
                     modifier = Modifier.clickable { pickTag = null },
                 )
                 HorizontalDivider()
-                val comments by androidx.compose.runtime.produceState<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>?>(initialValue = null, item.key) { value = vm.comments(item) }
-                val list = comments
+                val comments by androidx.compose.runtime.produceState<Result<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>>?>(initialValue = null, item.key) { value = vm.comments(item) }
+                val failure = comments?.exceptionOrNull()
+                val list = comments?.getOrNull() ?: if (failure != null) emptyList() else null
                 val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
                     value = if (translateOn && list != null) dev.dyfeed.ui.common.ChineseToEnglish.translateAll(list.map { it.body }) else emptyList()
                 }
                 when {
                     list == null -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }
-                    list.isEmpty() -> Text("No comments to show", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f), modifier = Modifier.padding(20.dp))
+                    list.isEmpty() -> Text(
+                        when {
+                            failure == null -> "No comments yet"
+                            !dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() -> "Douyin didn't share the comments (${failure.message?.removePrefix("Douyin: ") ?: "no answer"}). Signed in, it usually does: Settings → 抖音 Douyin."
+                            else -> "Couldn't load comments: ${failure.message ?: "no answer"}"
+                        },
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(20.dp),
+                    )
                     else -> list.forEachIndexed { i, c ->
                         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
