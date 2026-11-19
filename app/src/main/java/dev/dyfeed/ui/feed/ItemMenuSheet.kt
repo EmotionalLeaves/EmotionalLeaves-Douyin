@@ -68,6 +68,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -147,30 +148,38 @@ fun ItemMenuSheet(
                     modifier = Modifier.clickable { pickTag = null },
                 )
                 HorizontalDivider()
-                val comments by androidx.compose.runtime.produceState<Result<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>>?>(initialValue = null, item.key) { value = vm.comments(item) }
-                val failure = comments?.exceptionOrNull()
-                val list = comments?.getOrNull() ?: if (failure != null) emptyList() else null
-                val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
-                    value = if (translateOn && list != null) dev.dyfeed.ui.common.ChineseToEnglish.translateAll(list.map { it.body }) else emptyList()
+                // Page by page: the first 20, then "More comments" for the next.
+                var list by remember(item.key) { mutableStateOf<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>?>(null) }
+                var failure by remember(item.key) { mutableStateOf<Throwable?>(null) }
+                var next by remember(item.key) { mutableStateOf<Long?>(null) }
+                var loadingMore by remember(item.key) { mutableStateOf(false) }
+                val commentScope = androidx.compose.runtime.rememberCoroutineScope()
+                androidx.compose.runtime.LaunchedEffect(item.key) {
+                    vm.comments(item).onSuccess { (page, more) -> list = page; next = more }.onFailure { failure = it; list = emptyList() }
                 }
+                val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
+                    value = list?.takeIf { translateOn }?.let { l -> dev.dyfeed.ui.common.ChineseToEnglish.translateAll(l.map { it.body }) } ?: emptyList()
+                }
+                val shown = list
+                val failed = failure
                 when {
-                    list == null -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }
-                    list.isEmpty() -> Text(
+                    shown == null -> Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }
+                    shown.isEmpty() -> Text(
                         when {
-                            failure == null -> "No comments yet"
-                            !dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() -> "Douyin didn't share the comments (${failure.message?.removePrefix("Douyin: ") ?: "no answer"}). Signed in, it usually does: Settings → 抖音 Douyin."
-                            else -> "Couldn't load comments: ${failure.message ?: "no answer"}"
+                            failed == null -> "No comments yet"
+                            !dev.dyfeed.source.douyin.DouyinWeb.isSignedIn() -> "Douyin didn't share the comments (${failed.message?.removePrefix("Douyin: ") ?: "no answer"}). Signed in, it usually does: Settings → 抖音 Douyin."
+                            else -> "Couldn't load comments: ${failed.message ?: "no answer"}"
                         },
                         color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         modifier = Modifier.padding(20.dp),
                     )
-                    else -> list.forEachIndexed { i, c ->
+                    else -> shown.forEachIndexed { i, c ->
                         Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(c.author, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
                                 Spacer(Modifier.width(8.dp))
                                 Icon(Icons.Filled.Favorite, contentDescription = null, modifier = Modifier.size(12.dp), tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
-                                Text("${c.score}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+                                Text(dev.dyfeed.ui.feed.Display.count(c.score.toLong()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                             }
                             Spacer(Modifier.height(3.dp))
                             Text(c.body, style = MaterialTheme.typography.bodyMedium, maxLines = 8, overflow = TextOverflow.Ellipsis)
@@ -185,6 +194,21 @@ fun ItemMenuSheet(
                             }
                         }
                     }
+                }
+                if (next != null && !shown.isNullOrEmpty()) {
+                    androidx.compose.material3.TextButton(
+                        onClick = {
+                            val from = next ?: return@TextButton
+                            loadingMore = true
+                            commentScope.launch {
+                                vm.comments(item, from).onSuccess { (page, more) -> list = (list.orEmpty() + page).distinct(); next = more }
+                                    .onFailure { next = null }
+                                loadingMore = false
+                            }
+                        },
+                        enabled = !loadingMore,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
+                    ) { Text(if (loadingMore) "Loading…" else "More comments") }
                 }
                 return@Column
             }

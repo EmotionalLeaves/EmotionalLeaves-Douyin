@@ -830,9 +830,9 @@ class FeedViewModel @Inject constructor(
         (registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter)?.avatarFor(name)
 
     /** What people said under a Douyin post (empty for anything else, or if Douyin won't say). */
-    suspend fun comments(item: MediaItem): Result<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>> {
-        val douyin = registry.byId(item.sourceId) as? dev.dyfeed.source.douyin.DouyinAdapter ?: return Result.success(emptyList())
-        return try { Result.success(douyin.comments(item)) } catch (e: CancellationException) { throw e } catch (e: Exception) { Result.failure(e) }
+    suspend fun comments(item: MediaItem, cursor: Long = 0): Result<Pair<List<dev.dyfeed.source.douyin.DouyinAdapter.Comment>, Long?>> {
+        val douyin = registry.byId(item.sourceId) as? dev.dyfeed.source.douyin.DouyinAdapter ?: return Result.success(emptyList<dev.dyfeed.source.douyin.DouyinAdapter.Comment>() to null)
+        return try { Result.success(douyin.commentsPage(item, cursor)) } catch (e: CancellationException) { throw e } catch (e: Exception) { Result.failure(e) }
     }
 
     /** One reason a post is in For You: what to say, and the page it leads to (a tag or "@creator"). */

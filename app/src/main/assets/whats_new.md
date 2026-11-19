@@ -4,6 +4,9 @@ Search remembers
 - Better: signed-out search remembers the last 3,000 Douyin posts you've scrolled past (on the phone, not in Private mode; Clear history clears it), so it finds more, even right after opening the app.
 - Better: creator pages read the posts Douyin puts inside the page itself, so they show more than a couple.
 - New: Sign out of Douyin from Settings → 抖音 Douyin.
+- New: "More comments" pages through a post's comments, 20 at a time; like counts read the Douyin way.
+- New: followed creators' real pictures in the Following row.
+- Better: liked, history and saved posts whose video address has expired are looked up again through the post's own page if need be.
 
 ## 1.4.0 — 2026-11-19
 Feels more like Douyin
