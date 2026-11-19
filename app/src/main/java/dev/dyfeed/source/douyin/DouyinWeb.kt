@@ -60,6 +60,31 @@ class DouyinWeb @Inject constructor(
      * itself), when the app's own requests are being turned away. Takes what's waiting; if
      * nothing is, opens a fresh page (which loads a fresh batch) and waits up to [waitMs] for it.
      */
+    private var searchWeb: WebView? = null
+    private val searchCaptured = java.util.concurrent.ConcurrentLinkedDeque<String>()
+    @Volatile private var searchSignal = CompletableDeferred<Unit>()
+    private val searchMutex = Mutex()
+
+    /**
+     * Search without signing in: open Douyin's own search page for [keyword] in a second hidden
+     * page and take the results it loads for itself (its requests carry everything a visitor's
+     * browser sends). Returns the raw answers; empty if Douyin showed it nothing.
+     */
+    suspend fun pageSearch(keyword: String, waitMs: Long = 20_000): List<String> = searchMutex.withLock {
+        searchCaptured.clear()
+        searchSignal = CompletableDeferred()
+        withContext(Dispatchers.Main) {
+            val w = searchWeb ?: WebView(context).also { configure(it, Bridge(search = true), onReady = null); searchWeb = it }
+            w.loadUrl("https://www.douyin.com/search/" + android.net.Uri.encode(keyword) + "?type=video")
+        }
+        withTimeoutOrNull(waitMs) { searchSignal.await() }
+        // Douyin often answers in two parts (the first screen, then the rest): give it a moment.
+        delay(1_500)
+        val out = ArrayList<String>()
+        while (true) out += searchCaptured.pollFirst() ?: break
+        out
+    }
+
     /** How many page-fetched feed answers are waiting (without using them up). */
     fun waitingAnswers(): Int = captured.size
 
@@ -127,11 +152,22 @@ class DouyinWeb @Inject constructor(
         withTimeoutOrNull(READY_TIMEOUT_MS) { r.await() }
     }
 
-    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
     private fun createPage(done: CompletableDeferred<Unit>) {
+        val w = WebView(context)
+        configure(w, Bridge(search = false), onReady = done)
+        web = w
+        w.loadUrl(HOME)
+    }
+
+    /**
+     * Settings shared by both hidden pages: a desktop browser, no pictures or video downloaded,
+     * and the hook that notes the answers the page fetches for itself. [onReady] completes once
+     * Douyin's signer script is in place (only the main page waits for it).
+     */
+    @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
+    private fun configure(w: WebView, bridge: Bridge, onReady: CompletableDeferred<Unit>?) {
         val cookies = CookieManager.getInstance()
         cookies.setAcceptCookie(true)
-        val w = WebView(context)
         cookies.setAcceptThirdPartyCookies(w, true)
         w.settings.apply {
             javaScriptEnabled = true
@@ -141,8 +177,8 @@ class DouyinWeb @Inject constructor(
             blockNetworkImage = true
             loadsImagesAutomatically = false
         }
-        w.addJavascriptInterface(Bridge(), "DYB")
-        // Before any of the page's own scripts: note the feed answers it fetches for itself.
+        w.addJavascriptInterface(bridge, "DYB")
+        // Before any of the page's own scripts: note the answers it fetches for itself.
         if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
             runCatching { androidx.webkit.WebViewCompat.addDocumentStartJavaScript(w, HOOK_JS, setOf("https://www.douyin.com")) }
         }
@@ -150,6 +186,7 @@ class DouyinWeb @Inject constructor(
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {}
 
             override fun onPageFinished(view: WebView, url: String?) {
+                val done = onReady ?: return
                 if (done.isCompleted) return
                 // Wait for Douyin's signer script to install itself, then a moment more.
                 view.postDelayed(object : Runnable {
@@ -175,22 +212,29 @@ class DouyinWeb @Inject constructor(
                 return if (heavy) WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0))) else null
             }
         }
-        web = w
-        w.loadUrl(HOME)
     }
 
-    private inner class Bridge {
+    private inner class Bridge(private val search: Boolean) {
         @JavascriptInterface
         fun reply(id: String, status: Int, body: String) {
             pending[id]?.complete(Reply(status, body))
         }
 
         @JavascriptInterface
-        fun captured(body: String) {
-            if (body.isBlank() || !body.contains("aweme_list")) return
-            captured.addLast(body)
-            while (captured.size > MAX_CAPTURED) captured.pollFirst()
-            capturedSignal.complete(Unit)
+        fun captured(url: String, body: String) {
+            if (body.isBlank()) return
+            val isSearch = "search" in url
+            if (search) {
+                if (!isSearch || !body.contains("aweme_info")) return
+                searchCaptured.addLast(body)
+                while (searchCaptured.size > MAX_CAPTURED) searchCaptured.pollFirst()
+                searchSignal.complete(Unit)
+            } else {
+                if (isSearch || !body.contains("aweme")) return
+                captured.addLast(body)
+                while (captured.size > MAX_CAPTURED) captured.pollFirst()
+                capturedSignal.complete(Unit)
+            }
         }
     }
 
@@ -217,8 +261,8 @@ class DouyinWeb @Inject constructor(
         private val HOOK_JS = """
             (function () {
               if (window.__dyHooked) return; window.__dyHooked = true;
-              var FEED = /\/aweme\/v[12]\/web\/(tab\/feed|module\/feed|aweme\/post)\//;
-              function pass(t) { try { if (t && t.length > 50) DYB.captured(t); } catch (e) {} }
+              var FEED = /\/aweme\/v[12]\/web\/(tab\/feed|module\/feed|aweme\/post|search\/item|search\/single|general\/search\/single|general\/search\/stream)\//;
+              function pass(u, t) { try { if (t && t.length > 50) DYB.captured(String(u), t); } catch (e) {} }
               var open = XMLHttpRequest.prototype.open;
               XMLHttpRequest.prototype.open = function (m, u) {
                 try { this.__dyUrl = String(u); } catch (e) {}
@@ -228,7 +272,7 @@ class DouyinWeb @Inject constructor(
               XMLHttpRequest.prototype.send = function () {
                 var x = this;
                 if (!x.__dyMine && FEED.test(x.__dyUrl || '')) {
-                  x.addEventListener('load', function () { if (x.status === 200) pass(x.responseText); });
+                  x.addEventListener('load', function () { if (x.status === 200) pass(x.__dyUrl, x.responseText); });
                 }
                 return send.apply(this, arguments);
               };
@@ -237,7 +281,7 @@ class DouyinWeb @Inject constructor(
                 window.fetch = function (input) {
                   var url = typeof input === 'string' ? input : (input && input.url) || '';
                   var p = f.apply(this, arguments);
-                  if (FEED.test(url)) p.then(function (r) { if (r && r.ok) r.clone().text().then(pass); }).catch(function () {});
+                  if (FEED.test(url)) p.then(function (r) { if (r && r.ok) r.clone().text().then(function (t) { pass(url, t); }); }).catch(function () {});
                   return p;
                 };
               }

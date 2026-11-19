@@ -227,7 +227,7 @@ jobs:
           fi
           APK=$(ls apk/*.apk | head -1)
           [ -n "$APK" ] || { echo "::error::no APK"; exit 1; }
-          cp "$APK" "PrivateFeed-$VER.apk"
+          cp "$APK" "DouyinFeed-$VER.apk"
           # This version's part of the changelog, as the release notes.
           awk -v v="## $VER" 'index($0, v) == 1 { on = 1; next } on && /^## / { exit } on { print }' CHANGELOG.md > notes.md
-          gh release create "v$VER" "PrivateFeed-$VER.apk" --title "$VER" --notes-file notes.md --target "$GITHUB_SHA" --latest
+          gh release create "v$VER" "DouyinFeed-$VER.apk" --title "$VER" --notes-file notes.md --target "$GITHUB_SHA" --latest

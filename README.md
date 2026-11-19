@@ -11,8 +11,8 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 
 | What | Endpoint |
 |---|---|
-| For You / Latest | `/aweme/v1/web/tab/feed/` (Douyin's recommended feed, re-ranked here) |
-| Search | `/aweme/v1/web/search/item/` (Douyin may want you signed in) |
+| For You | `/aweme/v2/web/module/feed/` → `v1/module/feed` → `v1/tab/feed`, else what Douyin's own page loads (re-ranked here) |
+| Search | signed in: `/aweme/v1/web/search/item/`; signed out: Douyin's own search page in a second hidden page (its results captured), plus posts already loaded |
 | Creator page, Following | `/aweme/v1/web/aweme/post/` |
 | Comments | `/aweme/v1/web/comment/list/` |
 | Shared links | `v.douyin.com/…` → `iesdouyin.com/share/video/<id>/` (public page, no signature) |

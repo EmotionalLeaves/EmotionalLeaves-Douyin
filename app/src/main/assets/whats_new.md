@@ -1,3 +1,10 @@
+## 1.1.0 — 2026-11-19
+Search without signing in
+
+- New: Search works without a Douyin sign-in. The app opens Douyin's own search page out of sight and takes the results it shows a visitor, plus matching posts the feed has already brought in. Signed in, it uses Douyin's search directly (more results, more pages).
+- Better: The feed reads Douyin's newer answer format and falls back to what Douyin's own page loads, so it keeps working when Douyin changes its endpoints.
+- Better: Each Douyin creator counts as their own place in the feed's spacing (no more one-post-at-a-time loading).
+
 ## 1.0.0 — 2026-11-18
 抖音 Feed
 

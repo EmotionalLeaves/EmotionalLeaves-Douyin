@@ -37,7 +37,7 @@ class HttpJson @Inject constructor(
         val builder = Request.Builder().url(parsed).header("Accept", "application/json")
         // Reddit blocks default OkHttp UA; send something browser-like for .json endpoints
         if (parsed.host.contains("reddit.com")) {
-            builder.header("User-Agent", "Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36 PrivateFeed/1.1")
+            builder.header("User-Agent", "Mozilla/5.0 (Android; Mobile) AppleWebKit/537.36 DouyinFeed/1.1")
         }
         headers.forEach { (k, v) -> builder.header(k, v) }
         val call = http.newCall(builder.build())

@@ -165,7 +165,27 @@ class DouyinAdapter @Inject constructor(
             val max = cursor?.removePrefix("u:")?.toLongOrNull() ?: 0L
             if (cursor == null || cursor.startsWith("u:")) return userPosts(sec, max)
         }
+        // Later pages: only the signed search API pages; the other two ways give one page.
+        if (cursor == "end") return Page(emptyList(), null)
         val offset = cursor?.toIntOrNull() ?: 0
+        // Signed out, the search API always says "sign in first": don't spend the time asking.
+        val direct = if (web.signedIn() || offset > 0) runCatching { directSearch(q, offset) }
+        else Result.failure(SourceException(id, "Douyin search needs you to sign in: Settings → 抖音 Douyin", isAuthError = true))
+        direct.getOrNull()?.takeIf { it.items.isNotEmpty() }?.let { return it }
+        if (offset > 0) return Page(emptyList(), null)
+        // Signed out, Douyin's search API asks you to sign in. Its own search page still shows a
+        // visitor results, so open that and take what it loads; and add matching posts the feed
+        // has already brought in, so a search is never empty.
+        val fromPage = runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
+            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+        }
+        val fromFeed = loadedMatching(q)
+        val all = (fromPage + fromFeed).distinctBy { it.id }
+        if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
+        return Page(all, null)
+    }
+
+    private suspend fun directSearch(q: String, offset: Int): Page<MediaItem> {
         val root = call(
             "/aweme/v1/web/search/item/",
             mapOf(
@@ -179,6 +199,20 @@ class DouyinAdapter @Inject constructor(
         val items = items(root)
         val next = (DouyinParser.long(root, "cursor") ?: (offset + 16).toLong()).toString()
         return Page(items, next.takeIf { DouyinParser.hasMore(root) && items.isNotEmpty() })
+    }
+
+    /** Posts brought in this session (feed, creators, links) whose caption, tags or creator contain every word of [q]. */
+    fun loadedMatching(q: String): List<MediaItem> {
+        val words = q.lowercase().split(Regex("""\s+""")).filter { it.isNotBlank() }
+        if (words.isEmpty()) return emptyList()
+        return synchronized(loaded) { loaded.toList() }.asReversed().filter { item ->
+            val hay = buildString {
+                append(item.title.orEmpty().lowercase()); append(' ')
+                item.tags.forEach { append(it); append(' ') }
+                append(item.creator.orEmpty().lowercase())
+            }
+            words.all { it in hay }
+        }
     }
 
     // ── playback ──
@@ -239,6 +273,14 @@ class DouyinAdapter @Inject constructor(
         return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()}"
     }
 
+    /** How each way of searching does right now, for the health test. */
+    suspend fun probeSearch(q: String): String {
+        val direct = runCatching { directSearch(q, 0).items.size }.fold({ "$it" }, { "error(${it.message?.take(40)})" })
+        val answers = runCatching { web.pageSearch(q) }.getOrDefault(emptyList())
+        val pageItems = answers.sumOf { b -> runCatching { items(json.parseToJsonElement(b)).size }.getOrDefault(0) }
+        return "direct=$direct page=${answers.size} answers/$pageItems posts loaded=${loadedMatching(q).size}"
+    }
+
     /** A short sketch of a JSON answer's layout: keys, array sizes, the first element of each array. */
     private fun shape(e: JsonElement, depth: Int = 0): String = when {
         depth > 2 -> "…"
@@ -272,8 +314,15 @@ class DouyinAdapter @Inject constructor(
         return root
     }
 
+    /** The last [MAX_LOADED] posts parsed this session, for search without signing in. */
+    private val loaded = ArrayDeque<MediaItem>()
+
     private fun items(root: JsonElement): List<MediaItem> =
         DouyinParser.parseAll(root, PlayerPool.maxHeight).onEach { item ->
+            synchronized(loaded) {
+                loaded.addLast(item)
+                while (loaded.size > MAX_LOADED) loaded.removeFirst()
+            }
             val sec = item.extras["secUid"] ?: return@onEach
             item.creator?.let { remember(it, sec) }
         }
@@ -326,6 +375,7 @@ class DouyinAdapter @Inject constructor(
 
     companion object {
         private const val MAX_FEED_PULLS = 500
+        private const val MAX_LOADED = 1_000
         private val FEED_PATHS = listOf("/aweme/v2/web/module/feed/", "/aweme/v1/web/module/feed/", "/aweme/v1/web/tab/feed/")
         private const val MAX_FOLLOWED = 30
         /** Douyin's video addresses stop working after a few hours. */

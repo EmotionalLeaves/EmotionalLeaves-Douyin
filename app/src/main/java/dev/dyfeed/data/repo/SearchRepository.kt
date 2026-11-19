@@ -179,7 +179,8 @@ class SearchRepository @Inject constructor(
             return out
         }
 
-        private const val PER_SOURCE_TIMEOUT_MS = 14_000L
+        // Douyin search can mean opening its search page in a hidden browser first.
+        private const val PER_SOURCE_TIMEOUT_MS = 40_000L
         private const val MAX_PER_SOURCE = 150
         private const val MAX_RUN = 2
 

@@ -88,7 +88,7 @@ object AppModule {
             if (request.header("User-Agent") != null) chain.proceed(request)
             else if (HotlinkReferer.siteFor(request.url.host) == "www.douyin.com")
                 chain.proceed(request.newBuilder().header("User-Agent", dev.dyfeed.source.douyin.DouyinWeb.DESKTOP_UA).build())
-            else chain.proceed(request.newBuilder().header("User-Agent", "PrivateFeed/${BuildConfig.VERSION_NAME} (Android)").build())
+            else chain.proceed(request.newBuilder().header("User-Agent", "DouyinFeed/${BuildConfig.VERSION_NAME} (Android)").build())
         }
         // gelbooru.com and realbooru.com only serve their images and videos to requests that name
         // the site as the referring page (hotlink protection); without it the file URL returns an
