@@ -361,7 +361,11 @@ class DouyinAdapter @Inject constructor(
 
     override suspend fun resolveStream(item: MediaItem): StreamInfo {
         val at = item.extras["at"]?.toLongOrNull() ?: 0L
-        val media = if (System.currentTimeMillis() - at < URL_TTL_MS) item.extras["media"] else null
+        val cached = item.extras["media"]
+        // Trust the address until the expiry it carries (if it says), else for URL_TTL_MS.
+        val stillGood = cached != null && (DouyinParser.expiresAt(cached)?.let { it - System.currentTimeMillis() > 60_000 }
+            ?: (System.currentTimeMillis() - at < URL_TTL_MS))
+        val media = if (stillGood) cached else null
         val url = media ?: fresh(item.id)?.extras?.get("media") ?: item.extras["media"]
             ?: throw SourceException(id, "This Douyin post is gone")
         return StreamInfo.Direct(url, if (item.type == MediaType.VIDEO) "video/mp4" else null)

@@ -244,6 +244,21 @@ object DouyinParser {
         else -> emptyList()
     }
 
+    /**
+     * When a media address stops working, if it says (milliseconds): CDN addresses carry their
+     * expiry as a Unix time in a query parameter such as x-expires, expire or Expires.
+     */
+    fun expiresAt(url: String): Long? {
+        val query = url.substringAfter('?', "")
+        if (query.isEmpty()) return null
+        return query.split('&').firstNotNullOfOrNull { kv ->
+            val k = kv.substringBefore('=').lowercase()
+            if (k in EXPIRY_KEYS) kv.substringAfter('=', "").toLongOrNull()?.takeIf { it in 1_500_000_000L..4_000_000_000L }?.times(1000) else null
+        }
+    }
+
+    private val EXPIRY_KEYS = setOf("x-expires", "expires", "expire", "x-oss-expires", "deadline")
+
     /** "//host/path" (the site's own addresses) → "https://host/path". */
     private fun https(u: String): String? = when {
         u.startsWith("//") -> "https:$u"

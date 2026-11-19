@@ -177,6 +177,14 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `media addresses say when they expire`() {
+        assertEquals(1_763_600_000_000L, DouyinParser.expiresAt("https://v3-web.douyinvod.com/a/b.mp4?a=6383&x-expires=1763600000&br=1"))
+        assertEquals(1_763_600_000_000L, DouyinParser.expiresAt("https://x.zjcdn.com/v.mp4?Expires=1763600000"))
+        assertNull(DouyinParser.expiresAt("https://v3-web.douyinvod.com/a/b.mp4?a=6383"))
+        assertNull(DouyinParser.expiresAt("https://v.douyinvod.com/x.mp4?expire=12"))
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))
