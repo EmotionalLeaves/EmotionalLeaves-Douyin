@@ -78,7 +78,21 @@ class DouyinAdapter @Inject constructor(
     /** Cursor = how many times the feed has been pulled this session ("refresh_index"). */
     private suspend fun recommended(cursor: String?): Page<MediaItem> {
         val index = cursor?.toIntOrNull() ?: 1
-        val root = call(
+        val root = try { callFeed(index) } catch (e: SourceException) {
+            if (e.httpCode == 429) throw e
+            // The app's own request was turned away: use what Douyin's page loaded for itself.
+            val harvested = web.harvest().flatMap { body ->
+                runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+            }.distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
+            if (harvested.isEmpty()) throw e
+            return Page(harvested, (index + 1).toString())
+        }
+        val items = items(root).filterNot { seen.isSeen(it.key) }
+        return Page(items, (index + 1).toString().takeIf { index < MAX_FEED_PULLS })
+    }
+
+    private suspend fun callFeed(index: Int): JsonElement =
+        call(
             "/aweme/v1/web/tab/feed/",
             mapOf(
                 "count" to "15",
@@ -95,9 +109,6 @@ class DouyinAdapter @Inject constructor(
                 "module_id" to "3003101",
             ),
         )
-        val items = items(root).filterNot { seen.isSeen(it.key) }
-        return Page(items, (index + 1).toString().takeIf { index < MAX_FEED_PULLS })
-    }
 
     /** Followed creators' newest posts, newest first. Cursor = page number across them. */
     private suspend fun followingFeed(cursor: String?, prefs: FeedPrefs): Page<MediaItem> {
@@ -195,12 +206,12 @@ class DouyinAdapter @Inject constructor(
         if (reply.status !in 200..299) throw SourceException(id, "Douyin answered ${reply.status}", httpCode = reply.status)
         if (reply.body.isBlank()) throw SourceException(
             id,
-            if (searching && !web.signedIn()) "Douyin search needs you to sign in: Settings → Sources → 抖音 Douyin → Sign in"
-            else "Douyin turned the request away. Open Settings → Sources → 抖音 Douyin → Sign in and pass its check",
+            if (searching && !web.signedIn()) "Douyin search needs you to sign in: Settings → 抖音 Douyin"
+            else "Douyin turned the request away. Open Settings → 抖音 Douyin and pass its check",
             isAuthError = searching,
         )
         val root = runCatching { json.parseToJsonElement(reply.body) }.getOrElse {
-            throw SourceException(id, "Douyin sent something unreadable (probably a check page). Open it from Settings → Sources to clear it")
+            throw SourceException(id, "Douyin sent something unreadable (probably a check page). Open Settings → 抖音 Douyin to clear it")
         }
         val status = DouyinParser.statusCode(root)
         if (status != null && status != 0) {

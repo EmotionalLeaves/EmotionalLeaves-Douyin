@@ -124,7 +124,7 @@ fun AppRoot(lockManager: AppLockManager, onPanic: () -> Unit) {
             val fmt = androidx.compose.runtime.remember { java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM, java.text.DateFormat.SHORT) }
             androidx.compose.material3.AlertDialog(
                 onDismissRequest = { lockManager.intrusionsSeen() },
-                properties = androidx.compose.ui.window.DialogProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn),
+                properties = androidx.compose.ui.window.DialogProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.Inherit),
                 icon = { androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Filled.GppMaybe, contentDescription = null) },
                 title = { androidx.compose.material3.Text(if (intrusions.size == 1) "1 wrong PIN while you were away" else "${intrusions.size} wrong PINs while you were away") },
                 text = {

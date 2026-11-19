@@ -393,7 +393,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
         @OptIn(ExperimentalMaterial3Api::class)
         androidx.compose.material3.ModalBottomSheet(
             onDismissRequest = { holding = null },
-            properties = androidx.compose.material3.ModalBottomSheetProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn),
+            properties = androidx.compose.material3.ModalBottomSheetProperties(securePolicy = androidx.compose.ui.window.SecureFlagPolicy.Inherit),
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
             Column(Modifier.padding(bottom = 24.dp)) {
@@ -525,7 +525,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
     if (showFilters) {
         ModalBottomSheet(
             onDismissRequest = { showFilters = false },
-            properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.SecureOn),
+            properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.Inherit),
             containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         ) {
             FiltersSheet(

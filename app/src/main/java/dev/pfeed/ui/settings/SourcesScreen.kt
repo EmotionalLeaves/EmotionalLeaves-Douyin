@@ -346,7 +346,7 @@ private fun SourceSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.SecureOn),
+        properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.Inherit),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 16.dp)) {

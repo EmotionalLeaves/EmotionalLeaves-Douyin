@@ -62,7 +62,7 @@ data class AppSettings(
     /** Grids play the video nearest the middle silently in its tile, moving on every few seconds. */
     val livePreviews: Boolean = true,
     /** The app's colour (a [dev.pfeed.ui.theme.Palette] name). */
-    val accent: String = "ROSE",
+    val accent: String = "DOUYIN",
     /** Check GitHub for new versions and download them on Wi-Fi. */
     val autoUpdate: Boolean = true,
     /** Face the phone down or shake it to hide the app (like the three-finger touch). */

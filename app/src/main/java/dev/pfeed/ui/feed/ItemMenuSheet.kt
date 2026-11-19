@@ -94,7 +94,7 @@ fun ItemMenuSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.SecureOn),
+        properties = ModalBottomSheetProperties(securePolicy = SecureFlagPolicy.Inherit),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         Column(Modifier.verticalScroll(rememberScrollState()).navigationBarsPadding().padding(bottom = 8.dp)) {

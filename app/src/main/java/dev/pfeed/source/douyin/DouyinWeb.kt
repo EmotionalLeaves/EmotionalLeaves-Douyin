@@ -51,6 +51,26 @@ class DouyinWeb @Inject constructor(
     private val pending = ConcurrentHashMap<String, CompletableDeferred<Reply>>()
     private val seq = AtomicLong()
     @Volatile private var badAnswers = 0
+    /** Feed answers the page fetched for itself (see [HOOK_JS]), newest last. */
+    private val captured = java.util.concurrent.ConcurrentLinkedDeque<String>()
+    @Volatile private var capturedSignal = CompletableDeferred<Unit>()
+
+    /**
+     * The backup path: recommended-feed answers Douyin's own page loaded by itself (signed by
+     * itself), when the app's own requests are being turned away. Takes what's waiting; if
+     * nothing is, opens a fresh page (which loads a fresh batch) and waits up to [waitMs] for it.
+     */
+    suspend fun harvest(waitMs: Long = 15_000): List<String> {
+        if (captured.isEmpty()) {
+            capturedSignal = CompletableDeferred()
+            reload()
+            ensurePage()
+            withTimeoutOrNull(waitMs) { capturedSignal.await() }
+        }
+        val out = ArrayList<String>()
+        while (true) out += captured.pollFirst() ?: break
+        return out
+    }
 
     /**
      * GET [path] (e.g. `/aweme/v1/web/tab/feed/`) on www.douyin.com with [params] plus the usual
@@ -85,8 +105,7 @@ class DouyinWeb @Inject constructor(
         ready = null
     }
 
-    fun signedIn(): Boolean = CookieManager.getInstance().getCookie("https://www.douyin.com")
-        ?.split(';')?.any { it.trim().startsWith("sessionid=") && it.substringAfter('=').isNotBlank() } == true
+    fun signedIn(): Boolean = isSignedIn()
 
     private suspend fun ensurePage() {
         val r = loadMutex.withLock {
@@ -120,6 +139,10 @@ class DouyinWeb @Inject constructor(
             loadsImagesAutomatically = false
         }
         w.addJavascriptInterface(Bridge(), "DYB")
+        // Before any of the page's own scripts: note the feed answers it fetches for itself.
+        if (androidx.webkit.WebViewFeature.isFeatureSupported(androidx.webkit.WebViewFeature.DOCUMENT_START_SCRIPT)) {
+            runCatching { androidx.webkit.WebViewCompat.addDocumentStartJavaScript(w, HOOK_JS, setOf("https://www.douyin.com")) }
+        }
         w.webViewClient = object : WebViewClient() {
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {}
 
@@ -158,16 +181,65 @@ class DouyinWeb @Inject constructor(
         fun reply(id: String, status: Int, body: String) {
             pending[id]?.complete(Reply(status, body))
         }
+
+        @JavascriptInterface
+        fun captured(body: String) {
+            if (body.isBlank() || !body.contains("aweme_list")) return
+            captured.addLast(body)
+            while (captured.size > MAX_CAPTURED) captured.pollFirst()
+            capturedSignal.complete(Unit)
+        }
     }
 
     companion object {
         const val HOME = "https://www.douyin.com/?recommend=1"
+
+        /** True when douyin.com's sign-in cookie is set (signed in on the Douyin page in this app). */
+        fun isSignedIn(): Boolean = runCatching {
+            CookieManager.getInstance().getCookie("https://www.douyin.com")
+                ?.split(';')?.any { it.trim().startsWith("sessionid=") && it.substringAfter('=').isNotBlank() } == true
+        }.getOrDefault(false)
 
         /** Douyin serves its web client (and signer) only to desktop browsers. */
         const val DESKTOP_UA =
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
         private const val PAGE_TTL_MS = 30 * 60_000L
+        private const val MAX_CAPTURED = 6
+
+        /**
+         * Wraps XMLHttpRequest and fetch so feed answers the page asks for itself are passed to the
+         * app. The app's own requests are marked (`__dyMine`) and skipped, since they're answered directly.
+         */
+        private val HOOK_JS = """
+            (function () {
+              if (window.__dyHooked) return; window.__dyHooked = true;
+              var FEED = /\/aweme\/v1\/web\/(tab\/feed|module\/feed|aweme\/post)\//;
+              function pass(t) { try { if (t && t.length > 50) DYB.captured(t); } catch (e) {} }
+              var open = XMLHttpRequest.prototype.open;
+              XMLHttpRequest.prototype.open = function (m, u) {
+                try { this.__dyUrl = String(u); } catch (e) {}
+                return open.apply(this, arguments);
+              };
+              var send = XMLHttpRequest.prototype.send;
+              XMLHttpRequest.prototype.send = function () {
+                var x = this;
+                if (!x.__dyMine && FEED.test(x.__dyUrl || '')) {
+                  x.addEventListener('load', function () { if (x.status === 200) pass(x.responseText); });
+                }
+                return send.apply(this, arguments);
+              };
+              if (window.fetch) {
+                var f = window.fetch;
+                window.fetch = function (input) {
+                  var url = typeof input === 'string' ? input : (input && input.url) || '';
+                  var p = f.apply(this, arguments);
+                  if (FEED.test(url)) p.then(function (r) { if (r && r.ok) r.clone().text().then(pass); }).catch(function () {});
+                  return p;
+                };
+              }
+            })();
+        """.trimIndent()
         private const val READY_TIMEOUT_MS = 14_000L
 
         private val MEDIA_HOSTS = listOf("douyinvod.com", "douyinpic.com", "douyincdn.com", "zjcdn.com", "douyinliving.com")
@@ -196,11 +268,15 @@ class DouyinWeb @Inject constructor(
                   platform: 'PC', downlink: '10', effective_type: '4g', round_trip_time: '50'
                 };
                 var c = document.cookie || '';
-                var wid = (c.match(/(?:^|; )(?:webid|s_v_web_id)=([^;]*)/) || [])[1];
+                var wid = (c.match(/(?:^|; )webid=([^;]*)/) || [])[1];
                 if (wid) p.webid = wid;
+                // The "verify" fingerprint cookie goes in verifyFp / fp, as the web client sends it.
+                var fp = (c.match(/(?:^|; )s_v_web_id=([^;]*)/) || [])[1];
+                if (fp) { p.verifyFp = fp; p.fp = fp; }
                 for (var k in extra) p[k] = extra[k];
                 var qs = Object.keys(p).map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(p[k]); }).join('&');
                 var x = new XMLHttpRequest();
+                x.__dyMine = true;
                 x.open('GET', path + '?' + qs, true);
                 x.withCredentials = true;
                 x.timeout = 14000;

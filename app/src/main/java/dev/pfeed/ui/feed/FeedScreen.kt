@@ -937,7 +937,7 @@ private fun TopBar(
             val barX = bar.value
             Box(Modifier.align(Alignment.Center)) {
                 Row(horizontalArrangement = Arrangement.spacedBy(18.dp)) {
-                    listOf(FeedMode.FOLLOWING to "Following", FeedMode.FOR_YOU to "For You", FeedMode.LATEST to "Latest").forEach { (m, label) ->
+                    listOf(FeedMode.FOLLOWING to "Following", FeedMode.FOR_YOU to "For You").forEach { (m, label) ->
                         // Measured on this wrapper, whose parent is the row the bar slides along (the
                         // tab itself sits at 0 inside it, which put every tab's centre in the same place).
                         Box(Modifier.onGloballyPositioned { c -> centers[m] = c.positionInParent().x + c.size.width / 2f }) {
@@ -960,7 +960,7 @@ private fun TopBar(
                                             text = {
                                                 Column {
                                                     Text("Tell it what you want…", fontWeight = FontWeight.Bold)
-                                                    Text("\"more redheads, less cosplay\"", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                                                    Text("\"more 美食, less 舞蹈\"", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
                                                 }
                                             },
                                             leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Accent) },

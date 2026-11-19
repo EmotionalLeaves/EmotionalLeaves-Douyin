@@ -19,7 +19,9 @@ import androidx.compose.ui.unit.sp
  */
 enum class Palette(val label: String, private val fixedMain: Color, private val fixedSecond: Color) {
     /** Chameleon: takes its colour from the post on screen (see [Palette.follow]). */
-    CHAMELEON("Chameleon", Color(0xFFFF3D68), Color(0xFFFF7A45)),
+    /** Douyin's own pair: its red into its cyan. The default. */
+    DOUYIN("抖音", Color(0xFFFE2C55), Color(0xFF25F4EE)),
+    CHAMELEON("Chameleon", Color(0xFFFE2C55), Color(0xFF25F4EE)),
     ROSE("Rose", Color(0xFFFF3D68), Color(0xFFFF7A45)),
     VIOLET("Violet", Color(0xFF8B5CF6), Color(0xFFEC4899)),
     OCEAN("Ocean", Color(0xFF3B82F6), Color(0xFF22D3EE)),
@@ -32,11 +34,11 @@ enum class Palette(val label: String, private val fixedMain: Color, private val 
     val gradient: androidx.compose.ui.graphics.Brush get() = androidx.compose.ui.graphics.Brush.linearGradient(listOf(main, second))
 
     companion object {
-        private val chosen = androidx.compose.runtime.mutableStateOf(ROSE)
-        private val liveMain = androidx.compose.runtime.mutableStateOf(Color(0xFFFF3D68))
-        private val liveSecond = androidx.compose.runtime.mutableStateOf(Color(0xFFFF7A45))
+        private val chosen = androidx.compose.runtime.mutableStateOf(DOUYIN)
+        private val liveMain = androidx.compose.runtime.mutableStateOf(Color(0xFFFE2C55))
+        private val liveSecond = androidx.compose.runtime.mutableStateOf(Color(0xFF25F4EE))
         val current: Palette get() = chosen.value
-        fun set(name: String?) { chosen.value = entries.firstOrNull { it.name.equals(name, true) } ?: ROSE }
+        fun set(name: String?) { chosen.value = entries.firstOrNull { it.name.equals(name, true) } ?: DOUYIN }
 
         /** Chameleon: the colour of what's on screen, made bright enough to read white text on. */
         fun follow(hue: Float) {

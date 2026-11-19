@@ -263,7 +263,7 @@ class FeedViewModel @Inject constructor(
     enum class Showing(val label: String, val hidden: Set<String>) {
         EVERYTHING("Everything", emptySet()),
         VIDEOS("Videos only", setOf("image", "gif", "comic")),
-        PICTURES("Pictures & GIFs", setOf("video", "comic")),
+        PICTURES("Photo posts", setOf("video", "comic")),
         COMICS("Comics only", setOf("video", "image", "gif")),
     }
 
@@ -330,14 +330,14 @@ class FeedViewModel @Inject constructor(
     /** What For You is being told in words right now (see [dev.pfeed.domain.reco.Steer]). */
     val steering: StateFlow<List<dev.pfeed.domain.reco.Steer.Directive>> = dev.pfeed.data.repo.SteerState.active
 
-    /** "more redheads, less cosplay": read it, steer For You by it for this sitting, start fresh. */
+    /** "more 美食, less 舞蹈": read it, steer For You by it for this sitting, start fresh. */
     fun steer(text: String) {
         viewModelScope.launch {
             val known = HashMap<String, Int>()
             runCatching { signals.engine.use { it.space.counted(2) } }.getOrNull()?.let(known::putAll)
             runCatching { signals.affinities().tags }.getOrNull()?.keys?.forEach { known.merge(it, 50, Int::plus) }
             val list = dev.pfeed.domain.reco.Steer.parse(text, dev.pfeed.domain.reco.Steer.resolver(known))
-            if (list.isEmpty()) { offer("Didn't catch that. Try \"more redheads, less cosplay\".", "OK") {}; return@launch }
+            if (list.isEmpty()) { offer("Didn't catch that. Try \"more 美食, less 舞蹈\".", "OK") {}; return@launch }
             dev.pfeed.data.repo.SteerState.set(list)
             offer("For You: " + list.joinToString("  ") { it.label } + ", for the next few hours", "Undo") { clearSteer() }
         }

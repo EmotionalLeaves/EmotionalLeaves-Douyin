@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.graphics.Color
 import dev.pfeed.ui.theme.Accent
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.PlayCircle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.positionInParent
@@ -102,6 +103,7 @@ import dev.pfeed.BuildConfig
 import dev.pfeed.data.settings.Disguise
 import dev.pfeed.ui.Routes
 import dev.pfeed.ui.common.RadioOption
+import dev.pfeed.ui.common.findActivity
 import dev.pfeed.ui.common.RowDivider
 import dev.pfeed.ui.common.ScreenHeader
 import dev.pfeed.ui.common.SecureDialog
@@ -207,10 +209,23 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             val counts by vm.libraryCounts.collectAsStateWithLifecycle()
             LibraryCard(counts) { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } }
 
-            Section {
+            Section(footer = "If the feed stops loading, open Douyin here and pass its \"verify you're human\" check. Signing in also opens up search.") {
+                // The one place to sort out Douyin: sign in, or clear its human check.
+                val authStatus by vm.authStatus.collectAsStateWithLifecycle()
+                val signedIn = remember(authStatus) { dev.pfeed.source.douyin.DouyinWeb.isSignedIn() }
+                val activityContext = androidx.compose.ui.platform.LocalContext.current
+                SettingRow(
+                    "抖音 Douyin",
+                    subtitle = authStatus["douyin"] ?: if (signedIn) "Signed in" else "Not signed in. The feed works without it",
+                    icon = Icons.Filled.PlayCircle,
+                    iconTint = if (signedIn) Good else Accent,
+                    chevron = true,
+                    onClick = { activityContext.findActivity()?.let { vm.authenticate(it, "douyin") } },
+                )
+                RowDivider()
                 SettingRow(
                     "Sources",
-                    subtitle = "${"%,d".format(feeds)} feeds from ${on.size} sources",
+                    subtitle = "Douyin, shared links and folders on this phone",
                     icon = Icons.Filled.Dns,
                     chevron = true,
                     onClick = { nav.navigate(Routes.SOURCES) },
@@ -597,20 +612,19 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                         "Tap" to "Pause or play",
                         "Double-tap" to "Like",
                         "Hold the right side of a video" to "Double speed while held (set a speed in the hold menu)",
-                        "Press and hold" to "More: why it's here, hide, block, copy or open the link, export",
-                        "Swipe left on a post" to "Everything by its creator, from every source",
+                        "Press and hold" to "More: comments, why it's here, not interested, block, copy link, save to phone",
+                        "Swipe left on a post" to "Everything by its creator",
                         "Swipe right on a post" to "Save it",
                         "Pinch in on the feed" to "Zoom out to the Wall (on a tag or creator page: its grid)",
                         "Tap with two fingers" to "Sound on or off",
                         "Hold the heart" to "Love it: liked, saved to Favourites, and much more like it",
                         "Hold \"For You\"" to "Choose its mood (familiar, balanced, adventurous) and what the feeds show",
-                        "Swipe a comic, or tap its left / right edge" to "Turn the page (tap the page count for every page)",
+                        "Swipe sideways on a photo post" to "Next or previous picture",
                         "Pinch" to "Zoom; zoomed in, one finger moves around",
                         "Pull down on the first post" to "Fresh posts",
                         "Double-tap an edge of a long video (or any video sideways)" to "Skip 10 s back or ahead; keep tapping to skip more",
                         "Volume up" to "Sound on",
                         "Tap @name or #tag" to "Everything by them, or with that tag",
-                        "Three fingers anywhere" to "Leave the app instantly",
                     ).forEach { (g, what) ->
                         Column {
                             Text(g, style = MaterialTheme.typography.titleSmall)

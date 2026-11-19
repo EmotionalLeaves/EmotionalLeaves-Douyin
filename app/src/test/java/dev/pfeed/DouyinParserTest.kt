@@ -43,6 +43,7 @@ class DouyinParserTest {
         assertEquals(MediaType.VIDEO, v.type)
         assertEquals("https://v3-web.douyinvod.com/1080.mp4", v.extras["media"])
         assertEquals("小王吃遍中国", v.creator)
+        assertEquals("重庆火锅太好吃了", v.title)
         assertEquals(listOf("美食", "重庆"), v.tags)
         assertEquals(15, v.durationSec)
         assertEquals("123456", v.extras["score"])
@@ -55,6 +56,13 @@ class DouyinParserTest {
         assertEquals(MediaType.IMAGE, photos.type)
         assertEquals(listOf("https://p3/1.webp", "https://p3/2.webp"), photos.pages)
         assertTrue(photos.isGallery)
+    }
+
+    @Test
+    fun `captions lose their hashtags and mentions`() {
+        assertEquals("今天的穿搭", DouyinParser.caption("今天的穿搭 #ootd #穿搭 @小美"))
+        assertNull(DouyinParser.caption("#美食 #重庆"))
+        assertEquals("a b", DouyinParser.caption("a  ＃全角   b"))
     }
 
     @Test

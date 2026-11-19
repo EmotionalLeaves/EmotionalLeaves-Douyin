@@ -54,7 +54,8 @@ object DouyinParser {
         val author = a["author"] as? JsonObject
         val creator = author?.str("nickname")?.trim()?.takeIf { it.isNotEmpty() }
         val secUid = author?.str("sec_uid")
-        val desc = a.str("desc")?.trim()?.takeIf { it.isNotEmpty() }
+        // The caption without its #hashtags and @mentions: those show as tappable tags already.
+        val desc = a.str("desc")?.let(::caption)
         val tags = buildList {
             (a["text_extra"] as? JsonArray)?.forEach { t -> (t as? JsonObject)?.str("hashtag_name")?.let { add(it) } }
             (a["video_tag"] as? JsonArray)?.forEach { t -> (t as? JsonObject)?.str("tag_name")?.let { add(it) } }
@@ -141,6 +142,13 @@ object DouyinParser {
             ?: return null
         return url.replace("/playwm/", "/play/").replace("http://", "https://")
     }
+
+    private val HASHTAG = Regex("""[#＃][^\s#＃@]+""")
+    private val MENTION = Regex("""@[^\s#＃@]+""")
+
+    /** "重庆火锅太好吃了 #美食 #重庆 @小王" → "重庆火锅太好吃了"; null if nothing else is left. */
+    fun caption(desc: String): String? =
+        desc.replace(HASHTAG, " ").replace(MENTION, " ").replace(Regex("""\s+"""), " ").trim().takeIf { it.isNotEmpty() }
 
     /** Prefer a JPEG/PNG/WebP address over HEIC, which some phones can't decode. */
     private fun pickImage(urls: List<String>): String? =

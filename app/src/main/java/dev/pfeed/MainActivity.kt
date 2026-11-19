@@ -54,14 +54,20 @@ class MainActivity : FragmentActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // No screenshots, no screen recording, blank thumbnail in Recents.
-        window.setFlags(WindowManager.LayoutParams.FLAG_SECURE, WindowManager.LayoutParams.FLAG_SECURE)
         // The app is always dark: force light status/nav-bar icons even when the phone is in light mode.
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
             navigationBarStyle = SystemBarStyle.dark(android.graphics.Color.TRANSPARENT),
         )
         super.onCreate(savedInstanceState)
+        // Screenshots and screen recording are allowed, as in any video app; with the app lock on,
+        // the window is secure instead (no screenshots, blank thumbnail in Recents).
+        lifecycleScope.launch {
+            lockManager.enabled.collect { on ->
+                if (on) window.addFlags(WindowManager.LayoutParams.FLAG_SECURE)
+                else window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
+            }
+        }
         if (intent?.getBooleanExtra(dev.pfeed.ui.AgeGate.EXTRA_CONFIRMED, false) == true) dev.pfeed.ui.AgeGate.confirm(this)
         if (savedInstanceState == null) takeSharedLink(intent)
         watchFlipToHide()

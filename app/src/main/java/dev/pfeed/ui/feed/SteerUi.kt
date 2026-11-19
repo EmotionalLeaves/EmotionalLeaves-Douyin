@@ -43,7 +43,7 @@ import androidx.compose.ui.unit.dp
 import dev.pfeed.domain.reco.Steer
 import dev.pfeed.ui.common.SecureDialog
 
-private val EXAMPLES = listOf("more redheads, less cosplay", "only amateur", "no feet", "just videos", "short clips and pov")
+private val EXAMPLES = listOf("more 美食, less 舞蹈", "only 猫", "no 游戏", "just videos", "short clips and 搞笑")
 
 /** Tell For You what you're in the mood for, in your own words. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -63,7 +63,7 @@ fun SteerDialog(current: List<Steer.Directive>, onSteer: (String) -> Unit, onCle
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it.take(200) },
-                    placeholder = { Text("more redheads, less cosplay") },
+                    placeholder = { Text("more 美食, less 舞蹈") },
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.None, imeAction = ImeAction.Go, autoCorrectEnabled = false),
                     keyboardActions = KeyboardActions(onGo = { go() }),
                     singleLine = true,

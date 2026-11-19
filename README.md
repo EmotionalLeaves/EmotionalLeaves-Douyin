@@ -17,7 +17,7 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 | Comments | `/aweme/v1/web/comment/list/` |
 | Shared links | `v.douyin.com/…` → `iesdouyin.com/share/video/<id>/` (public page, no signature) |
 
-If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → Sources → 抖音 Douyin → Sign in** opens the real site, and anything you do there (the check, signing in) carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
+If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → 抖音 Douyin** (top of Settings) opens the real site, and anything you do there (the check, signing in) carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
 
 This depends on Douyin's website, which can change without notice. When it does, `DouyinWeb.kt` (the request) and `DouyinParser.kt` (the answer) are the two places to look.
 
@@ -96,32 +96,17 @@ dev.pfeed
    - For OAuth, use `OAuthManager.authorize(ctx.activity, OAuthConfig(...))`, which runs PKCE in a Custom Tab with redirect `dyfeed://oauth/callback`. Store tokens with `CredentialDao`, which lives in the encrypted DB.
    - A source that works without signing in but gets more with it sets `offersSignIn = true` (Douyin does).
 
-## Privacy & discretion
+## Privacy
 
 | Feature | Where |
 |---|---|
-| Optional app lock: PIN (PBKDF2-SHA256, salted; lockout after 5 wrong tries) then biometrics; locks again after a chosen time away | `AppLockManager`, `SecretStore` |
-| `FLAG_SECURE` on the window, dialogs and sheets (no screenshots, blank in Recents) | `MainActivity`, `SecureDialog` |
+| Optional app lock: PIN (PBKDF2-SHA256, salted; lockout after 5 wrong tries) then biometrics | Settings → Privacy |
 | Encrypted database (SQLCipher, key wrapped by the Android Keystore) | `SecretStore.databasePassphrase` |
-| Disguised home-screen icon and name (Notes, Calculator or Browser) | `LauncherDisguise` |
-| Panic: three fingers anywhere locks and leaves | `AppRoot.panicGesture` |
-| Private mode (always incognito) and Go incognito (for a while): no history, seen marks, resume points or learning | Settings → Privacy, hold menu |
-| Calculator lock screen: a working calculator; the PIN then = opens the app | Settings → Privacy |
-| Emergency PIN: entering it erases everything | Settings → Privacy |
-| Wrong-PIN alert: how many wrong PINs and when, shown after you unlock | `AppLockManager` |
-| Flip face down or shake to hide; a plain "Lock" Quick Settings tile | `FlipToHide`, `LockTileService` |
-| Weekly encrypted backups to a folder you choose | `BackupWorker` |
-| Blur previews in Library and Search | Settings → Privacy |
-| Encrypted DNS (1.1.1.1), automatic when a network blocks a site | `EncryptedDns` |
-| Erase everything in one step | Settings → Privacy |
-| Offline copies only in the app's private storage (never the gallery) | `OfflineStore` |
-| No cloud backup, no notifications, no analytics | Manifest |
+| Private mode (always incognito): no history, seen marks or learning | Settings → Privacy |
+| Weekly encrypted backups to a folder you choose | Settings → Backup |
+| Everything For You learns stays on the phone; no accounts, analytics or notifications | — |
 
-Known limits:
-
-- Links opened in the browser ("Open on site") are outside the app's protection.
-- The video cache and offline copies rely on Android's own storage encryption.
-- Launcher disguise changes can take a few seconds to show on some launchers.
+Douyin itself sees what any visitor to douyin.com sees: the hidden page and your sign-in (if any) are a normal browser session with Douyin.
 
 ## Tests
 

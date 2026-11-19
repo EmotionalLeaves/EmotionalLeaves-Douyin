@@ -57,7 +57,7 @@ fun ThisOrThat(vm: FeedViewModel, onDone: (choices: Int) -> Unit) {
     var chosen by remember { mutableIntStateOf(0) }
     Dialog(
         onDismissRequest = { onDone(chosen) },
-        properties = DialogProperties(usePlatformDefaultWidth = false, securePolicy = SecureFlagPolicy.SecureOn),
+        properties = DialogProperties(usePlatformDefaultWidth = false, securePolicy = SecureFlagPolicy.Inherit),
     ) {
         Column(Modifier.fillMaxSize().background(Color(0xFF0A0A0F)).statusBarsPadding().navigationBarsPadding()) {
             Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 4.dp, top = 8.dp), verticalAlignment = Alignment.CenterVertically) {

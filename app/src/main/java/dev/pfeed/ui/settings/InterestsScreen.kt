@@ -283,7 +283,7 @@ fun TasteScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) {
     if (picking) {
         androidx.compose.ui.window.Dialog(
             onDismissRequest = { picking = false },
-            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn),
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false, securePolicy = androidx.compose.ui.window.SecureFlagPolicy.Inherit),
         ) {
             dev.pfeed.ui.common.TopicPicker(
                 title = "Add topics you like",

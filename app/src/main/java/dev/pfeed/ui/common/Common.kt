@@ -57,7 +57,7 @@ import dev.pfeed.domain.model.MediaItem
 import dev.pfeed.domain.model.MediaType
 
 /** Dialogs get their own window; force FLAG_SECURE on them too. */
-val SecureDialog = DialogProperties(securePolicy = SecureFlagPolicy.SecureOn)
+val SecureDialog = DialogProperties(securePolicy = SecureFlagPolicy.Inherit)
 
 tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
@@ -182,7 +182,7 @@ fun MediaGrid(
 
 @Composable
 private fun PeekOverlay(item: MediaItem, live: (@Composable (MediaItem) -> Unit)?) {
-    androidx.compose.ui.window.Popup(alignment = Alignment.Center, properties = androidx.compose.ui.window.PopupProperties(focusable = false, securePolicy = androidx.compose.ui.window.SecureFlagPolicy.SecureOn)) {
+    androidx.compose.ui.window.Popup(alignment = Alignment.Center, properties = androidx.compose.ui.window.PopupProperties(focusable = false, securePolicy = androidx.compose.ui.window.SecureFlagPolicy.Inherit)) {
         val pop = androidx.compose.runtime.remember { androidx.compose.animation.core.Animatable(0.85f) }
         androidx.compose.runtime.LaunchedEffect(Unit) { pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.6f, stiffness = 500f)) }
         Box(
