@@ -182,11 +182,13 @@ class DouyinAdapter @Inject constructor(
             val related = async { runCatching { relatedPosts(fromFeed.take(5)) }.getOrDefault(emptyList()) }
             val trending = async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) }
             val page = async {
-                runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
-                    runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+                pageSearchGate.attempt {
+                    runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
+                        runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
+                    }
                 }
             }
-            val engine = async { runCatching { webSearch(q) }.getOrDefault(emptyList()) }
+            val engine = async { webSearchGate.attempt { runCatching { webSearch(q) }.getOrDefault(emptyList()) } }
             // Best evidence first: the tag's own list and Douyin's own results, then the rest.
             tag.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
         }
@@ -210,6 +212,27 @@ class DouyinAdapter @Inject constructor(
         val next = (DouyinParser.long(root, "cursor") ?: (offset + 16).toLong()).toString()
         return Page(items, next.takeIf { DouyinParser.hasMore(root) && items.isNotEmpty() })
     }
+
+    /**
+     * Gives up on a way of searching that keeps finding nothing: after [GIVE_UP_AFTER] empty tries
+     * in a row (and never a hit) it isn't asked again this session. Douyin's search page shows a
+     * visitor a captcha and search engines don't list Douyin for some networks; waiting ~20 s on
+     * each for every search (and every topic row) made search slow for nothing.
+     */
+    private class Gate {
+        @Volatile private var misses = 0
+        @Volatile private var everWorked = false
+
+        suspend fun attempt(block: suspend () -> List<MediaItem>): List<MediaItem> {
+            if (!everWorked && misses >= GIVE_UP_AFTER) return emptyList()
+            val r = block()
+            if (r.isEmpty()) misses++ else { everWorked = true; misses = 0 }
+            return r
+        }
+    }
+
+    private val pageSearchGate = Gate()
+    private val webSearchGate = Gate()
 
     /** A hashtag's own video list, for a search that is (or contains) a hashtag seen in the feed. */
     private suspend fun hashtagPosts(q: String): List<MediaItem> {
@@ -511,6 +534,7 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 1_000
         private const val MAX_WEB_RESULTS = 16
+        private const val GIVE_UP_AFTER = 2
 
         /** douyin.com/video/<id> (or /note/), plain or URL-encoded inside a search engine's redirect link. */
         private val VIDEO_LINK = Regex("""douyin\.com(?:/|%2F)(?:video|note)(?:/|%2F)(\d{15,21})""", RegexOption.IGNORE_CASE)

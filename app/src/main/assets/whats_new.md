@@ -1,3 +1,8 @@
+## 1.2.4 — 2026-11-19
+Quicker search
+
+- Better: search stops waiting on ways Douyin keeps turning away (its search page shows a visitor a captcha), so results come in seconds instead of about 20.
+
 ## 1.2.3 — 2026-11-19
 More in For You
 

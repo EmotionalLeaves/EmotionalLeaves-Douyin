@@ -53,3 +53,5 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   nudging stops after two misses; comments show Douyin's reason instead of "No comments"; probe logs
   signed-out comments. 1.2.2.
 - 2026-11-19 (chat, round 16): hidden page alternates douyin.com home and /jingxuan on each fresh load. 1.2.3.
+- 2026-11-19 (chat, round 17): search skips the page search and web search after two empty tries in a
+  session (they cost ~20 s each and never answered in tests). Probe checks creator pages. 1.2.4.
