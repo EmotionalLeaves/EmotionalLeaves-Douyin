@@ -43,7 +43,23 @@ object DouyinParser {
                 }
             }
         }
-        return emptyList()
+        // Anything else (a page's embedded RENDER_DATA): look everywhere for things shaped like a post.
+        return deepPosts(o)
+    }
+
+    /** Objects anywhere in [e] that look like a post: an id and a video or pictures. */
+    fun deepPosts(e: JsonElement, depth: Int = 0, out: MutableList<JsonObject> = ArrayList()): List<JsonObject> {
+        if (depth > 14 || out.size >= 200) return out
+        when (e) {
+            is JsonObject -> {
+                val id = (e["aweme_id"] ?: e["awemeId"]) as? JsonPrimitive
+                if (id != null && (e["video"] is JsonObject || e["images"] is JsonArray)) { out += e; return out }
+                e.values.forEach { deepPosts(it, depth + 1, out) }
+            }
+            is JsonArray -> e.forEach { deepPosts(it, depth + 1, out) }
+            else -> {}
+        }
+        return out
     }
 
     fun parseAll(root: JsonElement?, maxHeight: Int, fetchedAt: Long = System.currentTimeMillis()): List<MediaItem> =

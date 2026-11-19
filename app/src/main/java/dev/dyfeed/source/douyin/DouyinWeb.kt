@@ -94,19 +94,37 @@ class DouyinWeb @Inject constructor(
      * A creator's posts without signing in: Douyin answers the post-list API with 403 for a visitor,
      * but the creator's own page still loads their posts for itself, so open it and take those.
      */
-    suspend fun creatorPage(secUid: String, waitMs: Long = 20_000): List<String> =
-        secondPage("https://www.douyin.com/user/" + android.net.Uri.encode(secUid), waitMs) { url, body ->
+    suspend fun creatorPage(secUid: String, waitMs: Long = 10_000): List<String> =
+        secondPage("https://www.douyin.com/user/" + android.net.Uri.encode(secUid), waitMs, withRenderData = true) { url, body ->
             "/aweme/post" in url && body.contains("aweme_list")
         }
 
     private val idleScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + Dispatchers.Default)
     @Volatile private var closeSecond: kotlinx.coroutines.Job? = null
 
+    /** The second page's embedded data (RENDER_DATA, URL-decoded JSON), if it has any. */
+    private suspend fun renderData(): String? = withContext(Dispatchers.Main) {
+        val w = searchWeb ?: return@withContext null
+        val done = CompletableDeferred<String?>()
+        w.evaluateJavascript(
+            "(function(){try{var r=document.getElementById('RENDER_DATA');return r?decodeURIComponent(r.textContent):''}catch(e){return ''}})()",
+        ) { v -> done.complete(v) }
+        val raw = withTimeoutOrNull(5_000) { done.await() } ?: return@withContext null
+        // evaluateJavascript hands back the string as a JSON string literal.
+        runCatching { (kotlinx.serialization.json.Json.parseToJsonElement(raw) as JsonPrimitive).content }
+            .getOrNull()?.takeIf { it.length > 100 }
+    }
+
     /** What the second hidden page accepts as an answer worth keeping (url, body). */
     @Volatile private var secondAccept: (String, String) -> Boolean = { _, _ -> false }
 
     /** Opens [url] in the second hidden page and returns the answers it fetches that [accept] keeps. */
-    private suspend fun secondPage(url: String, waitMs: Long, accept: (String, String) -> Boolean): List<String> = searchMutex.withLock {
+    private suspend fun secondPage(
+        url: String,
+        waitMs: Long,
+        withRenderData: Boolean = false,
+        accept: (String, String) -> Boolean,
+    ): List<String> = searchMutex.withLock {
         closeSecond?.cancel()
         searchCaptured.clear()
         searchSignal = CompletableDeferred()
@@ -120,6 +138,9 @@ class DouyinWeb @Inject constructor(
         delay(1_500)
         val out = ArrayList<String>()
         while (true) out += searchCaptured.pollFirst() ?: break
+        // Some pages (a creator's) arrive with their posts already inside, in RENDER_DATA, and
+        // never ask for them: take that too.
+        if (withRenderData) renderData()?.let { out += it }
         // A whole browser page in memory: close it once it's gone unused for a while.
         closeSecond = idleScope.launch {
             delay(SECOND_PAGE_IDLE_MS)

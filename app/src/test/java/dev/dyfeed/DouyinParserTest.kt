@@ -141,6 +141,19 @@ class DouyinParserTest {
     }
 
     @Test
+    fun `posts inside a page's embedded data, however deep`() {
+        val root = Json.parseToJsonElement(
+            """{"app":{"user":{}},"42":{"uid":"x","post":{"cursor":0,"data":[
+                {"awemeId":"7388888888888888888","desc":"今天 #穿搭","video":{"playAddr":[{"src":"//v3-web.douyinvod.com/x.mp4"}]}},
+                {"awemeId":"7399999999999999999","desc":"图集","images":[{"urlList":["https://p3.douyinpic.com/1.jpeg"]}]}
+              ]}}}""",
+        )
+        val items = DouyinParser.parseAll(root, 1080)
+        assertEquals(listOf("7388888888888888888", "7399999999999999999"), items.map { it.id })
+        assertEquals("https://v3-web.douyinvod.com/x.mp4", items[0].extras["media"])
+    }
+
+    @Test
     fun `post ids in shared links`() {
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/video/7300000000000000001"))
         assertEquals("7300000000000000001", DouyinAdapter.awemeIdIn("https://www.douyin.com/?modal_id=7300000000000000001"))
