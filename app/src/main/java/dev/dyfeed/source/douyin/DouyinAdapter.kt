@@ -141,19 +141,23 @@ class DouyinAdapter @Inject constructor(
         if (ids.isEmpty()) return Page(emptyList(), null)
         if (cursor != null) return Page(emptyList(), null)
         val all = coroutineScope {
-            ids.take(MAX_FOLLOWED).map { sec -> async { runCatching { userPosts(sec, 0L).items }.getOrDefault(emptyList()) } }.awaitAll()
+            // Signed out, each creator may need their page opened (~20 s, one at a time): only the
+            // first few get that; the rest show what the app already has of them.
+            ids.take(MAX_FOLLOWED).mapIndexed { i, sec ->
+                async { runCatching { userPosts(sec, 0L, allowPage = i < MAX_FOLLOWED_PAGES).items }.getOrDefault(emptyList()) }
+            }.awaitAll()
         }.flatten()
         return Page(all.sortedByDescending { it.publishedAt }, null)
     }
 
-    private suspend fun userPosts(secUid: String, maxCursor: Long): Page<MediaItem> =
+    private suspend fun userPosts(secUid: String, maxCursor: Long, allowPage: Boolean = true): Page<MediaItem> =
         try {
             directUserPosts(secUid, maxCursor)
         } catch (e: SourceException) {
             if (maxCursor > 0) throw e
             // Signed out the post list answers 403: take what the creator's own page loads, plus
             // their posts the app already has.
-            val fromPage = runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
+            val fromPage = if (!allowPage) emptyList() else runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
                 runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
             }
             val known = synchronized(loaded) { loaded.filter { it.extras["secUid"] == secUid } }
@@ -562,6 +566,7 @@ class DouyinAdapter @Inject constructor(
         fun idsInHtml(html: String): List<String> = VIDEO_LINK.findAll(html).map { it.groupValues[1] }.distinct().toList()
         private val FEED_PATHS = listOf("/aweme/v2/web/module/feed/", "/aweme/v1/web/module/feed/", "/aweme/v1/web/tab/feed/")
         private const val MAX_FOLLOWED = 30
+        private const val MAX_FOLLOWED_PAGES = 4
         /** Douyin's video addresses stop working after a few hours. */
         private const val URL_TTL_MS = 90 * 60_000L
 
