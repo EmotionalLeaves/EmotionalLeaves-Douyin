@@ -446,6 +446,10 @@ class DouyinAdapter @Inject constructor(
             web.searchTrace().takeLast(12).joinToString("; ")
     }
 
+    /** What the second hidden page last did (where it landed, the Douyin calls it made), for the health probe. */
+    suspend fun secondPageReport(): String =
+        "page=[" + web.searchPageInfo() + "] calls=" + web.searchTrace().takeLast(10).joinToString("; ")
+
     /** A short sketch of a JSON answer's layout: keys, array sizes, the first element of each array. */
     private fun shape(e: JsonElement, depth: Int = 0): String = when {
         depth > 2 -> "…"

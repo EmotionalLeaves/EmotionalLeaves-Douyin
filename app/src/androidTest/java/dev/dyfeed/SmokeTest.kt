@@ -457,6 +457,7 @@ class SmokeTest {
         // A creator's page (and the Following tab) is that creator's own post list.
         val creatorPosts = anyPost?.creator?.let { name -> runCatching { runBlocking { douyin.search(name, null).items.count { it.creator == name } } } }
         android.util.Log.i("PFHEALTH", "douyin creator page: " + (creatorPosts?.fold({ "$it posts by ${anyPost.creator}" }, { "error ${it.message}" }) ?: "no post to try"))
+        android.util.Log.i("PFHEALTH", "douyin creator page trace: " + runBlocking { douyin.secondPageReport() })
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }
