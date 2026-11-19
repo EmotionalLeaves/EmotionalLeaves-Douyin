@@ -36,6 +36,9 @@ class DouyinSearchTest {
         assertEquals(emptyList<Int>(), dead.attempt { asked = true; listOf(1) })
         assertFalse(asked)
 
+        dead.reset()
+        assertTrue(dead.open)
+
         val flaky = GiveUpGate(2)
         flaky.attempt { listOf(1) }
         repeat(5) { flaky.attempt { emptyList<Int>() } }

@@ -68,6 +68,7 @@ class DouyinAdapter @Inject constructor(
         val closed = DouyinLoginActivity.open(ctx.activity)
         closed.await()
         web.reload()
+        listOf(pageSearchGate, webSearchGate, creatorPageGate, trendPageGate, postPageGate).forEach { it.reset() }
         return if (web.signedIn()) AuthResult.Success
         else AuthResult.Failure("Not signed in. The feed still works; search may need it.")
     }
@@ -675,6 +676,9 @@ internal class GiveUpGate(private val giveUpAfter: Int) {
     @Volatile private var everWorked = false
 
     val open: Boolean get() = everWorked || misses < giveUpAfter
+
+    /** Try again from scratch (after signing in, Douyin may answer what it didn't before). */
+    fun reset() { misses = 0; everWorked = false }
 
     suspend fun <T> attempt(block: suspend () -> List<T>): List<T> {
         if (!open) return emptyList()
