@@ -212,7 +212,8 @@ class DouyinAdapter @Inject constructor(
             // Best evidence first: the tag's own list and Douyin's own results, then the rest.
             tag.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
         }
-        val all = found.distinctBy { it.id }
+        // Posts that contain every word of the search first; related ones after (order kept within each).
+        val all = found.distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
         if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
         return Page(all, null)
     }
