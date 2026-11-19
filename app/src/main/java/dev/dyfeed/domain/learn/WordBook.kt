@@ -84,6 +84,16 @@ object WordBook {
         save(_cards.value + Card(entry.simplified, entry.pinyin, entry.english, example?.take(200), addedAt = now, due = now))
     }
 
+    /** A whole line (a caption, a subtitle) to learn as one card: its pinyin from its words, its English given. */
+    fun addSentence(text: String, tokens: List<Token>, english: String, now: Long = System.currentTimeMillis()) {
+        val line = text.trim().take(MAX_SENTENCE)
+        if (line.isEmpty() || has(line)) return
+        val pinyin = tokens.joinToString(" ") { t -> t.entries.firstOrNull()?.pinyin ?: t.text.trim() }.replace(Regex("""\s+"""), " ").trim()
+        save(_cards.value + Card(line, pinyin, english, example = null, addedAt = now, due = now))
+    }
+
+    private const val MAX_SENTENCE = 80
+
     fun remove(word: String) = save(_cards.value.filterNot { it.word == word })
 
     fun answer(card: Card, grade: Grade, now: Long = System.currentTimeMillis()) {

@@ -220,7 +220,13 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                         Modifier.fillMaxWidth().clickable { Speak.say(context, c.word) }.padding(horizontal = 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        Text(c.word, fontSize = 22.sp, modifier = Modifier.width(88.dp))
+                        Text(
+                            c.word,
+                            fontSize = if (c.word.length > 4) 15.sp else 22.sp,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.width(if (c.word.length > 4) 128.dp else 88.dp),
+                        )
                         Column(Modifier.weight(1f)) {
                             Text(Pinyin.marks(c.pinyin), color = toneColor(Pinyin.tones(c.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
                             Text(c.english, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.75f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
@@ -279,7 +285,13 @@ private fun Review(onDone: () -> Unit) {
             verticalArrangement = Arrangement.Center,
         ) {
             if (shown) Text(Pinyin.marks(card.pinyin), color = toneColor(Pinyin.tones(card.pinyin).firstOrNull() ?: 5), fontSize = 22.sp)
-            Text(card.word, fontSize = 64.sp, fontWeight = FontWeight.Bold, color = Color.White)
+            Text(
+                card.word,
+                fontSize = when { card.word.length <= 3 -> 64.sp; card.word.length <= 8 -> 40.sp; else -> 28.sp },
+                fontWeight = FontWeight.Bold,
+                color = Color.White,
+                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+            )
             IconButton(onClick = { Speak.say(context, card.word) }) { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again") }
             if (shown) {
                 Text(card.english, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.9f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)

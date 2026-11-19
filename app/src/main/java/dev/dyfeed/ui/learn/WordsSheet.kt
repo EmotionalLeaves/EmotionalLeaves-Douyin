@@ -86,6 +86,19 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
             FlowRow(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 list.forEach { t -> Ruby(t) }
             }
+            // The whole line in English, and a card for it (short lines only: one you can learn whole).
+            val english by produceState<String?>(null, text) { value = dev.dyfeed.domain.lang.ChineseToEnglish.translate(text).getOrNull() }
+            english?.let { en ->
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(en, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.8f), fontStyle = androidx.compose.ui.text.font.FontStyle.Italic, modifier = Modifier.weight(1f))
+                    if (text.trim().length <= 40) {
+                        val have = text.trim() in savedWords
+                        TextButton(onClick = { if (have) WordBook.remove(text.trim()) else WordBook.addSentence(text, list, en) }) {
+                            Text(if (have) "Saved ✓" else "Save line")
+                        }
+                    }
+                }
+            }
             LazyColumn(Modifier.fillMaxWidth().height(380.dp)) {
                 items(list.filter { it.known }.distinctBy { it.text }) { t ->
                     WordRow(t.text, t.entries, saved = t.text in savedWords, onSpeak = { Speak.say(context, t.text) }) {
