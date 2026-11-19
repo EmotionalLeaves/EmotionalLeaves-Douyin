@@ -176,7 +176,12 @@ fun ItemMenuSheet(
                         modifier = Modifier.padding(20.dp),
                     )
                     else -> shown.forEachIndexed { i, c ->
-                        Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp)) {
+                        // Tap a comment: its words, to learn from (real everyday Chinese).
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .clickable(enabled = dev.dyfeed.domain.lang.Zh.has(c.body)) { dev.dyfeed.ui.learn.LearnWords.request.value = c.body }
+                                .padding(horizontal = 16.dp, vertical = 10.dp),
+                        ) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(c.author, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
                                 Spacer(Modifier.width(8.dp))
