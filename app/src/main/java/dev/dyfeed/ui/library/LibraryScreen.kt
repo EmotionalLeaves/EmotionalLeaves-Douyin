@@ -375,7 +375,7 @@ private fun LibraryScreenContent(nav: NavController, vm: LibraryViewModel) {
                     onClick = { picking = list to mapOf(item.key to item); holding = null },
                 )
                 if (item.pageUrl.isNotBlank()) SettingRow(
-                    "Open on the site",
+                    "Open in 抖音",
                     icon = Icons.AutoMirrored.Filled.OpenInNew,
                     iconTint = dev.dyfeed.ui.theme.TextLow,
                     onClick = { dev.dyfeed.ui.common.openExternal(context, item.pageUrl); holding = null },
@@ -421,7 +421,7 @@ private fun LibraryScreenContent(nav: NavController, vm: LibraryViewModel) {
             onDismissRequest = { confirmClear = false },
             properties = SecureDialog,
             title = { Text("Clear watch history?") },
-            text = { Text("Posts you've already seen can show up in your feed again.") },
+            text = { Text("Posts you've already seen can show up in your feed again, and search forgets the posts it remembered.") },
             confirmButton = { TextButton(onClick = { vm.clearHistory(); confirmClear = false }) { Text("Clear") } },
             dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } },
         )
