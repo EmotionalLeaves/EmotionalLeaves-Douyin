@@ -94,6 +94,14 @@ object WordBook {
 
     private const val MAX_SENTENCE = 80
 
+    /** Words from a backup, added to yours (where both have a word, the one reviewed more wins). */
+    fun merge(incoming: List<Card>) {
+        if (incoming.isEmpty()) return
+        val byWord = _cards.value.associateBy { it.word }.toMutableMap()
+        incoming.forEach { c -> val mine = byWord[c.word]; if (mine == null || c.reps > mine.reps) byWord[c.word] = c }
+        save(byWord.values.toList())
+    }
+
     fun remove(word: String) = save(_cards.value.filterNot { it.word == word })
 
     fun answer(card: Card, grade: Grade, now: Long = System.currentTimeMillis()) {

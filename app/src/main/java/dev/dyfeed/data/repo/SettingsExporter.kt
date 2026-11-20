@@ -28,6 +28,8 @@ data class ExportBundle(
     val follows: List<ExportEntry>,
     /** Saved and liked posts and collections (since version 2). */
     val library: List<ExportLibraryEntry> = emptyList(),
+    /** Your Chinese words and how well you know each (since 1.7.2). */
+    val words: List<dev.dyfeed.domain.learn.Card> = emptyList(),
 )
 
 @Serializable
@@ -62,6 +64,7 @@ class SettingsExporter @Inject constructor(
             blocks = blocks.allOnce().map { ExportEntry(it.kind, it.value) },
             follows = library.allFollowRows().map { ExportEntry(it.kind, it.value) },
             library = library.exportRows().map { ExportLibraryEntry(it.itemKey, it.kind, it.at, it.json) },
+            words = dev.dyfeed.domain.learn.WordBook.cards.value,
         )
         val plain = json.encodeToString(ExportBundle.serializer(), bundle).toByteArray()
         val salt = ByteArray(16).also(SecureRandom()::nextBytes)
@@ -93,6 +96,7 @@ class SettingsExporter @Inject constructor(
         bundle.blocks.forEach { e -> runCatching { blocks.block(BlockKind.valueOf(e.kind), e.value) } }
         bundle.follows.forEach { e -> runCatching { library.follow(FollowKind.valueOf(e.kind), e.value) } }
         library.importRows(bundle.library.map { dev.dyfeed.data.db.LibraryRow(it.key, it.kind, it.at, it.item) })
+        dev.dyfeed.domain.learn.WordBook.merge(bundle.words)
     }
 
     companion object {

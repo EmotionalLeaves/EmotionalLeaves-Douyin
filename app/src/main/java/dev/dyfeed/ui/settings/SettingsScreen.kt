@@ -486,7 +486,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                 )
             }
 
-            Section("Backup", modifier = Modifier.anchor("Backup"), footer = "Settings, hidden things, follows, saved and liked posts and collections, in one file encrypted with a password you choose. Your PIN, sign-ins and history aren't included; saved videos download again after an import.") {
+            Section("Backup", modifier = Modifier.anchor("Backup"), footer = "Settings, hidden things, follows, saved and liked posts, collections and your Chinese words, in one file encrypted with a password you choose. Your PIN, sign-ins and history aren't included; saved videos download again after an import.") {
                 SettingRow("Export backup", icon = Icons.Filled.Upload, iconTint = TextLow, onClick = { exportLauncher.launch("douyin-feed-backup.json") })
                 RowDivider()
                 SettingRow("Import backup", icon = Icons.Filled.Download, iconTint = TextLow, onClick = { importLauncher.launch(arrayOf("application/json", "*/*")) })
