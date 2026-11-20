@@ -1,3 +1,9 @@
+## 1.7.14 — 2026-11-20
+Cleaner subtitles
+
+- Better: the English for what's said leaves out lines the reader isn't sure of, so fewer garbled translations.
+- Learn: the "Watch and learn" cards show a few of their videos.
+
 ## 1.7.13 — 2026-11-20
 Pause after each line
 

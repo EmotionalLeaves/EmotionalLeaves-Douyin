@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.14 — 2026-11-20
+- Live subtitles skip lines with ML Kit confidence under 0.45 (when it gives one); Learn topic cards with thumbnails from the remembered index.
+
 ## 1.7.13 — 2026-11-20
 - LearnPrefs.autoPause: LiveSubtitles pauses the player when a line ends or changes, keeping the ended line's English up.
 
