@@ -101,7 +101,7 @@ class DouyinAdapter @Inject constructor(
             return Page(harvested, next)
         }
         val parsed = directFeedGate.attempt { items(root) }
-        if (parsed.isEmpty()) return Page(fromPage(), next)
+        if (parsed.isEmpty()) { rememberDirectFeedUseless(); return Page(fromPage(), next) }
         return Page(parsed.filterNot { seen.isSeen(it.key) }, next)
     }
 
@@ -263,7 +263,17 @@ class DouyinAdapter @Inject constructor(
     private val trendPageGate = GiveUpGate(GIVE_UP_AFTER)
     private val postPageGate = GiveUpGate(GIVE_UP_AFTER)
     /** The feed API, which signed out answers with nothing playable. */
-    private val directFeedGate = GiveUpGate(GIVE_UP_AFTER)
+    private val directFeedGate = GiveUpGate(GIVE_UP_AFTER).also { gate ->
+        // Remembered for a day (signed out): opening the app goes straight to what plays.
+        val prefs = context.getSharedPreferences("douyin_feed", Context.MODE_PRIVATE)
+        val at = prefs.getLong("direct_useless_at", 0L)
+        if (System.currentTimeMillis() - at < DIRECT_FEED_RECHECK_MS && !DouyinWeb.isSignedIn()) gate.close()
+    }
+
+    /** Notes that the feed API gave nothing playable (again), for the next launch. */
+    private fun rememberDirectFeedUseless() {
+        if (!directFeedGate.open) context.getSharedPreferences("douyin_feed", Context.MODE_PRIVATE).edit().putLong("direct_useless_at", System.currentTimeMillis()).apply()
+    }
     @Volatile private var lastSignedIn: Boolean? = null
 
     /** Signing in or out (from any screen) re-opens the look-ups that were skipped. */
@@ -724,6 +734,8 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
+        /** How long "the feed API gives visitors nothing playable" is trusted before trying it again. */
+        private const val DIRECT_FEED_RECHECK_MS = 24 * 60 * 60_000L
         private const val MAX_WEB_RESULTS = 16
         private const val GIVE_UP_AFTER = 2
 
@@ -772,6 +784,9 @@ internal class GiveUpGate(private val giveUpAfter: Int) {
 
     /** Try again from scratch (after signing in, Douyin may answer what it didn't before). */
     fun reset() { misses = 0; everWorked = false }
+
+    /** Known not to work (from an earlier session): skip it until [reset]. */
+    fun close() { misses = giveUpAfter; everWorked = false }
 
     suspend fun <T> attempt(block: suspend () -> List<T>): List<T> {
         if (!open) return emptyList()

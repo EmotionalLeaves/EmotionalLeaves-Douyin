@@ -44,4 +44,13 @@ class DouyinSearchTest {
         repeat(5) { flaky.attempt { emptyList<Int>() } }
         assertTrue(flaky.open)
     }
+
+    @Test
+    fun `a gate closed from an earlier session stays shut until reset`() {
+        val g = dev.dyfeed.source.douyin.GiveUpGate(2)
+        g.close()
+        org.junit.Assert.assertFalse(g.open)
+        g.reset()
+        org.junit.Assert.assertTrue(g.open)
+    }
 }
