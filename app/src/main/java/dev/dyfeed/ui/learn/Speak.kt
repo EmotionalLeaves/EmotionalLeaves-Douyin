@@ -99,6 +99,11 @@ object LearnPrefs {
     fun setSlowVoice(on: Boolean) { _slow.value = on; prefs?.edit()?.putBoolean("slow", on)?.apply() }
 }
 
+/** Opened from the "Review" shortcut: Learn starts the review at once (if words are due). */
+object LearnOpen {
+    @Volatile var review = false
+}
+
 /** "Learn the words" asked for this text (a caption, a comment): the app shows its words. */
 object LearnWords {
     val request = MutableStateFlow<String?>(null)

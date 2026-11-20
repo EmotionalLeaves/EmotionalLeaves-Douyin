@@ -74,7 +74,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     val days by WordBook.days.collectAsState()
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val due = remember(cards, now) { Srs.due(cards, now) }
-    var reviewing by remember { mutableStateOf(false) }
+    var reviewing by remember { mutableStateOf(LearnOpen.review.also { LearnOpen.review = false } && Srs.due(WordBook.cards.value, System.currentTimeMillis()).isNotEmpty()) }
     var quizzing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val pinyinOn by LearnPrefs.pinyin.collectAsState()

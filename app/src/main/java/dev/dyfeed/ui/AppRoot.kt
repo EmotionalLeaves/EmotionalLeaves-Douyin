@@ -235,6 +235,15 @@ private fun MainNav(locked: Boolean) {
             composable(Routes.TASTE) { TasteScreen(nav) }
             composable(Routes.NETWORK) { dev.dyfeed.ui.settings.NetworkScreen(nav) }
         }
+        // A home-screen shortcut: Learn (a review straight away, if asked), or Search.
+        val openTo by OpenTarget.request.collectAsStateWithLifecycle()
+        androidx.compose.runtime.LaunchedEffect(openTo, locked) {
+            val target = openTo ?: return@LaunchedEffect
+            if (locked) return@LaunchedEffect
+            OpenTarget.request.value = null
+            if (target == "review") dev.dyfeed.ui.learn.LearnOpen.review = true
+            nav.navigate(if (target == "search") Routes.SEARCH else Routes.LEARN) { launchSingleTop = true }
+        }
         // "Words" under a caption (anywhere): the sentence taken apart, to learn from.
         val learnText by dev.dyfeed.ui.learn.LearnWords.request.collectAsStateWithLifecycle()
         learnText?.let { t -> dev.dyfeed.ui.learn.WordsSheet(t) { dev.dyfeed.ui.learn.LearnWords.request.value = null } }

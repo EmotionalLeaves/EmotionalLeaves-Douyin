@@ -48,6 +48,8 @@ class MainActivity : FragmentActivity() {
 
     /** A link shared to the app ("Share → Feed"): played once the app is open and unlocked. */
     private fun takeSharedLink(intent: Intent?) {
+        // A home-screen shortcut (hold the app icon): straight to Learn, a review, or Search.
+        intent?.getStringExtra(dev.dyfeed.ui.OpenTarget.EXTRA)?.let { dev.dyfeed.ui.OpenTarget.request.value = it; return }
         if (intent?.action != Intent.ACTION_SEND && intent?.action != Intent.ACTION_VIEW) return
         val text = intent.getStringExtra(Intent.EXTRA_TEXT) ?: intent.dataString ?: return
         dev.dyfeed.ui.SharedLink.pending.value = text
