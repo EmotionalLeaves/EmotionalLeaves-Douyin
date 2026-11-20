@@ -1,3 +1,9 @@
+## 1.7.12 — 2026-11-20
+我 Me, at a glance
+
+- 我 Me opens with your Chinese at a glance: words saved, words to review, days in a row (tap for Learn).
+- Screen and section titles in both languages: 发现 Search, 收藏 Library, 最近 Recent, 猜你喜欢 Based on what you like, 合集 Your mixes, 继续看 Continue.
+
 ## 1.7.11 — 2026-11-20
 Hear that line again
 

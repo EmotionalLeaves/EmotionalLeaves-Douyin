@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.12 — 2026-11-20
+- LearnCard on the Me page; bilingual screen and section titles.
+
 ## 1.7.11 — 2026-11-20
 - Replay button seeks to the cue start minus 300 ms; PlaybackSpeed adds 0.5x.
 
