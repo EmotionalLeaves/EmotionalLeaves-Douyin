@@ -588,7 +588,7 @@ class SmokeTest {
             session.close()
             val bySource = got.groupingBy { it.sourceId }.eachCount().entries.sortedByDescending { it.value }.joinToString { "${it.key}=${it.value}" }
             val byType = got.groupingBy { if (it.isGallery) "comic" else it.type.name.lowercase() }.eachCount()
-            android.util.Log.i("PFHEALTH", "$mode: ${got.size} posts in ${System.currentTimeMillis() - t0} ms; by source: $bySource; by type: $byType; origins: ${got.map { dev.dyfeed.domain.reco.Spread.origin(it) }.distinct().size}; my little pony: ${got.count { dev.dyfeed.domain.reco.Niche.of(it) != null }}")
+            android.util.Log.i("PFHEALTH", "$mode: ${got.size} posts in ${System.currentTimeMillis() - t0} ms; by source: $bySource; by type: $byType; origins: ${got.map { dev.dyfeed.domain.reco.Spread.origin(it) }.distinct().size}")
             assertTrue("For You served nothing", got.isNotEmpty())
         }
     }
@@ -598,8 +598,9 @@ class SmokeTest {
     fun moreLikeThis() {
         val a = rule.activity
         runBlocking {
-            val seed = a.searchRepository.search("blonde pov").toList().lastOrNull()?.items.orEmpty()
-                .firstOrNull { it.tags.size >= 3 } ?: return@runBlocking android.util.Log.i("PFHEALTH", "similar: no seed found").let { }
+            // A Douyin post with a few tags, from a search (signed out, Douyin tags most posts).
+            val seed = a.searchRepository.search("美食").toList().lastOrNull()?.items.orEmpty()
+                .firstOrNull { it.tags.size >= 2 } ?: return@runBlocking android.util.Log.i("PFHEALTH", "similar: no seed found").let { }
             val features = dev.dyfeed.domain.reco.Features.of(seed).filterNot(dev.dyfeed.domain.reco.Features::isMeta)
             val queries = (listOfNotNull(seed.creator) + features.filterNot { it.startsWith("w:") }.take(3).map { it.replace('_', ' ') }).distinct()
             val spec = dev.dyfeed.data.repo.FeedSpec.Similar(seed.key, queries, features.toSet(), seed.creator)
