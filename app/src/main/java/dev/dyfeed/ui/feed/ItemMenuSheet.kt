@@ -164,6 +164,10 @@ fun ItemMenuSheet(
                 val english by androidx.compose.runtime.produceState<List<String?>>(initialValue = emptyList(), list, translateOn) {
                     value = list?.takeIf { translateOn }?.let { l -> dev.dyfeed.domain.lang.ChineseToEnglish.translateAll(l.map { it.body }) } ?: emptyList()
                 }
+                val pinyinOn by dev.dyfeed.ui.learn.LearnPrefs.pinyin.collectAsStateWithLifecycle()
+                val dictIn by androidx.compose.runtime.produceState(dev.dyfeed.domain.learn.Dict.ready != null, pinyinOn) {
+                    if (pinyinOn) { dev.dyfeed.domain.learn.Dict.get(context); value = true }
+                }
                 val shown = list
                 val failed = failure
                 when {
@@ -191,6 +195,10 @@ fun ItemMenuSheet(
                                 Text(dev.dyfeed.ui.feed.Display.count(c.score.toLong()), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
                             }
                             Spacer(Modifier.height(3.dp))
+                            // Learn → Pinyin over captions: comments get it too.
+                            if (pinyinOn && dictIn) dev.dyfeed.ui.learn.pinyinLine(c.body)?.let { p ->
+                                Text(p, style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(0xFFFFD58A), maxLines = 4, overflow = TextOverflow.Ellipsis)
+                            }
                             Text(c.body, style = MaterialTheme.typography.bodyMedium, maxLines = 8, overflow = TextOverflow.Ellipsis)
                             if (translateOn) {
                                 Text(
