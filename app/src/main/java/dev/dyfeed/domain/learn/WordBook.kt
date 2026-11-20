@@ -64,6 +64,11 @@ object WordBook {
     @Volatile private var file: java.io.File? = null
     private val _cards = MutableStateFlow<List<Card>>(emptyList())
     private val _days = MutableStateFlow<Set<Long>>(emptySet())
+    /** Reviews answered today (resets each day): for the daily goal. */
+    private val _today = MutableStateFlow(0)
+    val reviewedToday: StateFlow<Int> = _today
+    @Volatile private var todayDay = -1L
+    @Volatile private var countFile: java.io.File? = null
     /** The days (epoch days, local) you reviewed at least one word. */
     val days: StateFlow<Set<Long>> = _days
     @Volatile private var daysFile: java.io.File? = null
@@ -74,6 +79,11 @@ object WordBook {
         file = f
         _cards.value = runCatching { json.decodeFromString<List<Card>>(f.readText()) }.getOrDefault(emptyList())
         LearnBoost.words = _cards.value.map { it.word }.filter { it.length in 2..6 }.toSet()
+        val c = java.io.File(context.filesDir, "learn_today.txt")
+        countFile = c
+        runCatching { c.readText().split(' ') }.getOrNull()?.let { p ->
+            if (p.getOrNull(0)?.toLongOrNull() == today()) { todayDay = today(); _today.value = p.getOrNull(1)?.toIntOrNull() ?: 0 }
+        }
         val d = java.io.File(context.filesDir, "learn_days.txt")
         daysFile = d
         _days.value = runCatching { d.readLines().mapNotNull { it.trim().toLongOrNull() }.toSet() }.getOrDefault(emptySet())
@@ -109,6 +119,10 @@ object WordBook {
     fun answer(card: Card, grade: Grade, now: Long = System.currentTimeMillis()) {
         save(_cards.value.map { if (it.word == card.word) Srs.review(it, grade, now) else it })
         val today = today(now)
+        if (todayDay != today) { todayDay = today; _today.value = 0 }
+        _today.value++
+        val count = _today.value
+        countFile?.let { f -> writer.execute { runCatching { f.writeText("$today $count") } } }
         if (today !in _days.value) {
             _days.value = (_days.value + today).sortedDescending().take(400).toSet()
             val days = _days.value

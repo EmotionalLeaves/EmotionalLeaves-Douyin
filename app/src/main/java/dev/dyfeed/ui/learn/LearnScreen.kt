@@ -119,6 +119,18 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                             },
                             color = Color.White.copy(alpha = 0.9f), style = MaterialTheme.typography.bodyMedium,
                         )
+                        // Today's goal: ten reviews.
+                        val doneToday by WordBook.reviewedToday.collectAsState()
+                        if (cards.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            Text("Today: ${minOf(doneToday, DAILY_GOAL)} of $DAILY_GOAL reviewed" + if (doneToday >= DAILY_GOAL) " ✓ 今天完成了!" else "", color = Color.White, style = MaterialTheme.typography.labelLarge)
+                            androidx.compose.material3.LinearProgressIndicator(
+                                progress = { (doneToday.toFloat() / DAILY_GOAL).coerceAtMost(1f) },
+                                color = Color.White,
+                                trackColor = Color.White.copy(alpha = 0.3f),
+                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp).height(6.dp).clip(RoundedCornerShape(3.dp)),
+                            )
+                        }
                         val streak = Srs.streak(days, WordBook.today(now))
                         if (streak > 0) Text(
                             "🔥 $streak day${if (streak == 1) "" else "s"} in a row · 连续$streak 天",
@@ -652,6 +664,8 @@ private fun whenNext(cards: List<Card>, now: Long): String {
 }
 
 private const val SESSION = 20
+/** A day's goal: a handful of minutes, enough to keep words coming back. */
+private const val DAILY_GOAL = 10
 private val WORD_FILTERS = listOf("All", "To review", "Words", "Lines")
 
 /** Douyin searches that bring up videos made for learners (and plain everyday speech). */
