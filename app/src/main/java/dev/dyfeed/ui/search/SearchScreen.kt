@@ -503,7 +503,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
             enter = androidx.compose.animation.expandVertically() + androidx.compose.animation.fadeIn(),
             exit = androidx.compose.animation.shrinkVertically() + androidx.compose.animation.fadeOut(),
         ) {
-            dev.dyfeed.ui.common.ScreenHeader("Search")
+            dev.dyfeed.ui.common.ScreenHeader("发现 Search")
         }
         if (ui.query.isNotBlank()) Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth().padding(start = 16.dp, end = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -679,7 +679,7 @@ private fun SuggestionsPane(
             Spacer(Modifier.height(22.dp))
         }
         if (t.isEmpty() && continueWatching.isNotEmpty()) {
-            SectionTitle("Continue")
+            SectionTitle("Continue · 继续看")
             Spacer(Modifier.height(10.dp))
             androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(continueWatching.size, key = { continueWatching[it].key }) { i -> ContinueCard(continueWatching[i]) { onContinue(i) } }
@@ -698,7 +698,7 @@ private fun SuggestionsPane(
             }
         }
         if (t.isEmpty() && mixes.isNotEmpty()) {
-            SectionTitle("Your mixes")
+            SectionTitle("Your mixes · 合集")
             Spacer(Modifier.height(10.dp))
             androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 items(mixes.size, key = { mixes[it].first }) { i ->
@@ -720,7 +720,7 @@ private fun SuggestionsPane(
         }
         if (recent.isNotEmpty()) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                SectionTitle("Recent", Modifier.weight(1f))
+                SectionTitle("Recent · 最近", Modifier.weight(1f))
                 TextButton(onClick = onClearRecent) { Text("Clear") }
             }
             recent.forEach { q ->
@@ -738,7 +738,7 @@ private fun SuggestionsPane(
             Spacer(Modifier.height(16.dp))
         }
         if (interests.isNotEmpty()) {
-            SectionTitle("Based on what you like")
+            SectionTitle("Based on what you like · 猜你喜欢")
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 interests.forEach { q -> TopicChip(q, highlighted = true) { onPick(q) } }
             }

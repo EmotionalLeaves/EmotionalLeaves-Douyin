@@ -222,7 +222,7 @@ private fun LibraryScreenContent(nav: NavController, vm: LibraryViewModel) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        ScreenHeader("Library") {
+        ScreenHeader("收藏 Library") {
             if (tab < 3) androidx.compose.material3.IconButton(onClick = { finding = !finding; if (!finding) query = "" }) {
                 androidx.compose.material3.Icon(if (finding) Icons.Filled.Close else Icons.Filled.Search, contentDescription = if (finding) "Close find" else "Find in library")
             }
