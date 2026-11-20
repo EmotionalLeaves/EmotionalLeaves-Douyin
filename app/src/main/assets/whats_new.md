@@ -1,3 +1,8 @@
+## 1.7.28 — 2026-11-20
+Two-way quiz
+
+- Quiz: every other question goes the other way. Read the English, pick the Chinese characters. It practises reading as well as listening.
+
 ## 1.7.27 — 2026-11-20
 Shortcuts
 

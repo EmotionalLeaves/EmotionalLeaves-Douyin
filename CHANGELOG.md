@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.28 — 2026-11-20
+- Quiz alternates listening (Chinese audio → English) and reading (English → characters).
+
 ## 1.7.27 — 2026-11-20
 - Dynamic shortcuts (ShortcutManagerCompat) with an extra routed through OpenTarget; Review opens Learn straight into the review.
 
