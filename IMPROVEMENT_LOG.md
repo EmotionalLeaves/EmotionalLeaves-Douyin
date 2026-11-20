@@ -95,3 +95,12 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   translation both ways, English search 57 posts, monkey 0 crashes / 0 ANRs. Added: listening quiz,
   share word list, words in backups, "More videos with your words", topic rows from remembered posts,
   4 videos preloaded on Wi-Fi, English searches show the Chinese used, subtitle placement for wide videos.
+- 2026-11-19/20 (chat, rounds 111–130 → 1.7.4–1.7.8): user: English subtitles late, app slow.
+  Live subtitles: 250 ms checks, reused 480-px frame, fingerprint skip, no linger, timed cues for
+  loops. Hidden Douyin pages pause all WebView timers 6 s after the last request (feed then gave 69
+  posts vs 30–40). Probe facts: Douyin gives visitors no caption files (caption_download_addr 0/19).
+  Start time measured (StartTimes; instant starts count 0): first swipes median ~1 s, 90% ~3.8 s;
+  fast swiping ~2.2 s / 8.4 s, the tail being the 8 s stall wait → silent servers now 3.5 s, and
+  connections to the next videos' servers opened ahead. Also: comments button with count, Chinese
+  tab names, trending in Learn, pinyin in comments, heard lines in frequent words, English on screen
+  by default, listening quiz, word export, words in backups, word boost.
