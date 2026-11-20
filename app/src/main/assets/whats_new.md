@@ -1,3 +1,8 @@
+## 1.7.21 — 2026-11-20
+Subtitles out of the way
+
+- New: an × on the English subtitle hides subtitles for that video only (when they cover a face or a recipe). They're back on the next video.
+
 ## 1.7.20 — 2026-11-20
 Bigger subtitles
 

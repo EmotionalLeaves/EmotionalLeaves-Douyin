@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.21 — 2026-11-20
+- LiveSubtitles hide-for-this-video.
+
 ## 1.7.20 — 2026-11-20
 - LearnPrefs.subSize (bodyLarge / titleLarge / headlineSmall).
 
