@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.31 — 2026-11-20
+- Quick-entry row: equal-width cells, 46 dp circles.
+
 ## 1.7.30 — 2026-11-20
 - Caption difficulty label from easyShare (≥0.8 Easy, ≥0.55 Medium).
 

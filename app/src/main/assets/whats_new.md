@@ -1,3 +1,8 @@
+## 1.7.31 — 2026-11-20
+Fits small phones
+
+- Fixed: 发现 Search's quick ways in (梗图, 搞笑, 学中文, 美食, 萌宠) all fit on small phones.
+
 ## 1.7.30 — 2026-11-20
 How hard is it?
 
