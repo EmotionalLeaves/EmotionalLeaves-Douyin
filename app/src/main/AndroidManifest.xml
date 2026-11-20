@@ -38,6 +38,13 @@
             android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
             android:windowSoftInputMode="adjustResize" />
 
+        <!-- Douyin's own site, on screen: its "verify you're human" check (or signing in). -->
+        <activity
+            android:name=".source.douyin.DouyinLoginActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden"
+            android:windowSoftInputMode="adjustResize" />
+
         <activity-alias
             android:name=".LauncherDefault"
             android:targetActivity=".MainActivity"

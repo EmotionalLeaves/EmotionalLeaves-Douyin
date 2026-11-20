@@ -1,3 +1,9 @@
+## 1.7.34 — 2026-11-20
+Verify I'm human works
+
+- Fixed: tapping 抖音 Douyin in Settings or "Verify I'm human" crashed the app (the check page was never registered with Android). It opens now, and the emulator tests open it every run.
+- Faster: Check sources waits less on slow answers (aim: under 10 seconds).
+
 ## 1.7.33 — 2026-11-20
 Faster checks, faster feed
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.34 — 2026-11-20
+- DouyinLoginActivity declared in the manifest (ActivityNotFoundException found by the monkey run); smoke test opens it; quick check timeouts 8 s / 6 s.
+
 ## 1.7.33 — 2026-11-20
 - directFeedGate skips callFeed after two unplayable answers (reset on sign-in change); SourceChecker.quickDouyin (ready posts + trending + reachable, in parallel); health test times Check sources.
 

@@ -55,6 +55,12 @@ class SmokeTest {
 
     private val pin = listOf("1", "2", "3", "4")
 
+    private fun <T> android.app.Activity.runOnUiThreadBlocking(block: () -> T): T {
+        var out: T? = null
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync { out = block() }
+        @Suppress("UNCHECKED_CAST") return out as T
+    }
+
     private fun exists(text: String, substring: Boolean = false) =
         rule.onAllNodes(hasText(text, substring = substring), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
@@ -545,6 +551,22 @@ class SmokeTest {
         // The reader comes from Play services; where the emulator has none, nothing to check.
         org.junit.Assume.assumeTrue(lines.isNotEmpty())
         assertTrue("subtitle read: $picked", picked?.contains("火锅") == true)
+    }
+
+    /** The "Verify I'm human" page opens (it was once missing from the manifest and crashed the app). */
+    @Test
+    fun douyinCheckPageOpens() {
+        val closed = rule.activity.runOnUiThreadBlocking { dev.dyfeed.source.douyin.DouyinLoginActivity.open(rule.activity) }
+        Thread.sleep(3_000)
+        val resumed = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
+        var onTop = false
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            onTop = resumed.getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED).any { it is dev.dyfeed.source.douyin.DouyinLoginActivity }
+        }
+        android.util.Log.i("PFHEALTH", "douyin check page: " + if (onTop) "opens" else "did not open")
+        assertTrue("the Verify I'm human page should open", onTop)
+        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
+        runBlocking { kotlinx.coroutines.withTimeoutOrNull(10_000) { closed.await() } }
     }
 
     /** A link shared into the app opens in the viewer. */

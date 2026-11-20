@@ -66,7 +66,7 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
         val ready = withContext(kotlinx.coroutines.Dispatchers.IO) { a.readyPosts(3) }
         if (ready.isEmpty()) return@coroutineScope null
         val answers = async { withTimeoutOrNull(QUICK_SIGNED_MS) { runCatching { a.trending() }.getOrDefault(emptyList()) } }
-        val loads = ready.mapNotNull { it.extras["media"] }.map { url -> async { withTimeoutOrNull(FILE_TIMEOUT_MS) { http.reachable(url) } == true } }
+        val loads = ready.mapNotNull { it.extras["media"] }.map { url -> async { withTimeoutOrNull(QUICK_FILE_MS) { http.reachable(url) } == true } }
         val fileOk = loads.awaitAll().any { it }
         val douyinOk = !answers.await().isNullOrEmpty()
         when {
@@ -79,7 +79,9 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
     companion object {
         private const val PROBE_QUERY = "美食"
         /** One small signed request (trending) on a warm page answers in a second or two. */
-        private const val QUICK_SIGNED_MS = 15_000L
+        private const val QUICK_SIGNED_MS = 8_000L
+        /** A live video address answers its first bytes in well under this; any one of three will do. */
+        private const val QUICK_FILE_MS = 6_000L
         private val USER_FILLED = setOf("rss", "local", "direct", "json", "api")
         // Douyin from cold: open its page, then wait for the batch it loads (~35 s at worst).
         private const val LIST_TIMEOUT_MS = 50_000L
