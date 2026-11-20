@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.38 — 2026-11-20
+- directFeedGate closed at start when it proved useless within 24 h (signed out); GiveUpGate.close().
+
 ## 1.7.37 — 2026-11-20
 - TonePractice rounds from HSK 1–2 single characters with tones 1–4; trainer screen.
 

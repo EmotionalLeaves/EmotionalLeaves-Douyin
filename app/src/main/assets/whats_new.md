@@ -1,3 +1,8 @@
+## 1.7.38 — 2026-11-20
+Faster first load
+
+- Faster start: the app remembers for a day that Douyin's feed address gives visitors nothing playable, so opening the app goes straight to the way that plays. Before, every launch wasted two downloads of 1.4 MB first.
+
 ## 1.7.37 — 2026-11-20
 Tone trainer
 
