@@ -22,6 +22,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.contentOrNull
@@ -469,6 +470,32 @@ class DouyinAdapter @Inject constructor(
         // Does moving the open page along bring a new batch? (Uses nothing up: only counts.)
         val nudged = runCatching { web.nudge(8_000) }.getOrDefault(-1)
         return "signedIn=${web.signedIn()} ${perPath.joinToString(" ")} pageAnswersWaiting=${web.waitingAnswers()} nudgeNewAnswers=$nudged nudgesWorkedSoFar=${web.nudgesWorked}"
+    }
+
+    /**
+     * Which fields in Douyin's real feed answers look like subtitles or captions (timed AI captions,
+     * on-screen text), with where they sit and a sample: what "Translate what's said" could use for
+     * videos whose speech isn't written on the picture. For the health test only.
+     */
+    suspend fun probeSubtitles(): String {
+        val r = web.get("/aweme/v1/web/module/feed/", mapOf("module_id" to "3003101", "count" to "10", "refresh_index" to "1", "pull_type" to "0", "video_type_select" to "1"))
+        val bodies = listOf(r.body) + runCatching { web.harvest(10_000) }.getOrDefault(emptyList())
+        val pattern = Regex("subtit|caption|vtt|srt|asr|ocr|lyric|transcri|voice_text|text_extra_info", RegexOption.IGNORE_CASE)
+        val found = LinkedHashMap<String, String>()
+        fun walk(e: JsonElement, path: String) {
+            when (e) {
+                is JsonObject -> e.forEach { (k, v) ->
+                    val p = path.replace(Regex("""\[\d+]"""), "[]") + "." + k
+                    if (pattern.containsMatchIn(k) && p !in found) found[p] = v.toString().take(160)
+                    walk(v, "$path.$k")
+                }
+                is JsonArray -> e.take(12).forEachIndexed { i, v -> walk(v, "$path[$i]") }
+                else -> Unit
+            }
+        }
+        bodies.forEach { b -> runCatching { walk(json.parseToJsonElement(b), "") } }
+        return if (found.isEmpty()) "no subtitle-like fields in ${bodies.size} answers"
+        else found.entries.take(14).joinToString(" || ") { (k, v) -> "$k=$v" }
     }
 
     /** How each way of searching does right now, for the health test. */

@@ -456,6 +456,7 @@ class SmokeTest {
         val withText = runCatching { runBlocking { douyin.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)).items } }.getOrDefault(emptyList())
         android.util.Log.i("PFHEALTH", "douyin feed on-screen text: ${withText.count { it.extras["ocr"] != null }} of ${withText.size} posts" +
             (withText.firstNotNullOfOrNull { it.extras["ocr"] }?.let { " e.g. ${it.take(60)}" } ?: ""))
+        android.util.Log.i("PFHEALTH", "douyin probe subtitles: " + runCatching { runBlocking { douyin.probeSubtitles() } }.getOrElse { "failed: ${it.message}" })
         val ways = runCatching { runBlocking { douyin.probeSearch("美食") } }.getOrElse { "failed: ${it.message}" }
         android.util.Log.i("PFHEALTH", "douyin probe search: $ways")
         val anyPost = runCatching { runBlocking { douyin.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)).items.firstOrNull() } }.getOrNull()
