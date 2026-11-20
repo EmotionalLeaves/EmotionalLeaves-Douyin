@@ -15,7 +15,7 @@ class DouyinParserTest {
         {"status_code":0,"has_more":1,"aweme_list":[
           {"aweme_id":"7300000000000000001","desc":"重庆火锅太好吃了 #美食 #重庆","create_time":1700000000,
            "author":{"nickname":"小王吃遍中国","sec_uid":"MS4wLjABAAAA_x","avatar_thumb":{"url_list":["https://p3.douyinpic.com/a.jpeg"]}},
-           "statistics":{"digg_count":123456},"music":{"title":"火锅之歌","author":"小王"},
+           "statistics":{"digg_count":123456,"comment_count":789},"music":{"title":"火锅之歌","author":"小王"},
            "text_extra":[{"hashtag_name":"美食","hashtag_id":"1575791821492238"},{"hashtag_name":"重庆"}],
            "video":{"duration":15300,
              "cover":{"url_list":["https://p3-pc-sign.douyinpic.com/c.heic","https://p3-pc-sign.douyinpic.com/c.jpeg?x=1"]},
@@ -227,5 +227,10 @@ class DouyinParserTest {
             """{"aweme_id":"7300000000000000010","desc":"x","seo_info":{"ocr_content":"ok"},"video":{"play_addr":{"url_list":["https://v3-web.douyinvod.com/a.mp4"]}}}""",
         ) as kotlinx.serialization.json.JsonObject
         assertNull(DouyinParser.parse(none, 1080)!!.extras[DouyinParser.SCREEN_TEXT])
+    }
+
+    @Test
+    fun `a post carries its comment count for the rail`() {
+        assertEquals("789", DouyinParser.parse(DouyinParser.awemes(feed).first(), 1080)!!.extras["comments"])
     }
 }

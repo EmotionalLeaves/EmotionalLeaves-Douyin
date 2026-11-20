@@ -135,6 +135,7 @@ object DouyinParser {
         }.map { it.trim().lowercase() }.filter { it.isNotEmpty() }.distinct()
         val created = (a.str("create_time") ?: a.str("createTime"))?.toLongOrNull()?.takeIf { it > 0 }?.let(Instant::ofEpochSecond)
         val likes = ((a["statistics"] ?: a["stats"]) as? JsonObject)?.let { it.str("digg_count") ?: it.str("diggCount") }
+        val commentCount = ((a["statistics"] ?: a["stats"]) as? JsonObject)?.let { it.str("comment_count") ?: it.str("commentCount") }
         val video = a["video"] as? JsonObject
 
         // Hashtag ids ("美食=1575..."), so a search for a tag can open that tag's own video list.
@@ -156,6 +157,7 @@ object DouyinParser {
             avatar?.let { put("avatar", it) }
             if (tagIds.isNotEmpty()) put("tagIds", tagIds.joinToString(";"))
             likes?.let { put("score", it) }
+            commentCount?.let { put("comments", it) }
             put("at", fetchedAt.toString())
             // The text Douyin itself read off the video's frames (its subtitles, mostly): for Learn.
             ((a["seo_info"] ?: a["seoInfo"]) as? JsonObject)?.let { seo -> seo.str("ocr_content") ?: seo.str("ocrContent") }

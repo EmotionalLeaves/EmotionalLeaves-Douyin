@@ -91,9 +91,11 @@ fun ItemMenuSheet(
     onOpenPage: ((String) -> Unit)? = null,
     /** Downloads this and the next posts of the feed to watch offline. */
     onForTheRoad: (() -> Unit)? = null,
+    /** Open straight into a part ("comments"), not the menu. */
+    startIn: String? = null,
 ) {
     val context = LocalContext.current
-    var pickTag by remember { mutableStateOf<String?>(null) } // "block" while picking a tag to hide
+    var pickTag by remember { mutableStateOf(startIn) } // "block" while picking a tag to hide
     val creator = remember(item.key) { Display.creator(item) }
     val tags = remember(item.key) { Display.tags(item, max = 24) }
     val source = Display.source(item, vm.sourceName(item.sourceId))

@@ -82,6 +82,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.ChatBubbleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
@@ -226,6 +227,8 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
     val pagerScope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
     var menuFor by remember { mutableStateOf<MediaItem?>(null) }
+    /** Where the menu opens: null for the menu itself, "comments" straight to the comments. */
+    var menuStart by remember { mutableStateOf<String?>(null) }
     // A creator's or a tag's page opens as a profile: a header and a grid of everything in it.
     val creatorPage = vm.tag?.startsWith("@") == true
     val profilePage = vm.tag != null
@@ -435,7 +438,8 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
                     followingCreator = vm.isFollowingCreator(item, follows),
                     vm = vm,
                     onOpenTag = { tag -> nav.openTag(tag) },
-                    onMenu = { menuFor = item },
+                    onMenu = { menuStart = null; menuFor = item },
+                    onComments = { menuStart = "comments"; menuFor = item },
                     landscape = landscape,
                     onLandscape = vm::setLandscape,
                     // A full scene finished: on to the next post.
@@ -805,6 +809,7 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
             item = item,
             vm = vm,
             onDismiss = { menuFor = null },
+            startIn = menuStart,
             onMoreLikeThis = { nav.openTag(vm.similarRoute(item)) },
             onOpenPage = { nav.openTag(it) },
             onForTheRoad = { vm.takeForTheRoad(items.indexOfFirst { it.key == item.key }.coerceAtLeast(0)) },
@@ -1143,6 +1148,8 @@ private fun FeedPage(
     vm: FeedViewModel,
     onOpenTag: (String) -> Unit,
     onMenu: () -> Unit,
+    /** Douyin posts: straight to their comments. */
+    onComments: () -> Unit = onMenu,
     landscape: Boolean,
     onLandscape: (Boolean) -> Unit,
     onEnded: () -> Unit = {},
@@ -1577,6 +1584,7 @@ private fun FeedPage(
             onFullscreen = { onLandscape(true) },
             onTag = onOpenTag,
             onMenu = onMenu,
+            onComments = onComments,
         )
         if (isVideo && !clean && !pipNow) {
             ScrubBar(
@@ -1642,6 +1650,7 @@ private fun Overlay(
     onFullscreen: () -> Unit,
     onTag: (String) -> Unit,
     onMenu: () -> Unit,
+    onComments: () -> Unit = onMenu,
 ) {
     // One row: the caption takes whatever width the button rail leaves, so they can never overlap.
     Row(
@@ -1791,6 +1800,11 @@ private fun Overlay(
 
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             LikeButton(liked = liked, onLike = onLike, onSuperLike = onSuperLike, count = item.extras["score"]?.toLongOrNull())
+            // Comments, with Douyin's count, as on Douyin.
+            if (item.sourceId == dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) {
+                val n = item.extras["comments"]?.toLongOrNull()
+                RailButton(Icons.Filled.ChatBubbleOutline, n?.let(Display::count) ?: "Comments", onComments, description = n?.let { "Comments, $it" } ?: "Comments")
+            }
             SaveButton(saved = saved, onSave = onSave)
             if (isVideo) {
                 RailButton(if (muted) Icons.AutoMirrored.Filled.VolumeOff else Icons.AutoMirrored.Filled.VolumeUp, if (muted) "Muted" else "Sound", onMute)
