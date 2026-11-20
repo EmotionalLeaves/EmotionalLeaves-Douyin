@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.8 — 2026-11-19
+- Preloader.connect (1-byte open per host, once a minute) for the next videos; SILENT_TIMEOUT_MS 3.5 s when nothing is buffered; StartTimes health metric (instant starts count as 0).
+
 ## 1.7.7 — 2026-11-19
 - Live subtitles: 250 ms checks, reused 480-px frame, signature skip, cue memory for loops, no linger; DouyinWeb pauses all WebView timers 6 s after the last request (woken per request; kept awake while the check page or an embed is on screen); preload after a 1.2 s head start (3 ahead on Wi-Fi); translator warmed at start; scrub bar polls at 100 ms.
 

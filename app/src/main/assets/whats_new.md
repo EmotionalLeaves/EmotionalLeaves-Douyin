@@ -1,3 +1,9 @@
+## 1.7.8 — 2026-11-19
+Quicker video starts
+
+- Faster: the app connects to the next videos' servers before you reach them, so swiping to one skips the slow first handshake with a server on the other side of the world.
+- Faster: if a video server sends nothing at all, the app tries the next one after 3.5 seconds (it used to wait 8).
+
 ## 1.7.7 — 2026-11-19
 Subtitles in time, a faster app
 
