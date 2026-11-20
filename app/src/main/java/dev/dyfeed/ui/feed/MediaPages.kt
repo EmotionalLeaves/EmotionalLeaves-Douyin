@@ -173,7 +173,11 @@ fun VideoPage(
     var firstFrame by remember(item.key) { mutableStateOf(false) }
     // When this video came on screen and was asked to play (for StartTimes).
     var askedAt by remember(item.key) { mutableStateOf(0L) }
-    LaunchedEffect(play) { if (play && !firstFrame) askedAt = android.os.SystemClock.elapsedRealtime() }
+    LaunchedEffect(play) {
+        if (!play) return@LaunchedEffect
+        // Ready before you got here (prepared off screen): it started at once.
+        if (firstFrame) dev.dyfeed.player.StartTimes.add(0) else askedAt = android.os.SystemClock.elapsedRealtime()
+    }
     var error by remember(item.key) { mutableStateOf<String?>(null) }
     val stats = remember(item.key) { vm.statsFor(item.key) }
     val handsFree by HandsFree.on.collectAsState()
