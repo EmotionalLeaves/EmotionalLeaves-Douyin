@@ -40,3 +40,20 @@ object Hsk {
         runCatching { context.assets.open("learn/hsk.tsv").bufferedReader().useLines { HskTable.parse(it) } }.getOrDefault(HskTable(emptyMap()))
     }.also { table = it }
 }
+
+/** Tone practice: single beginner characters with one clear tone (1–4) to hear and name. */
+object TonePractice {
+    data class Round(val char: String, val syllable: String, val tone: Int)
+
+    /** [n] rounds from HSK 1–2 single characters with a toned reading, mixed so each tone comes up. */
+    fun rounds(dict: ZhDictionary, hsk: HskTable, n: Int = 10, random: kotlin.random.Random = kotlin.random.Random.Default): List<Round> {
+        val pool = (1..2).flatMap { lv -> hsk.next(lv, emptySet(), 2000) }.filter { it.length == 1 }.mapNotNull { c ->
+            val e = dict.lookup(c).firstOrNull() ?: return@mapNotNull null
+            val syl = e.pinyin.lowercase()
+            val tone = syl.lastOrNull()?.digitToIntOrNull()?.takeIf { it in 1..4 } ?: return@mapNotNull null
+            if (' ' in syl) null else Round(c, syl.dropLast(1), tone)
+        }
+        val byTone = pool.groupBy { it.tone }
+        return (0 until n).mapNotNull { i -> byTone[(i % 4) + 1]?.randomOrNull(random) }.shuffled(random)
+    }
+}

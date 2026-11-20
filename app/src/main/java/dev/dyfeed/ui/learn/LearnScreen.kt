@@ -76,13 +76,18 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     val due = remember(cards, now) { Srs.due(cards, now) }
     var reviewing by remember { mutableStateOf(LearnOpen.review.also { LearnOpen.review = false } && Srs.due(WordBook.cards.value, System.currentTimeMillis()).isNotEmpty()) }
     var quizzing by remember { mutableStateOf(false) }
+    var toning by remember { mutableStateOf(false) }
     var listFilter by remember { mutableStateOf(WORD_FILTERS.first()) }
     var query by remember { mutableStateOf("") }
     val pinyinOn by LearnPrefs.pinyin.collectAsState()
     // Read the dictionary in as soon as the screen opens, so lookups are instant.
     val dictReady by produceState(Dict.ready != null) { Dict.get(context); value = true }
 
-    AnimatedContent(if (reviewing) 1 else if (quizzing) 2 else 0, label = "learnMode") { mode ->
+    AnimatedContent(if (reviewing) 1 else if (quizzing) 2 else if (toning) 3 else 0, label = "learnMode") { mode ->
+        if (mode == 3) {
+            TonesTrainer(onDone = { toning = false })
+            return@AnimatedContent
+        }
         if (mode == 1) {
             Review(onDone = { reviewing = false; now = System.currentTimeMillis() })
             return@AnimatedContent
@@ -368,6 +373,23 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 }
             }
             item { Section("How it helps · 设置") }
+            // Tones: hear a syllable, name its tone.
+            item {
+                Row(
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.07f))
+                        .clickable { toning = true }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("ā á ǎ à", color = Accent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Tones · 声调", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Hear a syllable, pick its tone", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.65f))
+                    }
+                }
+            }
             // Pinyin over the feed's captions.
             item {
                 Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -611,6 +633,69 @@ private fun ListeningQuiz(onDone: () -> Unit) {
             enabled = picked != null,
             modifier = Modifier.fillMaxWidth().height(50.dp),
         ) { Text(if (index + 1 >= questions.size) "Finish" else "Next") }
+    }
+}
+
+/** Ten syllables said aloud; pick tone 1–4 for each (shown on the syllable itself: mā má mǎ mà). */
+@Composable
+private fun TonesTrainer(onDone: () -> Unit) {
+    val context = LocalContext.current
+    val rounds by produceState<List<dev.dyfeed.domain.learn.TonePractice.Round>?>(null) {
+        value = dev.dyfeed.domain.learn.TonePractice.rounds(Dict.get(context), dev.dyfeed.domain.learn.Hsk.get(context))
+    }
+    var index by remember { mutableStateOf(0) }
+    var picked by remember { mutableStateOf<Int?>(null) }
+    var right by remember { mutableStateOf(0) }
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        val list = rounds
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("声调 Tones · ${minOf(index + 1, list?.size ?: 0)}/${list?.size ?: 0}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onDone) { Icon(Icons.Filled.Close, contentDescription = "Stop") }
+        }
+        if (list == null) { Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }; return@Column }
+        val r = list.getOrNull(index)
+        if (r == null) {
+            Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text("$right of ${list.size}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(20.dp))
+                androidx.compose.material3.Button(onClick = onDone) { Text("Back to Learn") }
+            }
+            return@Column
+        }
+        LaunchedEffect(index) { Speak.say(context, r.char) }
+        Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            IconButton(onClick = { Speak.say(context, r.char) }, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(48.dp)).background(Accent.copy(alpha = 0.18f))) {
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again", tint = Accent, modifier = Modifier.size(48.dp))
+            }
+            Spacer(Modifier.height(14.dp))
+            if (picked != null) {
+                Text(r.char, fontSize = 48.sp, fontWeight = FontWeight.Bold)
+                Text(Pinyin.marks(r.syllable + r.tone), color = toneColor(r.tone), fontSize = 22.sp)
+            }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            (1..4).forEach { t ->
+                val bg = when {
+                    picked == null -> Color.White.copy(alpha = 0.07f)
+                    t == r.tone -> Color(0xFF34D399).copy(alpha = 0.3f)
+                    t == picked -> Color(0xFFF87171).copy(alpha = 0.3f)
+                    else -> Color.White.copy(alpha = 0.04f)
+                }
+                Column(
+                    Modifier.weight(1f).height(72.dp).clip(RoundedCornerShape(14.dp)).background(bg)
+                        .clickable(enabled = picked == null) { picked = t; if (t == r.tone) right++ },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    Text(Pinyin.marks(r.syllable + t), color = toneColor(t), fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("$t", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.Button(onClick = { picked = null; index++ }, enabled = picked != null, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+            Text(if (index + 1 >= list.size) "Finish" else "Next")
+        }
     }
 }
 

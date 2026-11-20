@@ -182,4 +182,15 @@ class LearnTest {
         assertEquals(listOf("个 ge4", "位 wei4"), d.lookup("人").first().measures)
         assertTrue(d.lookup("好").first().measures.isEmpty())
     }
+
+    @Test
+    fun `tone practice gives each tone, from beginner characters`() {
+        val hsk = dev.dyfeed.domain.learn.HskTable.parse(sequenceOf("我\t1\t1\t3", "吃\t1\t1\t50", "好\t1\t1\t20", "你\t1\t1\t2", "喜欢\t1\t1\t139", "了\t1\t1\t5"))
+        val d = ZhDictionary.parse(sequenceOf("我\t\two3\tI", "吃\t\tchi1\teat", "好\t\thao3\tgood", "你\t\tni3\tyou", "喜欢\t\txi3 huan5\tlike", "了\t\tle5\tparticle", "是\t\tshi4\tbe"))
+        val rounds = dev.dyfeed.domain.learn.TonePractice.rounds(d, hsk, 8, kotlin.random.Random(3))
+        assertTrue(rounds.isNotEmpty())
+        assertTrue(rounds.all { it.char.length == 1 && it.tone in 1..4 })
+        assertTrue(rounds.none { it.char == "了" }) // neutral tone: nothing to name
+        assertEquals(setOf(1, 3), rounds.map { it.tone }.toSet()) // only tones these characters have
+    }
 }
