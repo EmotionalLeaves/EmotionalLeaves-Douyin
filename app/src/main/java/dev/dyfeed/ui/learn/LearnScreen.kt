@@ -22,6 +22,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
@@ -359,6 +360,16 @@ private fun Review(onDone: () -> Unit) {
             return@Column
         }
         LaunchedEffect(card.word) { Speak.say(context, card.word) }
+        // Say it: the phone's Mandarin recogniser listens, and says whether it heard this word.
+        var heard by remember(card.word) { mutableStateOf<String?>(null) }
+        val sayIt = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+            val said = r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS).orEmpty()
+            heard = when {
+                said.isEmpty() -> null
+                said.any { it.replace(Regex("""[\s，。！？,.!?]"""), "").contains(card.word) } -> "✓ 对了! That sounded right"
+                else -> "Heard: ${said.first()}"
+            }
+        }
         Column(
             Modifier.fillMaxWidth().weight(1f).clip(RoundedCornerShape(24.dp))
                 .background(Brush.verticalGradient(listOf(Color(0xFF26222E), Color(0xFF17151C))))
@@ -375,7 +386,21 @@ private fun Review(onDone: () -> Unit) {
                 color = Color.White,
                 textAlign = androidx.compose.ui.text.style.TextAlign.Center,
             )
-            IconButton(onClick = { Speak.say(context, card.word) }) { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again") }
+            Row {
+                IconButton(onClick = { Speak.say(context, card.word) }) { Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again") }
+                IconButton(onClick = {
+                    runCatching {
+                        sayIt.launch(
+                            android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "说: ${card.word}"),
+                        )
+                    }
+                }) { Icon(Icons.Filled.Mic, contentDescription = "Say it yourself") }
+            }
+            heard?.let { Text(it, color = if (it.startsWith("✓")) Color(0xFF34D399) else Color(0xFFFBBF24), style = MaterialTheme.typography.labelLarge) }
             if (shown) {
                 Text(card.english, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.9f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 card.example?.let {
