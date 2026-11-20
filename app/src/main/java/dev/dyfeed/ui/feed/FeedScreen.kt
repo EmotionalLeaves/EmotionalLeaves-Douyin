@@ -524,6 +524,7 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
             showing = vm.showing.collectAsStateWithLifecycle().value,
             onShowing = if (vm.isMainFeed) vm::setShowing else null,
             onAskSteer = if (vm.isMainFeed) ({ steerOpen = true }) else null,
+            onSteer = if (vm.isMainFeed) ({ words: String -> vm.steer(words); vm.setMode(FeedMode.FOR_YOU) }) else null,
             onThisOrThat = if (vm.isMainFeed) ({ thisOrThat = true }) else null,
             onBack = if (!vm.isMainFeed) ({ nav.popBackStack(); Unit }) else null,
             followTag = vm.tag?.let { t -> (t to vm.isFollowingPage(t, follows)) },
@@ -939,6 +940,8 @@ private fun TopBar(
     onShowing: ((FeedViewModel.Showing) -> Unit)? = null,
     /** Main feed: tell For You what you want in words. */
     onAskSteer: (() -> Unit)? = null,
+    /** One-tap steers (memes, learning): the words to steer by. */
+    onSteer: ((String) -> Unit)? = null,
     /** Main feed: quick this-or-that choices that teach For You. */
     onThisOrThat: (() -> Unit)? = null,
     onBack: (() -> Unit)?,
@@ -1013,6 +1016,23 @@ private fun TopBar(
                                             leadingIcon = { Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Accent) },
                                             onClick = { moodOpen = false; onAskSteer() },
                                         )
+                                    }
+                                    if (onSteer != null) {
+                                        // One tap: For You leans this way for the next few hours.
+                                        listOf(
+                                            Triple("Funny & memes · 搞笑", "More 搞笑, 沙雕, 梗图, 段子", "more 搞笑, more 沙雕, more 梗图, more 段子"),
+                                            Triple("Learning Chinese · 学中文", "More videos made for learners", "more 学中文, more 汉语, more 日常口语"),
+                                        ).forEach { (title, note, words) ->
+                                            androidx.compose.material3.DropdownMenuItem(
+                                                text = {
+                                                    Column {
+                                                        Text(title, fontWeight = FontWeight.Bold)
+                                                        Text(note, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                                                    }
+                                                },
+                                                onClick = { moodOpen = false; onSteer(words) },
+                                            )
+                                        }
                                     }
                                     if (onThisOrThat != null) {
                                         androidx.compose.material3.DropdownMenuItem(
