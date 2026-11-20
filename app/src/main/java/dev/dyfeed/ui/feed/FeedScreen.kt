@@ -504,7 +504,14 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
 
         val cleanOn by CleanScreen.on.collectAsStateWithLifecycle()
         if (!landscape && !wallMode && !cleanOn && !Pip.active.collectAsStateWithLifecycle().value) TopBar(
-            title = vm.tag?.let { if (it.startsWith("@")) it else "#" + it.replace('_', ' ') } ?: vm.viewerTitle,
+            // A Chinese topic's page says what it means: #学中文 · chinese for learners.
+            title = vm.tag?.let { t ->
+                if (t.startsWith("@")) t else {
+                    val hinted = dev.dyfeed.data.settings.SourceCatalog.label(t)
+                    val en = dev.dyfeed.ui.common.rememberEnglish(t.takeIf { hinted == t }, force = true)
+                    "#" + (en?.let { "$t · ${it.lowercase()}" } ?: hinted).replace('_', ' ')
+                }
+            } ?: vm.viewerTitle,
             showModes = vm.isMainFeed,
             mode = mode,
             onMode = { m ->
