@@ -35,7 +35,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
-/** On-phone reading of Chinese text in a picture (ML Kit, through Play services). */
+/** On-phone reading of Chinese text in a picture (ML Kit, its model inside the app: works at once, offline, without Play services). */
 internal object Reader {
     val client by lazy { TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) }
 

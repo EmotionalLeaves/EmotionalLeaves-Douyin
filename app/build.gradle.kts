@@ -71,6 +71,9 @@ android {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debug")
             matchingFallbacks += listOf("release")
+            // Phones are 64-bit ARM; x86_64 only so the test emulator can run it. Leaving out the
+            // two 32-bit builds of the translation, text-reading and database libraries halves the APK.
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         }
     }
 

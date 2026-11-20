@@ -284,9 +284,15 @@ class SearchViewModel @Inject constructor(
         topics.forEach { topic ->
             viewModelScope.launch {
                 val blocklist = runCatching { blocks.current() }.getOrNull()
-                val found = runCatching { douyin.search(topic, null).items }.getOrDefault(emptyList())
-                    .filter { it.thumbnailUrl != null && (blocklist?.allows(it) != false) }
+                fun usable(list: List<MediaItem>) = list.filter { it.thumbnailUrl != null && (blocklist?.allows(it) != false) }
                     .distinctBy { it.title?.lowercase() ?: it.key }
+                // At once: posts already seen that match (the remembered index), so the row shows
+                // without waiting on a search; then what searching Douyin finds, added to it.
+                val known = usable(kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    (douyin as? dev.dyfeed.source.douyin.DouyinAdapter)?.loadedMatching(topic).orEmpty()
+                }).take(12)
+                if (known.size >= 4) _topicRows.update { rows -> (rows.filterNot { it.first == topic } + (topic to known)).sortedBy { topics.indexOf(it.first) } }
+                val found = usable(known + runCatching { douyin.search(topic, null).items }.getOrDefault(emptyList()))
                 // Best for you first: what you like, near your tastes, nothing like what you turned down.
                 val items = runCatching {
                     val aff = signals.affinities()
@@ -300,7 +306,7 @@ class SearchViewModel @Inject constructor(
                         }
                     }
                 }.getOrDefault(found).take(12)
-                if (items.size >= 4) _topicRows.update { rows -> (rows + (topic to items)).sortedBy { topics.indexOf(it.first) } }
+                if (items.size >= 4) _topicRows.update { rows -> (rows.filterNot { it.first == topic } + (topic to items)).sortedBy { topics.indexOf(it.first) } }
             }
         }
     }
