@@ -1,3 +1,11 @@
+## 1.7.2 — 2026-11-19
+Subtitles in English from the first video
+
+- Fixed: Translate what's said now reads subtitles with a model built into the app, so it works from the first video, offline, without waiting for Google to download it.
+- Smaller download: 79 MB instead of 93 MB (64-bit phones only, which is every recent phone).
+- Faster: on Wi-Fi the next four videos start downloading before you reach them; Search's topic rows appear at once from posts you've already seen.
+- Words: meanings no longer cut off mid-word.
+
 ## 1.7.1 — 2026-11-19
 Learn, ready to use
 

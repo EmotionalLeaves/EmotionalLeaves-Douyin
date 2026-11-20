@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.2 — 2026-11-19
+- Bundled ML Kit Chinese text recognition (the Play-services module read nothing on first use in the emulator run).
+- Sideload/release APK: arm64-v8a + x86_64 only (93 → 79 MB).
+- Preload 4 videos ahead on unmetered networks; Search topic rows from the remembered index first.
+
 ## 1.7.1 — 2026-11-19
 - Fix: AGP unpacks .gz assets, so the dictionary is learn/zh_en.tsv in the APK; Dict reads either and never throws.
 - Sentence cards, seo_info.ocr_content as "What's said in it", review streak.
