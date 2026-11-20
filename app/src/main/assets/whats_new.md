@@ -6,6 +6,8 @@ Words, closer up
 - New: tap any word in the line at the top of 词 Words to hear it.
 - New: an English search says the Chinese it searched for, with pinyin; tap it for its words.
 - Fixed: in wide videos, the English for what's said sits just above the subtitle, not off to one side of the picture.
+- New: a comments button on the side, with Douyin's count, opening straight into the comments.
+- The feed's tabs carry Douyin's names (关注 Following, 推荐 For You); topic pages say what the topic means.
 
 ## 1.7.3 — 2026-11-19
 Practise with your words
