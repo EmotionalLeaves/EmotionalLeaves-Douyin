@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.6 — 2026-11-19
+- autoTranslate default on, migrated once (learnDefaultsVersion); review example highlights the word; README learning section.
+
 ## 1.7.5 — 2026-11-19
 - Heard (live subtitle lines, 300 kept, Forget hook, incognito-aware) feeds Frequent; pinyin in comments; top tabs: Chinese name beside the English.
 

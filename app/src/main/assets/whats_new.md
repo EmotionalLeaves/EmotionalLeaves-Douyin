@@ -1,3 +1,9 @@
+## 1.7.6 — 2026-11-19
+English on screen by default
+
+- Chinese on screen now shows in English by default: captions, tags, comments, trending and search results (Settings → Playback → Show Chinese in English turns it off; if you turn it off, it stays off).
+- Review cards pick out the word in the line you met it in.
+
 ## 1.7.5 — 2026-11-19
 Learning from what's said
 
