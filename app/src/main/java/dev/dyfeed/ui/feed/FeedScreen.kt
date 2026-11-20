@@ -1740,11 +1740,12 @@ private fun Overlay(
                         }
                     }
                     if (showing) {
+                        // Three lines at most over the video (on by default now); the rest via 词 Words or Translate.
                         Text(
                             english ?: "Translating…",
                             color = Color.White.copy(alpha = 0.92f),
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            maxLines = 6,
+                            maxLines = 3,
                             overflow = TextOverflow.Ellipsis,
                             style = MaterialTheme.typography.bodyMedium.shadowed(),
                         )
