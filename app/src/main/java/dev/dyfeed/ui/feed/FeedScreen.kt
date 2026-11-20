@@ -979,12 +979,13 @@ private fun TopBar(
                         // Measured on this wrapper, whose parent is the row the bar slides along (the
                         // tab itself sits at 0 inside it, which put every tab's centre in the same place).
                         Box(Modifier.onGloballyPositioned { c -> centers[m] = c.positionInParent().x + c.size.width / 2f }) {
-                          Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // Douyin's own names for the two, small above: 关注 Following, 推荐 For You.
+                          Row(verticalAlignment = Alignment.CenterVertically) {
+                            // Douyin's own names for the two, small beside: 关注 Following, 推荐 For You.
                             Text(
                                 if (m == FeedMode.FOLLOWING) "关注" else "推荐",
                                 color = Color.White.copy(alpha = if (m == mode) 0.85f else 0.5f),
-                                style = MaterialTheme.typography.labelSmall.shadowed(),
+                                style = MaterialTheme.typography.labelMedium.shadowed(),
+                                modifier = Modifier.padding(end = 4.dp),
                             )
                             ModeTab(
                                 label,

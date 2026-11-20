@@ -1,3 +1,10 @@
+## 1.7.5 — 2026-11-19
+Learning from what's said
+
+- Better: Words you keep hearing now counts the subtitle lines read while you watch, not only captions (cleared with your history; nothing kept in private mode).
+- New: comments show pinyin too when Pinyin over captions is on.
+- Fixed: the feed's tabs (推荐 For You, 关注 Following) no longer get cut off.
+
 ## 1.7.4 — 2026-11-19
 Words, closer up
 

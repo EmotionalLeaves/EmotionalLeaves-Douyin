@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.5 — 2026-11-19
+- Heard (live subtitle lines, 300 kept, Forget hook, incognito-aware) feeds Frequent; pinyin in comments; top tabs: Chinese name beside the English.
+
 ## 1.7.4 — 2026-11-19
 - Per-character glosses, tap-to-hear ruby, Chinese-used hint on English searches, live-subtitle y mapped through the fitted video band.
 
