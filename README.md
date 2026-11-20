@@ -2,6 +2,8 @@
 
 A private, sideloaded Android app that plays **Douyin (抖音, China's TikTok)** in one vertical swipe feed, with recommendations re-learned on the phone. Cloned from Feed, with every adult source taken out. No accounts needed, no backend, no analytics.
 
+It also teaches Chinese from what you watch: subtitles in a video are read off the picture and shown in English as they're said, every caption and comment can be taken apart word by word (pinyin, meaning, a voice), and the 学习 Learn tab keeps your words with spaced review, a listening quiz, trending words and videos for learners.
+
 - **Stack:** Kotlin, Jetpack Compose (Material 3), Hilt, Room + SQLCipher, OkHttp/kotlinx.serialization, Media3 ExoPlayer, Coil, WorkManager, Android WebView.
 - **Min SDK 26 / target SDK 36.** App id `dev.dyfeed` (installs next to Feed).
 
@@ -18,7 +20,18 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 | Comments | `/aweme/v1/web/comment/list/` |
 | Shared links | `v.douyin.com/…` → `iesdouyin.com/share/video/<id>/` (public page, no signature) |
 
-If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → 抖音 Douyin** (top of Settings; Sign out is there too) opens the real site, and anything you do there (the check, signing in) carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
+## Learning Chinese
+
+| Piece | How |
+|---|---|
+| Translate what's said | ML Kit Chinese text recognition (bundled) on the playing frame's lower half every 0.7 s (`ui/learn/LiveSubtitles.kt`); `LiveSubs.pick` finds the subtitle line; ML Kit Translate (on the phone) |
+| Show Chinese in English | ML Kit Translate zh→en for captions, tags, sounds, comments, trending, search results; en→zh for English searches (`domain/lang/Translators.kt`) |
+| Words | CC-CEDICT (MDBG, CC BY-SA 4.0) bundled as `assets/learn/zh_en.tsv.gz`; forward/backward maximum matching (`domain/learn/Dictionary.kt`); pinyin tone marks (`Pinyin.kt`); Android text-to-speech |
+| Review | SM-2-style spacing, listening quiz, streak (`domain/learn/WordBook.kt`); word list shared as TSV and kept in backups |
+
+No account is needed (Douyin accounts need a Chinese phone number).
+
+If the feed stops loading, Douyin probably wants a "verify you're human" check: **Settings → 抖音 Douyin** (top of Settings) opens the real site; pass the check there and it carries over. Video addresses expire after a few hours, so older saved posts are looked up again before playing.
 
 This depends on Douyin's website, which can change without notice. When it does, `DouyinWeb.kt` (the request) and `DouyinParser.kt` (the answer) are the two places to look.
 
