@@ -154,4 +154,15 @@ class LearnTest {
         assertEquals("dou1", d.lookup("都").first().pinyin)
         assertEquals("hao3", d.lookup("好").first().pinyin) // already right: order kept
     }
+
+    @Test
+    fun `hsk levels and the next words to learn, commonest first`() {
+        val t = dev.dyfeed.domain.learn.HskTable.parse(sequenceOf("喜欢\t1\t1\t139", "你好\t1\t1\t900", "我\t1\t1\t3", "火锅\t7\t\t15037"))
+        assertEquals(1, t.level("喜欢"))
+        assertEquals(7, t.level("火锅"))
+        assertEquals(listOf("我", "喜欢"), t.next(1, setOf("你好"), 5))
+        val real = dev.dyfeed.domain.learn.HskTable.parse(java.io.File(listOf("src/main/assets/learn/hsk.tsv", "app/src/main/assets/learn/hsk.tsv").first { java.io.File(it).exists() }).readLines().asSequence())
+        assertEquals(1, real.level("喜欢"))
+        assertTrue(real.count(1) in 400..600)
+    }
 }

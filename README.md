@@ -27,6 +27,7 @@ Douyin's web API (`www.douyin.com/aweme/v1/web/…`) only answers requests signe
 | Translate what's said | ML Kit Chinese text recognition (bundled) on the playing frame's lower half every 0.7 s (`ui/learn/LiveSubtitles.kt`); `LiveSubs.pick` finds the subtitle line; ML Kit Translate (on the phone) |
 | Show Chinese in English | ML Kit Translate zh→en for captions, tags, sounds, comments, trending, search results; en→zh for English searches (`domain/lang/Translators.kt`) |
 | Words | CC-CEDICT (MDBG, CC BY-SA 4.0) bundled as `assets/learn/zh_en.tsv.gz`; forward/backward maximum matching (`domain/learn/Dictionary.kt`); pinyin tone marks (`Pinyin.kt`); Android text-to-speech |
+| HSK | Levels and frequency ranks from Complete HSK Vocabulary (drkameleon, MIT) in `assets/learn/hsk.tsv` (`domain/learn/Hsk.kt`) |
 | Review | SM-2-style spacing, listening quiz, streak (`domain/learn/WordBook.kt`); word list shared as TSV and kept in backups |
 
 No account is needed (Douyin accounts need a Chinese phone number).

@@ -43,6 +43,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import dev.dyfeed.domain.learn.Dict
+import dev.dyfeed.domain.learn.Hsk
 import dev.dyfeed.domain.learn.Entry
 import dev.dyfeed.domain.learn.Pinyin
 import dev.dyfeed.domain.learn.Token
@@ -65,7 +66,7 @@ fun toneColor(tone: Int): Color = when (tone) {
 @Composable
 fun WordsSheet(text: String, onDismiss: () -> Unit) {
     val context = LocalContext.current
-    val tokens by produceState<List<Token>?>(null, text) { value = Dict.get(context).segment(text) }
+    val tokens by produceState<List<Token>?>(null, text) { Hsk.get(context); value = Dict.get(context).segment(text) }
     val saved by WordBook.cards.collectAsState()
     val savedWords = saved.mapTo(HashSet()) { it.word }
     val speechProblem by Speak.problem.collectAsState()
@@ -183,7 +184,13 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
         Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable(onClick = onSpeak).padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(word, fontSize = 26.sp, color = Color.White, modifier = Modifier.width(if (word.length <= 2) 72.dp else 104.dp))
+        Column(Modifier.width(if (word.length <= 2) 72.dp else 104.dp)) {
+            Text(word, fontSize = 26.sp, color = Color.White)
+            // Its HSK level: how early learners meet it (1 = first words).
+            Hsk.ready?.level(word)?.let { lv ->
+                Text(if (lv >= 7) "HSK 7–9" else "HSK $lv", style = MaterialTheme.typography.labelSmall, color = if (lv <= 2) Color(0xFF34D399) else if (lv <= 4) Color(0xFFFFB547) else Color.White.copy(alpha = 0.5f))
+            }
+        }
         Column(Modifier.weight(1f)) {
             entries.take(3).forEach { e ->
                 Text(e.pinyinMarks, color = toneColor(Pinyin.tones(e.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)

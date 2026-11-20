@@ -233,6 +233,33 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     }
                 }
             }
+            // Start with the words learners learn first (HSK), the commonest first, ten at a time.
+            item {
+                val hsk by produceState<dev.dyfeed.domain.learn.HskTable?>(dev.dyfeed.domain.learn.Hsk.ready) { value = dev.dyfeed.domain.learn.Hsk.get(context) }
+                val table = hsk
+                if (table != null && dictReady) Column {
+                    Section("Learn the basics · HSK 汉语水平考试")
+                    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        (1..3).forEach { lv ->
+                            val have = cards.mapTo(HashSet()) { it.word }
+                            val total = remember(table) { table.count(lv) }
+                            val known = remember(cards, table) { have.count { table.level(it) == lv } }
+                            Column(
+                                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f))
+                                    .clickable {
+                                        val d = Dict.ready ?: return@clickable
+                                        table.next(lv, have, 10).forEach { w -> d.lookup(w).firstOrNull()?.let { WordBook.add(it, example = null) } }
+                                    }
+                                    .padding(12.dp),
+                            ) {
+                                Text("HSK $lv", fontWeight = FontWeight.Bold)
+                                Text("$known of $total saved", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
+                                Text("+ 10 words", style = MaterialTheme.typography.labelMedium, color = Accent, fontWeight = FontWeight.Bold)
+                            }
+                        }
+                    }
+                }
+            }
             item { Section("Dictionary · 词典") }
             item {
                 OutlinedTextField(
@@ -338,7 +365,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
             }
             item {
                 Text(
-                    "Dictionary: CC-CEDICT (MDBG, CC BY-SA 4.0). Voice: your phone's text-to-speech. Translation: Google ML Kit, on the phone.",
+                    "Dictionary: CC-CEDICT (MDBG, CC BY-SA 4.0). HSK lists: Complete HSK Vocabulary (drkameleon, MIT). Voice: your phone's text-to-speech. Translation: Google ML Kit, on the phone.",
                     style = MaterialTheme.typography.labelSmall,
                     color = Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.padding(20.dp),
