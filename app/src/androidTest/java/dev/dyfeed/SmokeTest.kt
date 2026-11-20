@@ -493,7 +493,7 @@ class SmokeTest {
         // Settings → Check sources, as you'd run it after using the app a little: how long it takes.
         val t0 = System.currentTimeMillis()
         val checked = runCatching { runBlocking { rule.activity.sourceChecker.check(douyin) } }
-        android.util.Log.i("PFHEALTH", "douyin check sources: ${System.currentTimeMillis() - t0} ms: " + checked.fold({ "${it.ok} ${it.detail}" }, { "error ${it.message}" }))
+        android.util.Log.i("PFHEALTH", "douyin check sources: ${System.currentTimeMillis() - t0} ms: " + checked.fold({ "${it.ok} ${it.detail}" }, { "error ${it.message}" }) + " | quick: ${rule.activity.sourceChecker.lastQuick}")
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }

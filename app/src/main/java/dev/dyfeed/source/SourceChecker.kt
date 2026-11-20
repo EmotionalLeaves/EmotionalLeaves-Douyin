@@ -63,18 +63,24 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
     }
 
     private suspend fun quickDouyin(a: dev.dyfeed.source.douyin.DouyinAdapter): Result? = kotlinx.coroutines.coroutineScope {
+        val t0 = System.currentTimeMillis()
         val ready = withContext(kotlinx.coroutines.Dispatchers.IO) { a.readyPosts(3) }
-        if (ready.isEmpty()) return@coroutineScope null
+        if (ready.isEmpty()) { lastQuick = "no posts with live addresses in hand"; return@coroutineScope null }
         val answers = async { withTimeoutOrNull(QUICK_SIGNED_MS) { runCatching { a.trending() }.getOrDefault(emptyList()) } }
         val loads = ready.mapNotNull { it.extras["media"] }.map { url -> async { withTimeoutOrNull(QUICK_FILE_MS) { http.reachable(url) } == true } }
         val fileOk = loads.awaitAll().any { it }
         val douyinOk = !answers.await().isNullOrEmpty()
+        lastQuick = "${ready.size} ready, files ${if (fileOk) "load" else "didn't load"}, Douyin ${if (douyinOk) "answered" else "didn't answer"}, ${System.currentTimeMillis() - t0} ms"
         when {
             fileOk && douyinOk -> Result(true, "Working: ${a.knownCount()} posts, files load")
             fileOk -> Result(true, "Videos load; Douyin is slow to answer right now (the feed may take a moment)")
             else -> null // not sure: do the full check
         }
     }
+
+    /** What the quick Douyin check found last time (for the health test). */
+    @Volatile var lastQuick: String = "not run"
+        private set
 
     companion object {
         private const val PROBE_QUERY = "美食"
