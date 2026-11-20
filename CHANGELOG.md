@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.9 — 2026-11-20
+- wakeTimers uses the existing page (throwaway WebView only if none); Heard writes on a background executor; caption English max 3 lines; CI prints the ANR main-thread trace.
+
 ## 1.7.8 — 2026-11-19
 - Preloader.connect (1-byte open per host, once a minute) for the next videos; SILENT_TIMEOUT_MS 3.5 s when nothing is buffered; StartTimes health metric (instant starts count as 0).
 

@@ -183,7 +183,7 @@ class DouyinWeb @Inject constructor(
     private suspend fun <T> awake(block: suspend () -> T): T {
         users.incrementAndGet()
         pauseJob?.cancel()
-        if (timersPaused) withContext(Dispatchers.Main) { wakeTimers(context) }
+        if (timersPaused) withContext(Dispatchers.Main) { wakeTimers(context, web ?: searchWeb) }
         try {
             return block()
         } finally {
@@ -436,12 +436,15 @@ class DouyinWeb @Inject constructor(
         @Volatile var timersPaused = false
             private set
 
-        /** Wakes every web view in the app (any instance does it; a throwaway one if none is at hand). Main thread. */
-        fun wakeTimers(context: Context) {
+        /**
+         * Wakes every web view in the app. Any instance does it, so [existing] is used when there is
+         * one; only if there's none is a throwaway one made (making a web view costs the main
+         * thread a lot, so not on every request). Main thread.
+         */
+        fun wakeTimers(context: Context, existing: WebView? = null) {
             if (!timersPaused) return
-            val tmp = WebView(context.applicationContext)
-            tmp.resumeTimers()
-            tmp.destroy()
+            if (existing != null) existing.resumeTimers()
+            else WebView(context.applicationContext).apply { resumeTimers(); destroy() }
             timersPaused = false
         }
 

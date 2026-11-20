@@ -1,3 +1,10 @@
+## 1.7.9 — 2026-11-20
+Smoother
+
+- Smoother: waking the hidden Douyin page for each request no longer builds a throwaway web view on the main thread (a hitch that could freeze the screen for a moment when the phone was busy).
+- Smoother: lines heard in subtitles are saved in the background, not while the video draws.
+- Caption English shows three lines at most over the video.
+
 ## 1.7.8 — 2026-11-19
 Quicker video starts
 

@@ -170,6 +170,7 @@ object LearnBoost {
 /** Subtitle lines heard in videos lately (read live), kept on the phone for "Words you keep hearing". */
 object Heard {
     private const val MAX = 300
+    private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val _lines = MutableStateFlow<List<String>>(emptyList())
     val lines: StateFlow<List<String>> = _lines
     @Volatile private var file: java.io.File? = null
@@ -187,7 +188,9 @@ object Heard {
         val l = line.trim().replace('\n', ' ')
         if (l.isEmpty() || _lines.value.lastOrNull() == l) return
         _lines.value = (_lines.value + l).takeLast(MAX)
-        file?.let { f -> runCatching { f.writeText(_lines.value.joinToString("\n")) } }
+        // Off the main thread: this runs as subtitles come up, during playback.
+        val snapshot = _lines.value
+        file?.let { f -> writer.execute { runCatching { f.writeText(snapshot.joinToString("\n")) } } }
     }
 
     fun clear() { _lines.value = emptyList(); file?.delete() }
