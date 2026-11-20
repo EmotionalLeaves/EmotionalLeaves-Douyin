@@ -154,6 +154,11 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
                 Text(e.pinyinMarks, color = toneColor(Pinyin.tones(e.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
                 Text(e.english, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
+            // Each character's own meaning: 火 fire · 锅 pot (how the word is built).
+            if (word.length in 2..4) Dict.ready?.let { d ->
+                val parts = word.map { c -> d.lookup(c.toString()).firstOrNull()?.let { e -> "$c ${e.english.substringBefore(';').substringBefore('(').trim().take(18)}" } }
+                if (parts.all { it != null }) Text(parts.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFD58A).copy(alpha = 0.8f))
+            }
             if (entries.firstOrNull()?.traditional?.let { it != word } == true) {
                 Text("Traditional: ${entries.first().traditional}", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.45f))
             }
