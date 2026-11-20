@@ -59,6 +59,7 @@ object Srs {
 
 /** Your saved words, kept on the phone (learn_words.json in the app's own storage). */
 object WordBook {
+    private val writer = java.util.concurrent.Executors.newSingleThreadExecutor()
     private val json = Json { ignoreUnknownKeys = true }
     @Volatile private var file: java.io.File? = null
     private val _cards = MutableStateFlow<List<Card>>(emptyList())
@@ -110,7 +111,8 @@ object WordBook {
         val today = today(now)
         if (today !in _days.value) {
             _days.value = (_days.value + today).sortedDescending().take(400).toSet()
-            daysFile?.let { f -> runCatching { f.writeText(_days.value.joinToString("\n")) } }
+            val days = _days.value
+            daysFile?.let { f -> writer.execute { runCatching { f.writeText(days.joinToString("\n")) } } }
         }
     }
 
@@ -122,7 +124,8 @@ object WordBook {
         _cards.value = next
         LearnBoost.words = next.map { it.word }.filter { it.length in 2..6 }.toSet()
         val f = file ?: return
-        runCatching { f.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Card.serializer()), next)) }
+        // In the background, in order (saves often follow taps on the main thread).
+        writer.execute { runCatching { f.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Card.serializer()), next)) } }
     }
 }
 
