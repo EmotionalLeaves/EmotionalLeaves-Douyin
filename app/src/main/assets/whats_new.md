@@ -1,3 +1,8 @@
+## 1.7.13 — 2026-11-20
+Pause after each line
+
+- New: Pause after each line (Learn, or 我 Me → 学习 Learn). The video stops when a subtitle line ends, with its English (and pinyin, if on) left up to read. Tap "go on", or the video, to carry on.
+
 ## 1.7.12 — 2026-11-20
 我 Me, at a glance
 

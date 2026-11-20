@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.13 — 2026-11-20
+- LearnPrefs.autoPause: LiveSubtitles pauses the player when a line ends or changes, keeping the ended line's English up.
+
 ## 1.7.12 — 2026-11-20
 - LearnCard on the Me page; bilingual screen and section titles.
 
