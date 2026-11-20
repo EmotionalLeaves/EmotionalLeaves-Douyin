@@ -166,13 +166,15 @@ class SmokeTest {
             return "java ${(rt.totalMemory() - rt.freeMemory()) / 1_048_576} MB, native ${android.os.Debug.getNativeHeapAllocatedSize() / 1_048_576} MB"
         }
         android.util.Log.i("PFHEALTH", "feed: memory after ${swipes} swipes: ${mem()}")
-        repeat(45) { swipeUpGesture(); repeat(6) { rule.mainClock.advanceTimeBy(250); Thread.sleep(120) } }
-        android.util.Log.i("PFHEALTH", "feed: memory after ${swipes + 45} swipes: ${mem()}")
-        android.util.Log.i("PFHEALTH", "feed: video start (fast swiping) ${dev.dyfeed.player.StartTimes.summary()}")
-        // As people watch: a few seconds on each video before the next.
+        // As people watch (while the feed still has posts): a few seconds on each before the next.
+        android.util.Log.i("PFHEALTH", "feed: video start (first swipes) ${dev.dyfeed.player.StartTimes.summary()}")
         dev.dyfeed.player.StartTimes.clear()
         repeat(8) { swipeUpGesture(); repeat(16) { rule.mainClock.advanceTimeBy(250); Thread.sleep(250) } }
         android.util.Log.i("PFHEALTH", "feed: video start (watching) ${dev.dyfeed.player.StartTimes.summary()}")
+        dev.dyfeed.player.StartTimes.clear()
+        repeat(45) { swipeUpGesture(); repeat(6) { rule.mainClock.advanceTimeBy(250); Thread.sleep(120) } }
+        android.util.Log.i("PFHEALTH", "feed: memory after ${swipes + 45} swipes: ${mem()}")
+        android.util.Log.i("PFHEALTH", "feed: video start (fast swiping) ${dev.dyfeed.player.StartTimes.summary()}")
         val events = rule.activity.mediaHealth.recentEvents()
         events.forEach { android.util.Log.i("PFHEALTH", "  feed $it") }
         android.util.Log.i("PFHEALTH", "feed: ${shown.get()} shown after ${swipes + 45} swipes, " +
@@ -514,6 +516,8 @@ class SmokeTest {
         waitFor(timeoutMs = 20_000, what = "words sheet") { exists("词 Words") && exists("to like", substring = true) }
         shot("11_words")
         dev.dyfeed.ui.learn.LearnWords.request.value = null
+        // Let the sheet finish closing first (a tap during its exit lands on its scrim).
+        waitFor(what = "words sheet closed") { !exists("Listen") }
         tab("Learn")
         waitFor(what = "learn screen") { exists("学习 Learn") }
         shot("12_learn")
