@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,6 +67,8 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
     var chinese by remember { mutableStateOf<String?>(null) }
     var english by remember { mutableStateOf<String?>(null) }
     var lineY by remember { mutableStateOf(0.7f) }
+    /** Where the line on screen began (ms into the video), to hear it again. */
+    var lineStart by remember { mutableStateOf(-1L) }
     var viewH by remember { mutableStateOf(0) }
     LaunchedEffect(player, playerView, active, on) {
         chinese = null; english = null
@@ -84,7 +88,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 // Known already (a loop): show it from memory.
                 val known = cues.firstOrNull { it.end > it.start && pos in it.start..it.end }
                 if (known != null) {
-                    if (chinese != known.zh) { chinese = known.zh; english = known.en; lineY = known.y }
+                    if (chinese != known.zh) { chinese = known.zh; english = known.en; lineY = known.y; lineStart = known.start }
                     continue
                 }
                 val surface = playerView.videoSurfaceView as? android.view.SurfaceView ?: continue
@@ -131,7 +135,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 current?.let { it.end = pos }
                 dev.dyfeed.domain.learn.Heard.add(line)
                 // The new line at once (the old English never sits under a new line), English as soon as it's in.
-                chinese = line; lineY = y
+                chinese = line; lineY = y; lineStart = pos
                 english = dev.dyfeed.domain.lang.ChineseToEnglish.cached(line)
                 val cue = Cue(pos, pos, line, english, y)
                 current = cue
@@ -167,7 +171,17 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 .padding(horizontal = 12.dp, vertical = 6.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
-            Text(en, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
+            androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(en, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
+                // Hear this line again: back to where it began.
+                if (lineStart >= 0) androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Filled.Replay,
+                    contentDescription = "Hear this line again",
+                    tint = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(start = 8.dp).size(22.dp).clip(RoundedCornerShape(11.dp))
+                        .clickable { player?.seekTo((lineStart - REPLAY_LEAD_MS).coerceAtLeast(0L)) },
+                )
+            }
             val pinyinOn by LearnPrefs.pinyin.collectAsState()
             if (pinyinOn) pinyinLine(zh)?.let {
                 Text(it, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
@@ -175,6 +189,9 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         }
     }
 }
+
+/** A little before the line began, so its first syllable isn't cut. */
+private const val REPLAY_LEAD_MS = 300L
 
 /** A line seen in this video, and from when to when (ms into it). */
 private class Cue(val start: Long, var end: Long, val zh: String, var en: String?, val y: Float)
