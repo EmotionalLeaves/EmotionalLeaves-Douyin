@@ -1,3 +1,9 @@
+## 1.7.26 — 2026-11-20
+Easier Chinese first
+
+- New: Easier Chinese first (Learn, at the bottom). For You leans toward videos whose captions are mostly beginner words (HSK 1–3), so more of what you watch is within reach. Your taste still leads.
+- Your word list and review cards show each word's HSK level.
+
 ## 1.7.25 — 2026-11-20
 HSK levels
 

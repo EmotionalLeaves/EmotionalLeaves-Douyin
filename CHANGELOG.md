@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.26 — 2026-11-20
+- LearnBoost.easy: ±0.3 by the share of HSK≤3 words in the caption (hashtags out, ≥3 words); Dict+HSK loaded at start when on; HSK in word list and review.
+
 ## 1.7.25 — 2026-11-20
 - Bundled HSK 3.0 levels + frequency ranks (Complete HSK Vocabulary, MIT, 181 KB); WordRow badge; Learn HSK 1–3 starter (+10 by frequency).
 
