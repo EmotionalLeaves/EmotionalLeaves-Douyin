@@ -89,6 +89,7 @@ class LearnTest {
         assertTrue(real.lookup("你好").any { "hello" in it.english })
         assertEquals(listOf("我", "喜欢", "吃", "重庆", "火锅"), real.segment("我喜欢吃重庆火锅").map { it.text })
         assertEquals("xǐ huan", real.lookup("喜欢").first().pinyinMarks)
+        assertEquals(listOf("只 zhi1"), real.lookup("猫").first().measures)
     }
 
     @Test
@@ -172,5 +173,13 @@ class LearnTest {
         val b = dev.dyfeed.domain.learn.LearnBoost
         assertEquals(0.75, b.easyShare(dict, hsk, "我喜欢吃火锅 #美食")!!, 1e-9)
         assertEquals(null, b.easyShare(dict, hsk, "火锅"))
+    }
+
+    @Test
+    fun `nouns carry their measure words`() {
+        val d = ZhDictionary.parse(sequenceOf("猫\t貓\tmao1\tcat\t只 zhi1", "人\t\tren2\tperson\t个 ge4,位 wei4", "好\t\thao3\tgood"))
+        assertEquals(listOf("只 zhi1"), d.lookup("猫").first().measures)
+        assertEquals(listOf("个 ge4", "位 wei4"), d.lookup("人").first().measures)
+        assertTrue(d.lookup("好").first().measures.isEmpty())
     }
 }

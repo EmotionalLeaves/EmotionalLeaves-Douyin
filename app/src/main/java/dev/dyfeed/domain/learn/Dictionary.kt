@@ -7,7 +7,14 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** One meaning of a word, as CC-CEDICT gives it. */
-data class Entry(val simplified: String, val traditional: String, val pinyin: String, val english: String) {
+data class Entry(
+    val simplified: String,
+    val traditional: String,
+    val pinyin: String,
+    val english: String,
+    /** Its measure words (量词), as "只 zhi1", for nouns that have them: 一只猫. */
+    val measures: List<String> = emptyList(),
+) {
     /** "nǐ hǎo" rather than "ni3 hao3". */
     val pinyinMarks: String get() = Pinyin.marks(pinyin)
 }
@@ -102,13 +109,13 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
         private const val MAX_WORD = 8
         fun isHan(c: Char): Boolean = Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN
 
-        /** Lines "simplified \t traditional (empty if the same) \t pinyin \t meanings". */
+        /** Lines "simplified \t traditional (empty if the same) \t pinyin \t meanings [\t measure words, comma-separated]". */
         fun parse(lines: Sequence<String>): ZhDictionary {
             val map = HashMap<String, MutableList<Entry>>(140_000)
             lines.forEach { line ->
                 val parts = line.split('\t')
                 if (parts.size < 4) return@forEach
-                val e = Entry(parts[0], parts[1].ifEmpty { parts[0] }, parts[2], parts[3])
+                val e = Entry(parts[0], parts[1].ifEmpty { parts[0] }, parts[2], parts[3], parts.getOrNull(4)?.split(',')?.filter { it.isNotBlank() }.orEmpty())
                 map.getOrPut(e.simplified) { ArrayList(1) } += e
                 if (e.traditional != e.simplified) map.getOrPut(e.traditional) { ArrayList(1) } += e
             }

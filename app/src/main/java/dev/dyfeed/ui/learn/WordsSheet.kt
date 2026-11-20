@@ -196,6 +196,14 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
                 Text(e.pinyinMarks, color = toneColor(Pinyin.tones(e.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
                 Text(e.english, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.85f), maxLines = 3, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
+            // Its measure word: 一只猫, not 一个猫.
+            entries.firstOrNull { it.measures.isNotEmpty() }?.measures?.let { ms ->
+                Text(
+                    "Measure word: " + ms.joinToString(", ") { m -> m.substringBefore(' ') + " " + Pinyin.marks(m.substringAfter(' ', "")) },
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF6BA8FF),
+                )
+            }
             // Each character's own meaning: 火 fire · 锅 pot (how the word is built).
             if (word.length in 2..4) Dict.ready?.let { d ->
                 val parts = word.map { c -> d.lookup(c.toString()).firstOrNull()?.let { e -> "$c ${e.english.substringBefore(';').substringBefore('(').trim().take(18)}" } }
