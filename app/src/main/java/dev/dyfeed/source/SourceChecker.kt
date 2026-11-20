@@ -64,10 +64,15 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
 
     private suspend fun quickDouyin(a: dev.dyfeed.source.douyin.DouyinAdapter): Result? = kotlinx.coroutines.coroutineScope {
         val t0 = System.currentTimeMillis()
-        val ready = withContext(kotlinx.coroutines.Dispatchers.IO) { a.readyPosts(3) }
+        val ready = withContext(kotlinx.coroutines.Dispatchers.IO) { a.readyPosts(5) }
         if (ready.isEmpty()) { lastQuick = "no posts with live addresses in hand"; return@coroutineScope null }
         val answers = async { withTimeoutOrNull(QUICK_SIGNED_MS) { runCatching { a.trending() }.getOrDefault(emptyList()) } }
-        val loads = ready.mapNotNull { it.extras["media"] }.map { url -> async { withTimeoutOrNull(QUICK_FILE_MS) { http.reachable(url) } == true } }
+        // Each post's mirrors too: some of Douyin's servers turn away some networks (the player
+        // moves on to the next one, and so does this).
+        val urls = ready.flatMap { item ->
+            listOfNotNull(item.extras["media"]) + item.extras[dev.dyfeed.source.douyin.DouyinParser.ALTERNATES].orEmpty().split(' ').filter { it.isNotBlank() }.take(2)
+        }.distinct().take(12)
+        val loads = urls.map { url -> async { withTimeoutOrNull(QUICK_FILE_MS) { http.reachable(url) } == true } }
         val fileOk = loads.awaitAll().any { it }
         val douyinOk = !answers.await().isNullOrEmpty()
         lastQuick = "${ready.size} ready, files ${if (fileOk) "load" else "didn't load"}, Douyin ${if (douyinOk) "answered" else "didn't answer"}, ${System.currentTimeMillis() - t0} ms"
