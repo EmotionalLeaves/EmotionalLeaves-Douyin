@@ -72,6 +72,7 @@ object WordBook {
         val f = java.io.File(context.filesDir, "learn_words.json")
         file = f
         _cards.value = runCatching { json.decodeFromString<List<Card>>(f.readText()) }.getOrDefault(emptyList())
+        LearnBoost.words = _cards.value.map { it.word }.filter { it.length in 2..6 }.toSet()
         val d = java.io.File(context.filesDir, "learn_days.txt")
         daysFile = d
         _days.value = runCatching { d.readLines().mapNotNull { it.trim().toLongOrNull() }.toSet() }.getOrDefault(emptySet())
@@ -119,6 +120,7 @@ object WordBook {
 
     private fun save(next: List<Card>) {
         _cards.value = next
+        LearnBoost.words = next.map { it.word }.filter { it.length in 2..6 }.toSet()
         val f = file ?: return
         runCatching { f.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Card.serializer()), next)) }
     }
@@ -145,5 +147,22 @@ object Quiz {
             val wrong = pool.filter { it.word != target.word }.shuffled(random).take(3)
             Question(target, (wrong + target).shuffled(random))
         }
+    }
+}
+
+/**
+ * Learn → "More videos with your words": For You leans toward posts whose captions use words
+ * you're learning, so you meet them again in real speech.
+ */
+object LearnBoost {
+    @Volatile var on = false
+    @Volatile var words: Set<String> = emptySet()
+    private const val BONUS = 0.25
+
+    fun bonus(item: dev.dyfeed.domain.model.MediaItem): Double {
+        if (!on) return 0.0
+        val title = item.title ?: return 0.0
+        val w = words
+        return if (w.isNotEmpty() && w.any { it in title }) BONUS else 0.0
     }
 }

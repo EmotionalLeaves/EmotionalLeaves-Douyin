@@ -124,4 +124,19 @@ class LearnTest {
         val out = dev.dyfeed.domain.learn.exportWords(listOf(Card("火锅", "huo3 guo1", "hotpot", example = "重庆火锅\t太好吃", addedAt = 1, due = 0)))
         assertEquals("火锅\thuǒ guō\thotpot\t重庆火锅 太好吃", out)
     }
+
+    @Test
+    fun `with the boost on, captions using your words rank higher`() {
+        val post = { title: String -> dev.dyfeed.domain.model.MediaItem(id = title, sourceId = "douyin", type = dev.dyfeed.domain.model.MediaType.VIDEO, title = title, creator = null, tags = emptyList(), durationSec = null, thumbnailUrl = null, pageUrl = "", publishedAt = null) }
+        val ranker = dev.dyfeed.domain.reco.Ranker(dev.dyfeed.domain.reco.RankWeights())
+        val now = java.time.Instant.now()
+        val b = dev.dyfeed.domain.learn.LearnBoost
+        try {
+            b.words = setOf("火锅")
+            b.on = false
+            assertEquals(ranker.baseScore(post("吃火锅"), emptyMap(), emptyMap(), now), ranker.baseScore(post("吃面条"), emptyMap(), emptyMap(), now), 1e-9)
+            b.on = true
+            assertTrue(ranker.baseScore(post("吃火锅"), emptyMap(), emptyMap(), now) > ranker.baseScore(post("吃面条"), emptyMap(), emptyMap(), now))
+        } finally { b.on = false; b.words = emptySet() }
+    }
 }

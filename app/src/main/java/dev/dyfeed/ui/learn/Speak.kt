@@ -51,6 +51,11 @@ object LearnPrefs {
     val pinyin: StateFlow<Boolean> = _pinyin
     @Volatile private var prefs: android.content.SharedPreferences? = null
 
+    private val _boost = MutableStateFlow(false)
+    /** For You leans toward videos whose captions use your saved words. */
+    val boost: StateFlow<Boolean> = _boost
+    fun setBoost(on: Boolean) { _boost.value = on; dev.dyfeed.domain.learn.LearnBoost.on = on; prefs?.edit()?.putBoolean("boost", on)?.apply() }
+
     private val _live = MutableStateFlow(true)
     /** Subtitles burned into videos, read off the picture and shown in English as they're said. */
     val liveSubs: StateFlow<Boolean> = _live
@@ -65,6 +70,8 @@ object LearnPrefs {
             _pinyin.value = it.getBoolean("pinyin", false)
             _slow.value = it.getBoolean("slow", true)
             _live.value = it.getBoolean("live", true)
+            _boost.value = it.getBoolean("boost", false)
+            dev.dyfeed.domain.learn.LearnBoost.on = _boost.value
         }
     }
 

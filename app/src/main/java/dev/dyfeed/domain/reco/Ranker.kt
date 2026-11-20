@@ -54,7 +54,8 @@ class Ranker(
         qualityValue: Double = quality(item),
     ): Double {
         val x = components(item, tagAffinity, creatorAffinity, now, qualityValue)
-        return weights.tag * x[0] + weights.creator * x[1] + weights.quality * x[2] + weights.freshness * x[3] + formatPrior(item)
+        return weights.tag * x[0] + weights.creator * x[1] + weights.quality * x[2] + weights.freshness * x[3] + formatPrior(item) +
+            dev.dyfeed.domain.learn.LearnBoost.bonus(item)
     }
 
     /** The parts of an item's score, before weighting: taste by tags, the creator, community votes, freshness. */

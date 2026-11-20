@@ -149,6 +149,16 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
                 }
             }
+            item {
+                val boostOn by LearnPrefs.boost.collectAsState()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("More videos with your words", style = MaterialTheme.typography.titleSmall)
+                        Text("For You leans toward captions that use words you're learning", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = boostOn, onCheckedChange = LearnPrefs::setBoost)
+                }
+            }
             // The words that keep coming up in what you watch, not yet saved.
             item {
                 val savedWords = cards.mapTo(HashSet()) { it.word }
