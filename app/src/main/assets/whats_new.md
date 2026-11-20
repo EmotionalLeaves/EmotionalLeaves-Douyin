@@ -1,3 +1,8 @@
+## 1.7.15 — 2026-11-20
+Memes in one tap
+
+- New: hold For You for one-tap moods: "Funny & memes · 搞笑" (more 搞笑, 梗图, 段子) and "Learning Chinese · 学中文" (more videos made for learners). Each lasts a few hours; Undo is right there.
+
 ## 1.7.14 — 2026-11-20
 Cleaner subtitles
 

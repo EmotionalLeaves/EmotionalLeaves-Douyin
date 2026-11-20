@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.15 — 2026-11-20
+- Steer presets in the For You hold menu.
+
 ## 1.7.14 — 2026-11-20
 - Live subtitles skip lines with ML Kit confidence under 0.45 (when it gives one); Learn topic cards with thumbnails from the remembered index.
 
