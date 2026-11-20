@@ -47,6 +47,8 @@ internal object Reader {
             .addOnSuccessListener { text ->
                 cont.resume(
                     text.textBlocks.flatMap { it.lines }.mapNotNull { l ->
+                        // Lines it isn't sure of would translate into nonsense: leave them out.
+                        if (l.confidence > 0f && l.confidence < MIN_CONFIDENCE) return@mapNotNull null
                         val b = l.boundingBox ?: return@mapNotNull null
                         LiveSubs.Line(l.text, b.exactCenterX() / fullW, (b.exactCenterY() + top) / fullH, b.height().toFloat() / fullH)
                     },
@@ -214,6 +216,9 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         }
     }
 }
+
+/** How sure the reader must be of a line to use it (0–1; ML Kit gives 0 when it can't say). */
+private const val MIN_CONFIDENCE = 0.45f
 
 /** A little before the line began, so its first syllable isn't cut. */
 private const val REPLAY_LEAD_MS = 300L
