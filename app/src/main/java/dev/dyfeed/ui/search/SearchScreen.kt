@@ -81,6 +81,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.SecureFlagPolicy
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
@@ -417,6 +418,15 @@ internal data class Combo(val ask: String, val need: List<String>, val without: 
 
 private val POPULAR = dev.dyfeed.data.settings.SourceCatalog.terms
 
+/** Search's quick ways in: Chinese name, English, what's searched. */
+private val QUICK = listOf(
+    Triple("梗图", "Memes", "梗图"),
+    Triple("搞笑", "Funny", "搞笑"),
+    Triple("学中文", "Learn", "学中文"),
+    Triple("美食", "Food", "美食"),
+    Triple("萌宠", "Pets", "萌宠"),
+)
+
 @Composable
 fun SearchScreen(nav: NavController, vm: SearchViewModel = hiltViewModel()) {
     // Grids on this screen come alive: the video nearest the middle plays in its tile.
@@ -680,6 +690,26 @@ private fun SuggestionsPane(
                 }
             }
             if (matches.isNotEmpty()) Spacer(Modifier.height(12.dp))
+        }
+        // Quick ways in, as on WeChat's Discover page: one tap each.
+        if (t.isEmpty()) {
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+                QUICK.forEach { (zh, en, q) ->
+                    Column(
+                        Modifier.clip(RoundedCornerShape(14.dp)).clickable { onPick(q) }.padding(horizontal = 6.dp, vertical = 4.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Box(
+                            Modifier.size(52.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color.hsl((q.hashCode() and 0xff) * 1.4f % 360f, 0.55f, 0.42f), Color.hsl(((q.hashCode() and 0xff) * 1.4f + 40f) % 360f, 0.6f, 0.25f)))),
+                            contentAlignment = Alignment.Center,
+                        ) { Text(zh.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp) }
+                        Spacer(Modifier.height(4.dp))
+                        Text(zh, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        Text(en, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.55f))
+                    }
+                }
+            }
         }
         if (t.isEmpty() && topicRows.isNotEmpty()) {
             Hero(topicRows, onTopicItem)
