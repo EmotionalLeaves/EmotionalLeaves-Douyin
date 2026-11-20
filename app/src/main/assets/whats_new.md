@@ -1,3 +1,9 @@
+## 1.7.17 — 2026-11-20
+Tones in colour
+
+- Pinyin in tone colours wherever it shows: over captions, under the English for what's said, and in comments (1 red, 2 orange, 3 green, 4 blue, neutral grey).
+- 词 Words: "Save all new words" from a line in one tap.
+
 ## 1.7.16 — 2026-11-20
 Speak it
 

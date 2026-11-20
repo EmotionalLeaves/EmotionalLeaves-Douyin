@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.17 — 2026-11-20
+- pinyinColored (AnnotatedString per syllable) in feed, subtitles, comments; Words save-all.
+
 ## 1.7.16 — 2026-11-20
 - Review: zh-CN RecognizerIntent check against the card; Search mic long-press for zh-CN.
 
