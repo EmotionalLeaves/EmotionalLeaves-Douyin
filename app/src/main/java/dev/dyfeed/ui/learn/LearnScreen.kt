@@ -215,6 +215,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     recent.forEach { line ->
                         val en = dev.dyfeed.ui.common.rememberEnglish(line, force = true)
                         Column(Modifier.fillMaxWidth().clickable { LearnWords.request.value = line }.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                            if (dictReady) pinyinColored(line)?.let { Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
                             Text(line, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                             en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 2) }
                         }

@@ -115,3 +115,7 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   学习, everyday pinyin readings first (说 shuō… surnames last), shadowing score (LCS of characters),
   tidier Learn, HSK levels + frequency ranks (Complete HSK Vocabulary, MIT, cloned via the git proxy)
   with "Learn the basics" (+10 by frequency), and "Easier Chinese first" (±0.3 by HSK≤3 share).
+- 2026-11-20 (chat, rounds 176–190 → 1.7.27–1.7.32): home-screen shortcuts, two-way quiz, measure
+  words (dictionary rebuilt keeping CL:), caption difficulty label, quick-entry fit on small phones,
+  word-list filters; the More-like-this emulator check had been seeded with a Feed leftover query and
+  never ran — now seeded from 美食.
