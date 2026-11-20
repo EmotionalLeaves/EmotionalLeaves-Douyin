@@ -1,3 +1,9 @@
+## 1.7.18 — 2026-11-20
+Quick ways in
+
+- New: 发现 Search opens with a row of quick ways in, as on WeChat's Discover page: 梗图 Memes, 搞笑 Funny, 学中文 Learn, 美食 Food, 萌宠 Pets.
+- 词 Words shows lines where you heard each word in videos you watched.
+
 ## 1.7.17 — 2026-11-20
 Tones in colour
 

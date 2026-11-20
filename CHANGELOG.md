@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.18 — 2026-11-20
+- Search quick-entry row; Heard example lines under words.
+
 ## 1.7.17 — 2026-11-20
 - pinyinColored (AnnotatedString per syllable) in feed, subtitles, comments; Words save-all.
 
