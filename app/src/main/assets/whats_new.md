@@ -1,3 +1,9 @@
+## 1.7.32 — 2026-11-20
+Find your words
+
+- Your words (Learn) can be narrowed to the ones to review, single words, or whole lines.
+- The emulator check for "More like this" now really runs on Douyin posts (it had been searching for something left over from Feed, finding nothing, and skipping).
+
 ## 1.7.31 — 2026-11-20
 Fits small phones
 

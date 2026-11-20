@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.32 — 2026-11-20
+- Word list filter chips; More-like-this smoke test seeded from 美食.
+
 ## 1.7.31 — 2026-11-20
 - Quick-entry row: equal-width cells, 46 dp circles.
 
