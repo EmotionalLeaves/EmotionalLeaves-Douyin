@@ -194,7 +194,9 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(en, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
+                val size by LearnPrefs.subSize.collectAsState()
+                val style = when (size) { 2 -> MaterialTheme.typography.headlineSmall; 1 -> MaterialTheme.typography.titleLarge; else -> MaterialTheme.typography.bodyLarge }
+                Text(en, color = Color.White, fontWeight = FontWeight.SemiBold, style = style, textAlign = TextAlign.Center, modifier = Modifier.weight(1f, fill = false))
                 // Hear this line again: back to where it began.
                 if (lineStart >= 0) androidx.compose.material3.Icon(
                     androidx.compose.material.icons.Icons.Filled.Replay,

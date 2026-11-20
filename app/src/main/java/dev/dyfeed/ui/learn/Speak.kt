@@ -51,6 +51,12 @@ object LearnPrefs {
     val pinyin: StateFlow<Boolean> = _pinyin
     @Volatile private var prefs: android.content.SharedPreferences? = null
 
+    private val _subSize = MutableStateFlow(0)
+    /** Size of the English for what's said: 0 normal, 1 large, 2 huge. */
+    val subSize: StateFlow<Int> = _subSize
+    fun nextSubSize() { _subSize.value = (_subSize.value + 1) % 3; prefs?.edit()?.putInt("subsize", _subSize.value)?.apply() }
+    val subSizeNames = listOf("Normal", "Large", "Huge")
+
     private val _autoPause = MutableStateFlow(false)
     /** Videos pause when a subtitle line ends, so its English can be read before going on. */
     val autoPause: StateFlow<Boolean> = _autoPause
@@ -77,6 +83,7 @@ object LearnPrefs {
             _live.value = it.getBoolean("live", true)
             _boost.value = it.getBoolean("boost", false)
             _autoPause.value = it.getBoolean("autopause", false)
+            _subSize.value = it.getInt("subsize", 0).coerceIn(0, 2)
             dev.dyfeed.domain.learn.LearnBoost.on = _boost.value
         }
     }
