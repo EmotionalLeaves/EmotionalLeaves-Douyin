@@ -48,6 +48,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
         dev.dyfeed.player.ResumePoints.init(this)
         dev.dyfeed.player.Moments.init(this)
         dev.dyfeed.domain.learn.WordBook.init(this)
+        dev.dyfeed.domain.learn.Heard.init(this)
         dev.dyfeed.ui.learn.LearnPrefs.init(this)
         dev.dyfeed.player.ComicPages.init(this)
         dev.dyfeed.source.net.GeoBlock.init(this)

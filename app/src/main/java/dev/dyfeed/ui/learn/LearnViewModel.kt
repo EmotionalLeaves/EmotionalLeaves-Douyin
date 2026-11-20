@@ -23,5 +23,6 @@ class LearnViewModel @Inject constructor(
         library.items(LibraryKind.HISTORY),
         library.items(LibraryKind.LIKED),
         library.items(LibraryKind.SAVED),
-    ) { h, l, s -> (h.take(300) + l + s).mapNotNull { it.title }.filter { dev.dyfeed.domain.lang.Zh.has(it) }.distinct() }
+        dev.dyfeed.domain.learn.Heard.lines,
+    ) { h, l, s, heard -> (h.take(300) + l + s).mapNotNull { it.title }.filter { dev.dyfeed.domain.lang.Zh.has(it) }.distinct() + heard }
 }

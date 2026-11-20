@@ -109,6 +109,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
             lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }?.let { lineY = it.centerY - it.height }
             if (LiveSubs.same(chinese, line)) continue
             chinese = line
+            dev.dyfeed.domain.learn.Heard.add(line)
             english = dev.dyfeed.domain.lang.ChineseToEnglish.translate(line).getOrNull()
         }
     }

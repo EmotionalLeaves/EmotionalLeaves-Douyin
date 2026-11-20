@@ -166,3 +166,29 @@ object LearnBoost {
         return if (w.isNotEmpty() && w.any { it in title }) BONUS else 0.0
     }
 }
+
+/** Subtitle lines heard in videos lately (read live), kept on the phone for "Words you keep hearing". */
+object Heard {
+    private const val MAX = 300
+    private val _lines = MutableStateFlow<List<String>>(emptyList())
+    val lines: StateFlow<List<String>> = _lines
+    @Volatile private var file: java.io.File? = null
+
+    fun init(context: Context) {
+        val f = java.io.File(context.filesDir, "learn_heard.txt")
+        file = f
+        _lines.value = runCatching { f.readLines().filter { it.isNotBlank() } }.getOrDefault(emptyList())
+        // Watch history: Clear history forgets what was heard too.
+        dev.dyfeed.domain.privacy.Forget.register { clear() }
+    }
+
+    fun add(line: String) {
+        if (dev.dyfeed.domain.privacy.Incognito.active) return
+        val l = line.trim().replace('\n', ' ')
+        if (l.isEmpty() || _lines.value.lastOrNull() == l) return
+        _lines.value = (_lines.value + l).takeLast(MAX)
+        file?.let { f -> runCatching { f.writeText(_lines.value.joinToString("\n")) } }
+    }
+
+    fun clear() { _lines.value = emptyList(); file?.delete() }
+}
