@@ -53,6 +53,9 @@ class SettingsRepository @Inject constructor(
      */
     private fun migrate(s: AppSettings): AppSettings {
         var out = s
+        // 1.7.6: Chinese on screen shows in English by default (asked for); switched on once for
+        // older installs, after which turning it off sticks.
+        if (out.learnDefaultsVersion < 1) out = out.copy(autoTranslate = true, learnDefaultsVersion = 1)
         if (out.contentFilterVersion < 1) {
             // v1: drop sites that only host non-adult content (they were in older defaults).
             out = out.copy(
