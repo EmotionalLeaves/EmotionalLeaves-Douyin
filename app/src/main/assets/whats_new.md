@@ -1,3 +1,10 @@
+## 1.7.33 — 2026-11-20
+Faster checks, faster feed
+
+- Faster: Check sources (Settings → Sources) answers in seconds, not about two minutes. It checks with posts the app already has, one small request to Douyin, and whether a video file loads, instead of fetching a whole new batch from scratch.
+- Faster feed: without an account, Douyin's feed address sends 1.4 MB of posts that can't play. The app now stops asking it after two tries and goes straight to the way that works, which saves seconds every time more posts load.
+- Includes 1.7.32: Your words can be filtered (to review, words, lines), and Lines you heard show pinyin.
+
 ## 1.7.32 — 2026-11-20
 Find your words
 

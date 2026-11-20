@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.33 — 2026-11-20
+- directFeedGate skips callFeed after two unplayable answers (reset on sign-in change); SourceChecker.quickDouyin (ready posts + trending + reachable, in parallel); health test times Check sources.
+
 ## 1.7.32 — 2026-11-20
 - Word list filter chips; More-like-this smoke test seeded from 美食.
 
