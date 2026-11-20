@@ -308,7 +308,15 @@ fun VideoPage(
     // A clip that hasn't shown a frame after this long while on screen is effectively dead: skip it.
     LaunchedEffect(item.key, play, firstFrame, stream) {
         if (play && !firstFrame) {
-            kotlinx.coroutines.delay(STALL_TIMEOUT_MS)
+            // A server that has sent nothing at all by now won't: try the next mirror straight away.
+            kotlinx.coroutines.delay(SILENT_TIMEOUT_MS)
+            val p = player
+            val nothing = p != null && p.currentMediaItem?.mediaId == item.key && p.bufferedPosition <= 0L && p.totalBufferedDuration <= 0L
+            if (!firstFrame && nothing && item.sourceId == dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) {
+                nextAddress.value("SILENT", "nothing from the server after ${SILENT_TIMEOUT_MS / 1000.0}s")
+                return@LaunchedEffect
+            }
+            kotlinx.coroutines.delay(STALL_TIMEOUT_MS - SILENT_TIMEOUT_MS)
             if (!firstFrame) nextAddress.value("STALLED", "no frame after ${STALL_TIMEOUT_MS / 1000}s")
         }
     }
@@ -884,6 +892,11 @@ private const val MAX_DECODE_H = 4096
 
 /** On screen this long without a single frame: treat as dead and move on. */
 private const val STALL_TIMEOUT_MS = 8_000L
+/**
+ * Not one byte of the video by now: the server isn't going to send it (a far mirror that hangs).
+ * Most Douyin clips show their first frame well inside this, so a slow-but-arriving one isn't cut off.
+ */
+private const val SILENT_TIMEOUT_MS = 3_500L
 /** Mirrors and fresh addresses tried for one video before it's skipped. */
 private const val MAX_ADDRESS_TRIES = 4
 /** Clips at least this long count an automatic loop as a deliberate rewatch. */
