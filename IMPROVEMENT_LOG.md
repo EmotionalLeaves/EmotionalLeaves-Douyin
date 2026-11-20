@@ -104,3 +104,10 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   connections to the next videos' servers opened ahead. Also: comments button with count, Chinese
   tab names, trending in Learn, pinyin in comments, heard lines in frequent words, English on screen
   by default, listening quiz, word export, words in backups, word boost.
+- 2026-11-20 (chat, rounds 131–160 → 1.7.9–1.7.20): stutter fixes (no throwaway web views; hidden page
+  reused, not rebuilt) — 99th-percentile frame 1.2 s → 0.15 s, no ANRs; starts mostly 0 ms at a
+  normal pace. Learning: replay a line, 0.5×, pause after each line, confidence filter, transcript per
+  video (⋯), lines heard, example lines under words, save-all, tone-coloured pinyin, Say it
+  (zh-CN recogniser) and Mandarin voice search, subtitle size. UI: Me card, bilingual titles, WeChat-
+  style quick entries on 发现, one-tap Funny & memes / Learning Chinese steers. 1.7.18's build failed
+  on lint (StateFlow.value in composition) — the release gate now runs lint too.

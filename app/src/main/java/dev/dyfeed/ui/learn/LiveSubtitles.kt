@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.filled.Replay
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -172,6 +173,9 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
             frame?.recycle()
         }
     }
+    // Hidden for this video (the × on the English): back on the next one.
+    var hiddenHere by remember(videoKey) { mutableStateOf(false) }
+    if (hiddenHere) return
     val zh = chinese ?: return
     val en = english ?: return
     // Just above the subtitle it translates (the video fills the height in the feed, near enough).
@@ -204,6 +208,13 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     tint = Color.White.copy(alpha = 0.85f),
                     modifier = Modifier.padding(start = 8.dp).size(22.dp).clip(RoundedCornerShape(11.dp))
                         .clickable { player?.seekTo((lineStart - REPLAY_LEAD_MS).coerceAtLeast(0L)) },
+                )
+                // In the way (over a face, a recipe): hide them for this video.
+                androidx.compose.material3.Icon(
+                    androidx.compose.material.icons.Icons.Filled.Close,
+                    contentDescription = "Hide subtitles for this video",
+                    tint = Color.White.copy(alpha = 0.6f),
+                    modifier = Modifier.padding(start = 6.dp).size(18.dp).clip(RoundedCornerShape(9.dp)).clickable { hiddenHere = true },
                 )
             }
             if (pausedForLine) Text(
