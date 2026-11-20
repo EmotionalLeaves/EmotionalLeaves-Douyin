@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.37 — 2026-11-20
+- TonePractice rounds from HSK 1–2 single characters with tones 1–4; trainer screen.
+
 ## 1.7.36 — 2026-11-20
 - WordBook.reviewedToday (persisted per day); review card progress; Check sources quick path measured at 0.56 s.
 

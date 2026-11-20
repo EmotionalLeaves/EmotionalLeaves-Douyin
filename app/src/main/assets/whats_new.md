@@ -1,3 +1,8 @@
+## 1.7.37 — 2026-11-20
+Tone trainer
+
+- New: Tones · 声调 in Learn. Hear a beginner syllable and pick its tone (mā má mǎ mà); the character and its tone show after. Ten at a time, every tone in the mix.
+
 ## 1.7.36 — 2026-11-20
 Today's goal
 
