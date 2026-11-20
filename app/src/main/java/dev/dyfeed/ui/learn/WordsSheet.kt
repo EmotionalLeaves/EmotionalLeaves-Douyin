@@ -104,6 +104,11 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
                     }
                 }
             }
+            // Every word of the line you haven't saved, in one tap (the one-character particles left out).
+            val unsaved = list.filter { it.known && it.text.length >= 2 && it.text !in savedWords }.distinctBy { it.text }
+            if (unsaved.size >= 2) TextButton(onClick = { unsaved.forEach { t -> WordBook.add(t.entries.first(), example = text) } }) {
+                Text("Save all ${unsaved.size} new words")
+            }
             LazyColumn(Modifier.fillMaxWidth().heightIn(max = 420.dp)) {
                 items(list.filter { it.known }.distinctBy { it.text }) { t ->
                     WordRow(t.text, t.entries, saved = t.text in savedWords, onSpeak = { Speak.say(context, t.text) }) {
