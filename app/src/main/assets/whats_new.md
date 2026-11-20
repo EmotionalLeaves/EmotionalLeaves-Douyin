@@ -1,3 +1,8 @@
+## 1.7.30 — 2026-11-20
+How hard is it?
+
+- New: captions say how hard they are for a learner (Easy, Medium or Hard, by how many of their words are beginner words), beside 词 Words. It shows once you've used Learn, pinyin or Easier Chinese first in this session.
+
 ## 1.7.29 — 2026-11-20
 Measure words
 

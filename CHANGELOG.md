@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.30 — 2026-11-20
+- Caption difficulty label from easyShare (≥0.8 Easy, ≥0.55 Medium).
+
 ## 1.7.29 — 2026-11-20
 - Dictionary rebuilt keeping CL: classifiers (5th column, up to 3), shown in WordRow.
 
