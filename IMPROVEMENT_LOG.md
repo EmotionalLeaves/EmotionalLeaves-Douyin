@@ -111,3 +111,7 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   (zh-CN recogniser) and Mandarin voice search, subtitle size. UI: Me card, bilingual titles, WeChat-
   style quick entries on 发现, one-tap Funny & memes / Learning Chinese steers. 1.7.18's build failed
   on lint (StateFlow.value in composition) — the release gate now runs lint too.
+- 2026-11-20 (chat, rounds 161–175 → 1.7.21–1.7.26): hide subtitles per video, due-count badge on
+  学习, everyday pinyin readings first (说 shuō… surnames last), shadowing score (LCS of characters),
+  tidier Learn, HSK levels + frequency ranks (Complete HSK Vocabulary, MIT, cloned via the git proxy)
+  with "Learn the basics" (+10 by frequency), and "Easier Chinese first" (±0.3 by HSK≤3 share).
