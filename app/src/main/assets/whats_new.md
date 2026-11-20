@@ -1,3 +1,8 @@
+## 1.7.20 — 2026-11-20
+Bigger subtitles
+
+- New: Subtitle size (我 Me → 学习 Learn): normal, large or huge for the English of what's said.
+
 ## 1.7.19 — 2026-11-20
 Transcripts
 

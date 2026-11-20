@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.20 — 2026-11-20
+- LearnPrefs.subSize (bodyLarge / titleLarge / headlineSmall).
+
 ## 1.7.19 — 2026-11-20
 - Transcripts (in-memory, 30 videos) + SeekRequest; Learn heard lines; lint fix (collectAsState for Heard in WordRow); release gate runs lint.
 
