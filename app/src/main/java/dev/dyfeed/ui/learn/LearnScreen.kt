@@ -327,7 +327,8 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                             Text(Pinyin.marks(c.pinyin), color = toneColor(Pinyin.tones(c.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
                             Text(c.english, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.75f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
-                        Text(strength(c), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                        val lv = dev.dyfeed.domain.learn.Hsk.ready?.level(c.word)
+                        Text((lv?.let { if (it >= 7) "HSK 7–9 · " else "HSK $it · " } ?: "") + strength(c), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
                         IconButton(onClick = { WordBook.remove(c.word) }) { Icon(Icons.Filled.Close, contentDescription = "Remove ${c.word}", tint = Color.White.copy(alpha = 0.5f)) }
                     }
                 }
@@ -422,6 +423,9 @@ private fun Review(onDone: () -> Unit) {
             verticalArrangement = Arrangement.Center,
         ) {
             if (shown) Text(Pinyin.marks(card.pinyin), color = toneColor(Pinyin.tones(card.pinyin).firstOrNull() ?: 5), fontSize = 22.sp)
+            if (shown) dev.dyfeed.domain.learn.Hsk.ready?.level(card.word)?.let { lv ->
+                Text(if (lv >= 7) "HSK 7–9" else "HSK $lv", style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.5f))
+            }
             Text(
                 card.word,
                 fontSize = when { card.word.length <= 3 -> 64.sp; card.word.length <= 8 -> 40.sp; else -> 28.sp },
