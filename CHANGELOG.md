@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.22 — 2026-11-20
+- Due-count badge on the Learn tab.
+
 ## 1.7.21 — 2026-11-20
 - LiveSubtitles hide-for-this-video.
 

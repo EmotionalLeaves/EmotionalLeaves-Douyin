@@ -1,3 +1,8 @@
+## 1.7.22 — 2026-11-20
+Words waiting
+
+- New: the 学习 Learn tab shows a red count of words due for review, as WeChat marks what's waiting (no notifications, as always).
+
 ## 1.7.21 — 2026-11-20
 Subtitles out of the way
 
