@@ -171,6 +171,9 @@ fun VideoPage(
     val stream = copy ?: resolved
     val copyScope = androidx.compose.runtime.rememberCoroutineScope()
     var firstFrame by remember(item.key) { mutableStateOf(false) }
+    // When this video came on screen and was asked to play (for StartTimes).
+    var askedAt by remember(item.key) { mutableStateOf(0L) }
+    LaunchedEffect(play) { if (play && !firstFrame) askedAt = android.os.SystemClock.elapsedRealtime() }
     var error by remember(item.key) { mutableStateOf<String?>(null) }
     val stats = remember(item.key) { vm.statsFor(item.key) }
     val handsFree by HandsFree.on.collectAsState()
@@ -234,7 +237,10 @@ fun VideoPage(
         val p = player
         var loops = 0
         val listener = object : Player.Listener {
-            override fun onRenderedFirstFrame() { firstFrame = true; vm.markShown(item) }
+            override fun onRenderedFirstFrame() {
+                if (!firstFrame && askedAt > 0) dev.dyfeed.player.StartTimes.add(android.os.SystemClock.elapsedRealtime() - askedAt)
+                firstFrame = true; vm.markShown(item)
+            }
             override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {
                 // A clip looping on its own only counts as a rewatch when it's long enough that
                 // sitting through it again is a choice. Short loops (most RedGIFs clips) repeat

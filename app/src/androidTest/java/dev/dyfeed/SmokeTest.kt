@@ -168,6 +168,7 @@ class SmokeTest {
         android.util.Log.i("PFHEALTH", "feed: memory after ${swipes} swipes: ${mem()}")
         repeat(45) { swipeUpGesture(); repeat(6) { rule.mainClock.advanceTimeBy(250); Thread.sleep(120) } }
         android.util.Log.i("PFHEALTH", "feed: memory after ${swipes + 45} swipes: ${mem()}")
+        android.util.Log.i("PFHEALTH", "feed: video start ${dev.dyfeed.player.StartTimes.summary()}")
         val events = rule.activity.mediaHealth.recentEvents()
         events.forEach { android.util.Log.i("PFHEALTH", "  feed $it") }
         android.util.Log.i("PFHEALTH", "feed: ${shown.get()} shown after ${swipes + 45} swipes, " +
