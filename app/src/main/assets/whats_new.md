@@ -1,3 +1,8 @@
+## 1.7.39 — 2026-11-20
+Quicker checks
+
+- Faster Check sources, more often: it now also tries each video's other servers (Douyin keeps several, and some turn away some networks), so it can answer in about a second instead of falling back to the slow check.
+
 ## 1.7.38 — 2026-11-20
 Faster first load
 

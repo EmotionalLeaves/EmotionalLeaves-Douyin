@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.39 — 2026-11-20
+- quickDouyin tries up to 5 ready posts with 2 mirrors each (12 URLs, parallel); health logs app start to first video.
+
 ## 1.7.38 — 2026-11-20
 - directFeedGate closed at start when it proved useless within 24 h (signed out); GiveUpGate.close().
 
