@@ -88,13 +88,19 @@ class DouyinAdapter @Inject constructor(
         suspend fun fromPage(): List<MediaItem> = web.harvest().flatMap { body ->
             runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
         }.distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
+        // Douyin's feed address answers a visitor with posts whose video addresses are scrambled
+        // (1.4 MB of nothing playable). After two such answers, go straight to what its own page
+        // loads, which plays: saves seconds on every pull. Signing in tries the address again.
+        resetIfSignInChanged()
+        if (!directFeedGate.open) return Page(fromPage(), next)
         val root = try { callFeed(index) } catch (e: SourceException) {
             if (e.httpCode == 429) throw e
+            directFeedGate.attempt { emptyList<Unit>() }
             val harvested = fromPage()
             if (harvested.isEmpty()) throw e
             return Page(harvested, next)
         }
-        val parsed = items(root)
+        val parsed = directFeedGate.attempt { items(root) }
         if (parsed.isEmpty()) return Page(fromPage(), next)
         return Page(parsed.filterNot { seen.isSeen(it.key) }, next)
     }
@@ -256,13 +262,15 @@ class DouyinAdapter @Inject constructor(
     private val creatorPageGate = GiveUpGate(GIVE_UP_AFTER)
     private val trendPageGate = GiveUpGate(GIVE_UP_AFTER)
     private val postPageGate = GiveUpGate(GIVE_UP_AFTER)
+    /** The feed API, which signed out answers with nothing playable. */
+    private val directFeedGate = GiveUpGate(GIVE_UP_AFTER)
     @Volatile private var lastSignedIn: Boolean? = null
 
     /** Signing in or out (from any screen) re-opens the look-ups that were skipped. */
     private fun resetIfSignInChanged(force: Boolean = false) {
         val now = web.signedIn()
         if (force || (lastSignedIn != null && lastSignedIn != now)) {
-            listOf(pageSearchGate, webSearchGate, creatorPageGate, trendPageGate, postPageGate).forEach { it.reset() }
+            listOf(pageSearchGate, webSearchGate, creatorPageGate, trendPageGate, postPageGate, directFeedGate).forEach { it.reset() }
         }
         lastSignedIn = now
     }
@@ -375,6 +383,22 @@ class DouyinAdapter @Inject constructor(
         }
         ids.take(MAX_WEB_RESULTS)
     }
+
+    /**
+     * Up to [n] posts already in hand whose video address is still good (for a quick health check:
+     * no need to fetch a fresh batch to know whether files load).
+     */
+    fun readyPosts(n: Int, now: Long = System.currentTimeMillis()): List<MediaItem> {
+        ensureIndex()
+        return synchronized(loaded) { loaded.toList() }.asReversed().asSequence().filter { item ->
+            val media = item.extras["media"] ?: return@filter false
+            val at = item.extras["at"]?.toLongOrNull() ?: 0L
+            DouyinParser.expiresAt(media)?.let { it - now > 5 * 60_000L } ?: (now - at < URL_TTL_MS)
+        }.take(n).toList()
+    }
+
+    /** How many posts the app has seen and remembers (for search, the health check). */
+    fun knownCount(): Int = synchronized(loaded) { loaded.size }
 
     /** Posts brought in this session (feed, creators, links) whose caption, tags or creator contain every word of [q]. */
     fun loadedMatching(q: String): List<MediaItem> {

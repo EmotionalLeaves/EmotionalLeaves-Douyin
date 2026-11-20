@@ -484,6 +484,10 @@ class SmokeTest {
         android.util.Log.i("PFHEALTH", "douyin feed address: " + (media?.substringAfter('?')?.split('&')?.map { it.substringBefore('=') }?.joinToString(",")?.take(200) ?: "none") +
             " | expires " + (expiry?.let { "in ${(it - System.currentTimeMillis()) / 60_000} min" } ?: "unknown"))
         android.util.Log.i("PFHEALTH", "douyin feed refresh by id: " + (again?.fold({ if (it == null) "nothing" else "ok, plays from ${it.extras["media"]?.substringBefore('?')?.take(60)}" }, { "error ${it.message}" }) ?: "no post to try"))
+        // Settings → Check sources, as you'd run it after using the app a little: how long it takes.
+        val t0 = System.currentTimeMillis()
+        val checked = runCatching { runBlocking { rule.activity.sourceChecker.check(douyin) } }
+        android.util.Log.i("PFHEALTH", "douyin check sources: ${System.currentTimeMillis() - t0} ms: " + checked.fold({ "${it.ok} ${it.detail}" }, { "error ${it.message}" }))
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
     }

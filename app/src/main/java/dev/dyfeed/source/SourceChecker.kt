@@ -6,6 +6,9 @@ import dev.dyfeed.domain.model.MediaItem
 import dev.dyfeed.domain.model.StreamInfo
 import dev.dyfeed.source.net.HttpJson
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +24,10 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
     data class Result(val ok: Boolean, val detail: String)
 
     suspend fun check(a: SourceAdapter): Result {
+        // Douyin: posts already in hand (with live addresses) answer "do files load" in seconds;
+        // one small signed request (today's trending list) answers "does Douyin still answer".
+        // Fetching a fresh batch from cold took up to two minutes.
+        if (a is dev.dyfeed.source.douyin.DouyinAdapter) quickDouyin(a)?.let { return it }
         val listed: List<MediaItem> = try {
             withTimeoutOrNull(LIST_TIMEOUT_MS) {
                 a.fetchFeed(null, FeedPrefs(FeedMode.LATEST)).items.ifEmpty { a.search(PROBE_QUERY, null).items }
@@ -55,8 +62,24 @@ class SourceChecker @Inject constructor(private val http: HttpJson) {
         else Result(false, "Lists ${listed.size} posts, but their files aren't loading (the site's file servers, or blocked on this network)")
     }
 
+    private suspend fun quickDouyin(a: dev.dyfeed.source.douyin.DouyinAdapter): Result? = kotlinx.coroutines.coroutineScope {
+        val ready = withContext(kotlinx.coroutines.Dispatchers.IO) { a.readyPosts(3) }
+        if (ready.isEmpty()) return@coroutineScope null
+        val answers = async { withTimeoutOrNull(QUICK_SIGNED_MS) { runCatching { a.trending() }.getOrDefault(emptyList()) } }
+        val loads = ready.mapNotNull { it.extras["media"] }.map { url -> async { withTimeoutOrNull(FILE_TIMEOUT_MS) { http.reachable(url) } == true } }
+        val fileOk = loads.awaitAll().any { it }
+        val douyinOk = !answers.await().isNullOrEmpty()
+        when {
+            fileOk && douyinOk -> Result(true, "Working: ${a.knownCount()} posts, files load")
+            fileOk -> Result(true, "Videos load; Douyin is slow to answer right now (the feed may take a moment)")
+            else -> null // not sure: do the full check
+        }
+    }
+
     companion object {
         private const val PROBE_QUERY = "美食"
+        /** One small signed request (trending) on a warm page answers in a second or two. */
+        private const val QUICK_SIGNED_MS = 15_000L
         private val USER_FILLED = setOf("rss", "local", "direct", "json", "api")
         // Douyin from cold: open its page, then wait for the batch it loads (~35 s at worst).
         private const val LIST_TIMEOUT_MS = 50_000L
