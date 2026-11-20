@@ -13,6 +13,12 @@ class LearnViewModel @Inject constructor(
     library: LibraryRepository,
     private val registry: dev.dyfeed.source.SourceRegistry,
 ) : ViewModel() {
+    /** Pictures of posts already seen on [topic] (from the remembered index), for its card. */
+    suspend fun thumbs(topic: String): List<String> = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+        (registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter)
+            ?.loadedMatching(topic).orEmpty().mapNotNull { it.thumbnailUrl }.distinct().take(3)
+    }
+
     /** What China is talking about today (Douyin's trending list): real, current Chinese to learn from. */
     suspend fun trending(): List<String> =
         (registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter)

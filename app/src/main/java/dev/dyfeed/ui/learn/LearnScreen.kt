@@ -238,7 +238,10 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     TOPICS.chunked(2).forEach { pair ->
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            pair.forEach { (zh, en, hue) -> TopicCard(zh, en, hue, Modifier.weight(1f)) { nav.navigate(Routes.tag(zh)) } }
+                            pair.forEach { (zh, en, hue) ->
+                                val pics by produceState(emptyList<String>(), zh) { value = vm.thumbs(zh) }
+                                TopicCard(zh, en, hue, Modifier.weight(1f), pics) { nav.navigate(Routes.tag(zh)) }
+                            }
                             if (pair.size == 1) Spacer(Modifier.weight(1f))
                         }
                     }
@@ -486,15 +489,29 @@ private fun Section(text: String) {
 }
 
 @Composable
-private fun TopicCard(zh: String, en: String, hue: Float, modifier: Modifier, onClick: () -> Unit) {
-    Column(
-        modifier.height(72.dp).clip(RoundedCornerShape(14.dp))
+private fun TopicCard(zh: String, en: String, hue: Float, modifier: Modifier, pics: List<String> = emptyList(), onClick: () -> Unit) {
+    Box(
+        modifier.height(if (pics.isEmpty()) 72.dp else 104.dp).clip(RoundedCornerShape(14.dp))
             .background(Brush.linearGradient(listOf(Color.hsl(hue, 0.55f, 0.36f), Color.hsl((hue + 35f) % 360f, 0.6f, 0.2f))))
-            .clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
-        verticalArrangement = Arrangement.Bottom,
+            .clickable(onClick = onClick),
     ) {
-        Text(zh, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-        Text(en, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        // A few of its videos, faded behind the name: what's inside, at a glance.
+        if (pics.isNotEmpty()) Row(Modifier.fillMaxSize()) {
+            pics.forEach { url ->
+                coil.compose.AsyncImage(
+                    model = url,
+                    contentDescription = null,
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    modifier = Modifier.weight(1f).fillMaxSize(),
+                    alpha = 0.55f,
+                )
+            }
+        }
+        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)))))
+        Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 14.dp, vertical = 10.dp)) {
+            Text(zh, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+            Text(en, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        }
     }
 }
 
