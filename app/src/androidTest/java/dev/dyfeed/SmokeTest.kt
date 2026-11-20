@@ -149,7 +149,8 @@ class SmokeTest {
         val t0 = System.currentTimeMillis()
         try {
             poll(90_000, "a first post to display") { shown.get() >= 1 }
-            android.util.Log.i("PFHEALTH", "feed: first post on screen ${System.currentTimeMillis() - t0} ms after launch (cold, no saved posts)")
+            android.util.Log.i("PFHEALTH", "feed: first post on screen ${System.currentTimeMillis() - t0} ms after the test began; first video " +
+                (dev.dyfeed.player.StartTimes.firstVideoMs()?.let { "$it ms after the app started" } ?: "not yet (the first post was a picture)"))
         } catch (e: AssertionError) {
             throw AssertionError("No post displayed in 90 s. What happened: ${rule.activity.mediaHealth.recentEvents()}")
         }

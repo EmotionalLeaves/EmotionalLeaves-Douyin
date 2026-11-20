@@ -48,6 +48,7 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
     override fun onCreate() {
         super.onCreate()
         dev.dyfeed.player.ResumePoints.init(this)
+        dev.dyfeed.player.StartTimes.appStartedAt = android.os.SystemClock.elapsedRealtime()
         dev.dyfeed.player.Moments.init(this)
         dev.dyfeed.domain.learn.WordBook.init(this)
         dev.dyfeed.domain.learn.Heard.init(this)

@@ -5,6 +5,13 @@ package dev.dyfeed.player
  * last [KEEP]. For the health test, to tell whether a change made starting faster or slower.
  */
 object StartTimes {
+    /** When the app process started (set in the Application), and when the first video drew its first frame. */
+    @Volatile var appStartedAt = 0L
+    @Volatile var firstVideoAt = 0L
+
+    /** From the app starting to the first video on screen, or null if none has shown yet. */
+    fun firstVideoMs(): Long? = if (firstVideoAt > 0 && appStartedAt > 0) firstVideoAt - appStartedAt else null
+
     private const val KEEP = 100
     private val times = ArrayDeque<Long>()
 
