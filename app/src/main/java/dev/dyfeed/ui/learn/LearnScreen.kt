@@ -522,7 +522,7 @@ private fun ListeningQuiz(onDone: () -> Unit) {
     val q = questions.getOrNull(index)
     Column(Modifier.fillMaxSize().padding(20.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("听力 Listening · ${minOf(index + 1, questions.size)}/${questions.size}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            Text("听力 Quiz · ${minOf(index + 1, questions.size)}/${questions.size}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
             IconButton(onClick = onDone) { Icon(Icons.Filled.Close, contentDescription = "Stop the quiz") }
         }
         if (q == null) {
@@ -533,16 +533,26 @@ private fun ListeningQuiz(onDone: () -> Unit) {
             }
             return@Column
         }
-        LaunchedEffect(index) { Speak.say(context, q.answer.word) }
+        // Every other question the other way round: read the English, pick the characters.
+        val reverse = index % 2 == 1
+        LaunchedEffect(index) { if (!reverse) Speak.say(context, q.answer.word) }
+        LaunchedEffect(index, picked) { if (reverse && picked != null) Speak.say(context, q.answer.word) }
         Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            IconButton(onClick = { Speak.say(context, q.answer.word) }, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(48.dp)).background(Accent.copy(alpha = 0.18f))) {
-                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again", tint = Accent, modifier = Modifier.size(48.dp))
+            if (reverse) {
+                Text(q.answer.english, style = MaterialTheme.typography.titleLarge, textAlign = androidx.compose.ui.text.style.TextAlign.Center, maxLines = 3)
+                Spacer(Modifier.height(8.dp))
+                if (picked == null) Text("Which is it in Chinese?", color = Color.White.copy(alpha = 0.6f))
+            } else {
+                IconButton(onClick = { Speak.say(context, q.answer.word) }, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(48.dp)).background(Accent.copy(alpha = 0.18f))) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again", tint = Accent, modifier = Modifier.size(48.dp))
+                }
+                Spacer(Modifier.height(14.dp))
+                if (picked == null) Text("What does it mean?", color = Color.White.copy(alpha = 0.6f))
             }
-            Spacer(Modifier.height(14.dp))
             if (picked != null) {
                 Text(q.answer.word, fontSize = 40.sp, fontWeight = FontWeight.Bold)
                 Text(Pinyin.marks(q.answer.pinyin), color = toneColor(Pinyin.tones(q.answer.pinyin).firstOrNull() ?: 5), fontSize = 18.sp)
-            } else Text("What does it mean?", color = Color.White.copy(alpha = 0.6f))
+            }
         }
         q.choices.forEach { c ->
             val isAnswer = c.word == q.answer.word
@@ -553,7 +563,8 @@ private fun ListeningQuiz(onDone: () -> Unit) {
                 else -> Color.White.copy(alpha = 0.04f)
             }
             Text(
-                c.english,
+                if (reverse) c.word else c.english,
+                fontSize = if (reverse) 24.sp else androidx.compose.ui.unit.TextUnit.Unspecified,
                 maxLines = 2,
                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                 modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(14.dp)).background(bg)
