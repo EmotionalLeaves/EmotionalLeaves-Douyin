@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.11 — 2026-11-20
+- Replay button seeks to the cue start minus 300 ms; PlaybackSpeed adds 0.5x.
+
 ## 1.7.10 — 2026-11-20
 - DouyinWeb.reload keeps the WebView (loadUrl again; destroy only in the background); ready signal via provider; WordBook writes on a background executor.
 

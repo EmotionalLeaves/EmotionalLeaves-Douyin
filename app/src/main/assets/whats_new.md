@@ -1,3 +1,10 @@
+## 1.7.11 — 2026-11-20
+Hear that line again
+
+- New: a replay button on the English subtitle: tap it to hear that line again from the start.
+- New: 0.5× speed (⋯ menu → Speed), to catch every syllable.
+- 1.7.10, measured: the longest screen hitches went from over a second to a fifth of a second.
+
 ## 1.7.10 — 2026-11-20
 No more stutter when loading more
 
