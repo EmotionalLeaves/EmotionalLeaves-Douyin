@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.24 — 2026-11-20
+- Shadowing.score (LCS of Han characters) with Say it in Words; Learn switches moved to the bottom.
+
 ## 1.7.23 — 2026-11-20
 - ZhDictionary.parse ranks entries: preferred everyday readings for common polyphones first, proper names/surnames/variants last (stable).
 

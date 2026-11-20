@@ -1,3 +1,9 @@
+## 1.7.24 — 2026-11-20
+Say the line back
+
+- New: Say it in 词 Words: say a short line back and see how much of it came through, character by character (shadowing practice).
+- Learn is tidier: review, the listening quiz and your words come first; the switches are at the bottom (and in 我 Me → 学习 Learn).
+
 ## 1.7.23 — 2026-11-20
 Right readings
 
