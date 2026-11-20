@@ -1787,6 +1787,19 @@ private fun Overlay(
                             style = MaterialTheme.typography.labelMedium.shadowed(),
                             modifier = Modifier.clickable { dev.dyfeed.ui.learn.LearnWords.request.value = it },
                         )
+                        // How hard the caption is for a learner: the share of beginner (HSK 1–3) words.
+                        val share = remember(it, dev.dyfeed.domain.learn.Dict.ready, dev.dyfeed.domain.learn.Hsk.ready) {
+                            val d = dev.dyfeed.domain.learn.Dict.ready; val h = dev.dyfeed.domain.learn.Hsk.ready
+                            if (d != null && h != null) dev.dyfeed.domain.learn.LearnBoost.easyShare(d, h, it) else null
+                        }
+                        share?.let { sh ->
+                            val (label, color) = when {
+                                sh >= 0.8 -> "Easy" to Color(0xFF34D399)
+                                sh >= 0.55 -> "Medium" to Color(0xFFFFB547)
+                                else -> "Hard" to Color.White.copy(alpha = 0.6f)
+                            }
+                            Text(label, color = color, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium.shadowed())
+                        }
                     }
                 }
             }
