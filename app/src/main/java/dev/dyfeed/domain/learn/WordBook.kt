@@ -115,3 +115,22 @@ object WordBook {
         runCatching { f.writeText(json.encodeToString(kotlinx.serialization.builtins.ListSerializer(Card.serializer()), next)) }
     }
 }
+
+/** A listening question: hear [answer] said, pick its meaning among [choices] (one of them is right). */
+data class Question(val answer: Card, val choices: List<Card>)
+
+object Quiz {
+    /**
+     * Up to [count] questions from your words, the ones you know least first, each with three other
+     * words' meanings as the wrong choices. Needs at least four words.
+     */
+    fun questions(cards: List<Card>, count: Int = 10, random: kotlin.random.Random = kotlin.random.Random.Default): List<Question> {
+        val pool = cards.distinctBy { it.english }
+        if (pool.size < 4) return emptyList()
+        val order = pool.sortedWith(compareBy<Card>({ it.reps }, { it.intervalDays })).take(count)
+        return order.map { target ->
+            val wrong = pool.filter { it.word != target.word }.shuffled(random).take(3)
+            Question(target, (wrong + target).shuffled(random))
+        }
+    }
+}

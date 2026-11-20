@@ -71,14 +71,19 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     var now by remember { mutableStateOf(System.currentTimeMillis()) }
     val due = remember(cards, now) { Srs.due(cards, now) }
     var reviewing by remember { mutableStateOf(false) }
+    var quizzing by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
     val pinyinOn by LearnPrefs.pinyin.collectAsState()
     // Read the dictionary in as soon as the screen opens, so lookups are instant.
     val dictReady by produceState(Dict.ready != null) { Dict.get(context); value = true }
 
-    AnimatedContent(reviewing, label = "learnMode") { inReview ->
-        if (inReview) {
+    AnimatedContent(if (reviewing) 1 else if (quizzing) 2 else 0, label = "learnMode") { mode ->
+        if (mode == 1) {
             Review(onDone = { reviewing = false; now = System.currentTimeMillis() })
+            return@AnimatedContent
+        }
+        if (mode == 2) {
+            ListeningQuiz(onDone = { quizzing = false })
             return@AnimatedContent
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
@@ -114,6 +119,23 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                             color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(top = 6.dp),
                         )
+                    }
+                }
+            }
+            // Listening: hear a word, pick what it means.
+            if (cards.size >= 4) item {
+                Row(
+                    Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
+                        .background(Color.White.copy(alpha = 0.07f))
+                        .clickable { quizzing = true }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = Accent)
+                    Spacer(Modifier.width(12.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text("Listening quiz · 听力", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Text("Hear a word you saved, pick what it means", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.65f))
                     }
                 }
             }
@@ -325,6 +347,65 @@ private fun Review(onDone: () -> Unit) {
                 }
             }
         } else Spacer(Modifier.height(52.dp))
+    }
+}
+
+/** Hear a saved word, pick its meaning among four. Ten questions, the words you know least first. */
+@Composable
+private fun ListeningQuiz(onDone: () -> Unit) {
+    val context = LocalContext.current
+    val questions = remember { dev.dyfeed.domain.learn.Quiz.questions(WordBook.cards.value) }
+    var index by remember { mutableStateOf(0) }
+    var picked by remember { mutableStateOf<String?>(null) }
+    var right by remember { mutableStateOf(0) }
+    val q = questions.getOrNull(index)
+    Column(Modifier.fillMaxSize().padding(20.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("听力 Listening · ${minOf(index + 1, questions.size)}/${questions.size}", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+            IconButton(onClick = onDone) { Icon(Icons.Filled.Close, contentDescription = "Stop the quiz") }
+        }
+        if (q == null) {
+            Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+                Text(if (right == questions.size) "全对！All right" else "$right of ${questions.size}", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(20.dp))
+                androidx.compose.material3.Button(onClick = onDone) { Text("Back to Learn") }
+            }
+            return@Column
+        }
+        LaunchedEffect(index) { Speak.say(context, q.answer.word) }
+        Column(Modifier.fillMaxWidth().weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
+            IconButton(onClick = { Speak.say(context, q.answer.word) }, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(48.dp)).background(Accent.copy(alpha = 0.18f))) {
+                Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = "Hear it again", tint = Accent, modifier = Modifier.size(48.dp))
+            }
+            Spacer(Modifier.height(14.dp))
+            if (picked != null) {
+                Text(q.answer.word, fontSize = 40.sp, fontWeight = FontWeight.Bold)
+                Text(Pinyin.marks(q.answer.pinyin), color = toneColor(Pinyin.tones(q.answer.pinyin).firstOrNull() ?: 5), fontSize = 18.sp)
+            } else Text("What does it mean?", color = Color.White.copy(alpha = 0.6f))
+        }
+        q.choices.forEach { c ->
+            val isAnswer = c.word == q.answer.word
+            val bg = when {
+                picked == null -> Color.White.copy(alpha = 0.07f)
+                isAnswer -> Color(0xFF34D399).copy(alpha = 0.3f)
+                picked == c.word -> Color(0xFFF87171).copy(alpha = 0.3f)
+                else -> Color.White.copy(alpha = 0.04f)
+            }
+            Text(
+                c.english,
+                maxLines = 2,
+                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(14.dp)).background(bg)
+                    .clickable(enabled = picked == null) { picked = c.word; if (isAnswer) right++ }
+                    .padding(16.dp),
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.material3.Button(
+            onClick = { picked = null; index++ },
+            enabled = picked != null,
+            modifier = Modifier.fillMaxWidth().height(50.dp),
+        ) { Text(if (index + 1 >= questions.size) "Finish" else "Next") }
     }
 }
 

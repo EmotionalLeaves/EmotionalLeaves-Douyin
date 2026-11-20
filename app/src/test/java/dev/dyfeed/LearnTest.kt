@@ -104,4 +104,18 @@ class LearnTest {
         assertEquals(3, Srs.streak(setOf(9L, 8L, 7L), 10)) // not yet today: still alive
         assertEquals(0, Srs.streak(setOf(7L), 10))
     }
+
+    @Test
+    fun `a listening quiz asks the least-known words first, with three wrong meanings each`() {
+        val cards = listOf("一" to 5, "二" to 0, "三" to 2, "四" to 1, "五" to 0).mapIndexed { i, (w, reps) ->
+            Card(w, "x", "meaning $i", addedAt = 0, due = 0, reps = reps)
+        }
+        val qs = dev.dyfeed.domain.learn.Quiz.questions(cards, count = 3, random = kotlin.random.Random(1))
+        assertEquals(listOf("二", "五", "四"), qs.map { it.answer.word })
+        qs.forEach { q ->
+            assertEquals(4, q.choices.size)
+            assertEquals(1, q.choices.count { it.word == q.answer.word })
+        }
+        assertTrue(dev.dyfeed.domain.learn.Quiz.questions(cards.take(3)).isEmpty())
+    }
 }
