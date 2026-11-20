@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.35 — 2026-11-20
+- Smoke test checks DouyinLoginActivity registration via PackageManager instead of launching it mid-run (that cut 1.7.34's run short).
+
 ## 1.7.34 — 2026-11-20
 - DouyinLoginActivity declared in the manifest (ActivityNotFoundException found by the monkey run); smoke test opens it; quick check timeouts 8 s / 6 s.
 

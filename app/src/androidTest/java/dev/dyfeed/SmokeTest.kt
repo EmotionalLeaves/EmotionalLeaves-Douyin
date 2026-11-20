@@ -553,20 +553,15 @@ class SmokeTest {
         assertTrue("subtitle read: $picked", picked?.contains("火锅") == true)
     }
 
-    /** The "Verify I'm human" page opens (it was once missing from the manifest and crashed the app). */
+    /** The "Verify I'm human" page is registered with Android (it once wasn't, and tapping it crashed the app). */
     @Test
-    fun douyinCheckPageOpens() {
-        val closed = rule.activity.runOnUiThreadBlocking { dev.dyfeed.source.douyin.DouyinLoginActivity.open(rule.activity) }
-        Thread.sleep(3_000)
-        val resumed = androidx.test.runner.lifecycle.ActivityLifecycleMonitorRegistry.getInstance()
-        var onTop = false
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            onTop = resumed.getActivitiesInStage(androidx.test.runner.lifecycle.Stage.RESUMED).any { it is dev.dyfeed.source.douyin.DouyinLoginActivity }
-        }
-        android.util.Log.i("PFHEALTH", "douyin check page: " + if (onTop) "opens" else "did not open")
-        assertTrue("the Verify I'm human page should open", onTop)
-        androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_BACK)
-        runBlocking { kotlinx.coroutines.withTimeoutOrNull(10_000) { closed.await() } }
+    fun douyinCheckPageIsRegistered() {
+        val ctx = rule.activity
+        val found = runCatching {
+            ctx.packageManager.getActivityInfo(android.content.ComponentName(ctx, dev.dyfeed.source.douyin.DouyinLoginActivity::class.java), 0)
+        }.isSuccess
+        android.util.Log.i("PFHEALTH", "douyin check page: " + if (found) "registered" else "NOT registered")
+        assertTrue("DouyinLoginActivity must be declared in the manifest", found)
     }
 
     /** A link shared into the app opens in the viewer. */

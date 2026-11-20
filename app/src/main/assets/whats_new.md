@@ -1,3 +1,9 @@
+## 1.7.35 — 2026-11-20
+Verify I'm human works
+
+- Includes 1.7.34, which didn't reach you (my new emulator test for it misbehaved, so its build was cut off): tapping 抖音 Douyin in Settings or "Verify I'm human" no longer crashes the app, and Check sources waits less on slow answers.
+- The emulator tests now check every run that the Verify I'm human page is registered.
+
 ## 1.7.34 — 2026-11-20
 Verify I'm human works
 
