@@ -231,7 +231,7 @@ class SmokeTest {
         waitFor(what = "search screen") { exists("Search Douyin · 搜索") && exists("Surprise me") }
 
         tab("Learn")
-        waitFor(what = "learn screen") { exists("学习 Learn") && exists("Pinyin over captions") }
+        waitFor(what = "learn screen") { exists("学习 Learn") && exists("Chinese from the videos you watch") }
 
         tab("Library")
         waitFor(what = "library screen") { exists("Saved", substring = true) && exists("Following", substring = true) }

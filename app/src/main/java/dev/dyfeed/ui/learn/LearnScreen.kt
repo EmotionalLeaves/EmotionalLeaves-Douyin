@@ -143,36 +143,6 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     }
                 }
             }
-            // Pinyin over the feed's captions.
-            item {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Pinyin over captions", style = MaterialTheme.typography.titleSmall)
-                        Text("Every Chinese caption in the feed shows how it's said", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
-                }
-            }
-            item {
-                val autoPauseOn by LearnPrefs.autoPause.collectAsState()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Pause after each line", style = MaterialTheme.typography.titleSmall)
-                        Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
-                }
-            }
-            item {
-                val boostOn by LearnPrefs.boost.collectAsState()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("More videos with your words", style = MaterialTheme.typography.titleSmall)
-                        Text("For You leans toward captions that use words you're learning", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = boostOn, onCheckedChange = LearnPrefs::setBoost)
-                }
-            }
             // The words that keep coming up in what you watch, not yet saved.
             item {
                 val savedWords = cards.mapTo(HashSet()) { it.word }
@@ -333,6 +303,37 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                         Text(strength(c), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
                         IconButton(onClick = { WordBook.remove(c.word) }) { Icon(Icons.Filled.Close, contentDescription = "Remove ${c.word}", tint = Color.White.copy(alpha = 0.5f)) }
                     }
+                }
+            }
+            item { Section("How it helps · 设置") }
+            // Pinyin over the feed's captions.
+            item {
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Pinyin over captions", style = MaterialTheme.typography.titleSmall)
+                        Text("Every Chinese caption in the feed shows how it's said", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
+                }
+            }
+            item {
+                val autoPauseOn by LearnPrefs.autoPause.collectAsState()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Pause after each line", style = MaterialTheme.typography.titleSmall)
+                        Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
+                }
+            }
+            item {
+                val boostOn by LearnPrefs.boost.collectAsState()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("More videos with your words", style = MaterialTheme.typography.titleSmall)
+                        Text("For You leans toward captions that use words you're learning", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = boostOn, onCheckedChange = LearnPrefs::setBoost)
                 }
             }
             item {
