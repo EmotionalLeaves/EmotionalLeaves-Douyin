@@ -94,7 +94,8 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 Box(
                     Modifier.padding(horizontal = 16.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
                         .background(dev.dyfeed.ui.theme.BrandGradient)
-                        .clickable(enabled = due.isNotEmpty()) { reviewing = true }
+                        // Nothing saved yet: off to the feed, where the words are.
+                        .clickable(enabled = due.isNotEmpty() || cards.isEmpty()) { if (cards.isEmpty()) nav.navigate(Routes.FEED) { launchSingleTop = true } else reviewing = true }
                         .padding(18.dp),
                 ) {
                     Column {
