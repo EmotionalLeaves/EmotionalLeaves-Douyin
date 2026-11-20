@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.29 — 2026-11-20
+- Dictionary rebuilt keeping CL: classifiers (5th column, up to 3), shown in WordRow.
+
 ## 1.7.28 — 2026-11-20
 - Quiz alternates listening (Chinese audio → English) and reading (English → characters).
 

@@ -1,3 +1,8 @@
+## 1.7.29 — 2026-11-20
+Measure words
+
+- New: measure words. Nouns in 词 Words show which measure word they take (猫: 只 zhī, as in 一只猫; 人: 个 gè, 位 wèi).
+
 ## 1.7.28 — 2026-11-20
 Two-way quiz
 
