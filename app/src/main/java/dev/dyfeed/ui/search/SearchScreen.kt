@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -517,17 +518,23 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
                     if (ui.query.isNotEmpty()) {
                         IconButton(onClick = vm::clearQuery) { Icon(Icons.Filled.Close, "Clear") }
                     } else if (voiceAvailable) {
-                        // Say it instead of typing it (the phone's own speech recogniser).
-                        IconButton(onClick = {
-                            runCatching {
-                                voice.launch(
-                                    android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                                        .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                                        .putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
-                                        .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "Search every site"),
-                                )
-                            }
-                        }) { Icon(Icons.Filled.Mic, "Search by voice") }
+                        // Say it instead of typing it (the phone's own speech recogniser): tap in your
+                        // language, hold to say it in Mandarin (speaking practice that searches too).
+                        fun listen(chinese: Boolean) = runCatching {
+                            voice.launch(
+                                android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                    .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                    .putExtra(android.speech.RecognizerIntent.EXTRA_PREFER_OFFLINE, !chinese)
+                                    .apply { if (chinese) putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "zh-CN") }
+                                    .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, if (chinese) "说中文 · Say it in Chinese" else "Say what to find (English works)"),
+                            )
+                        }
+                        @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+                        Box(
+                            Modifier.size(48.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                                .combinedClickable(onClick = { listen(false) }, onLongClick = { listen(true) }, onClickLabel = "Search by voice", onLongClickLabel = "Search by voice in Chinese"),
+                            contentAlignment = Alignment.Center,
+                        ) { Icon(Icons.Filled.Mic, "Search by voice (hold for Chinese)") }
                     }
                 },
                 shape = RoundedCornerShape(28.dp),
