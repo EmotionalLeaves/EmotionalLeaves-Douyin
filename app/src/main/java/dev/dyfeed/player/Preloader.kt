@@ -43,6 +43,27 @@ class Preloader @Inject constructor(
     /** URLs already handed to the image loader, so re-settling on a page doesn't re-enqueue them. */
     private val warmed = java.util.Collections.newSetFromMap(ConcurrentHashMap<String, Boolean>())
 
+    /**
+     * Opens a connection to [url]'s server now (one byte), so when the video is reached the slow
+     * part, a secure connection to a server on the far side of the world, is already done.
+     */
+    fun connect(url: String) {
+        if (!url.startsWith("http") || isAdaptive(url)) return
+        val host = Uri.parse(url).host ?: return
+        val now = System.currentTimeMillis()
+        if ((connected[host] ?: 0L) > now - RECONNECT_MS) return
+        connected[host] = now
+        scope.launch(Dispatchers.IO) {
+            runCatching {
+                val source = mediaCache.streamingFactory.createDataSource()
+                try { source.open(DataSpec.Builder().setUri(Uri.parse(url)).setPosition(0).setLength(1).build()) } finally { source.close() }
+            }
+        }
+    }
+
+    /** Servers connected to lately (connections are kept open for a while after). */
+    private val connected = ConcurrentHashMap<String, Long>()
+
     fun video(key: String, url: String, bytes: Long = DEFAULT_BYTES) {
         if (!url.startsWith("http") || isAdaptive(url) || jobs.containsKey(key)) return
         jobs[key] = scope.launch(Dispatchers.IO) {
@@ -74,6 +95,8 @@ class Preloader @Inject constructor(
 
     companion object {
         private const val DEFAULT_BYTES = 2_500_000L
+        /** OkHttp keeps idle connections five minutes; reconnecting more often than this is waste. */
+        private const val RECONNECT_MS = 60_000L
         private const val MAX_WARMED = 500
     }
 }

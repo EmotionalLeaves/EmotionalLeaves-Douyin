@@ -632,6 +632,8 @@ class FeedViewModel @Inject constructor(
                 val type = Display.effectiveType(item, s)
                 when {
                     type == MediaType.VIDEO -> if (autoplay && i < videosAhead) {
+                        // The connection now (cheap); the video's first megabytes after the head start.
+                        preloader.connect(s.url)
                         kotlinx.coroutines.delay(HEAD_START_MS)
                         if (lastSettled == index) preloader.video(item.key, s.url)
                     }
