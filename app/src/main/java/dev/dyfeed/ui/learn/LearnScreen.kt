@@ -153,6 +153,16 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 }
             }
             item {
+                val autoPauseOn by LearnPrefs.autoPause.collectAsState()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Pause after each line", style = MaterialTheme.typography.titleSmall)
+                        Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
+                }
+            }
+            item {
                 val boostOn by LearnPrefs.boost.collectAsState()
                 Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {

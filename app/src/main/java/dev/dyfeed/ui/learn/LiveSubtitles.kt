@@ -69,6 +69,11 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
     var lineY by remember { mutableStateOf(0.7f) }
     /** Where the line on screen began (ms into the video), to hear it again. */
     var lineStart by remember { mutableStateOf(-1L) }
+    /** Paused at the end of a line (Pause after each line): say so, and a tap goes on. */
+    var pausedForLine by remember { mutableStateOf(false) }
+    LaunchedEffect(player, pausedForLine) {
+        while (pausedForLine) { delay(200); if (player?.isPlaying == true) pausedForLine = false }
+    }
     var viewH by remember { mutableStateOf(0) }
     LaunchedEffect(player, playerView, active, on) {
         chinese = null; english = null
@@ -83,7 +88,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         try {
             while (true) {
                 delay(if (misses > MISSES_BEFORE_SLOWING) SLOW_MS else EVERY_MS)
-                if (!player.isPlaying) continue
+                if (!player.isPlaying) { if (pausedForLine) lastSig = null; continue }
                 val pos = player.currentPosition
                 // Known already (a loop): show it from memory.
                 val known = cues.firstOrNull { it.end > it.start && pos in it.start..it.end }
@@ -123,6 +128,14 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 }
                 if (line == null) {
                     misses++
+                    // Learn → Pause after each line: stop here so the English can be read.
+                    // Learn → Pause after each line: stop here, its English left up to be read.
+                    if (current != null && LearnPrefs.autoPause.value) {
+                        player.pause(); pausedForLine = true
+                        current?.let { it.end = pos }
+                        current = null
+                        continue
+                    }
                     // The line has gone: take its English down now, not later.
                     current?.let { it.end = pos }
                     current = null
@@ -133,6 +146,12 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 val y = lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }?.let { it.centerY - it.height } ?: lineY
                 if (LiveSubs.same(current?.zh, line)) { current?.let { it.end = pos }; continue }
                 current?.let { it.end = pos }
+                // One line straight into the next: pause on the change, showing the line just ended.
+                if (current != null && LearnPrefs.autoPause.value) {
+                    player.pause(); pausedForLine = true
+                    current = null
+                    continue
+                }
                 dev.dyfeed.domain.learn.Heard.add(line)
                 // The new line at once (the old English never sits under a new line), English as soon as it's in.
                 chinese = line; lineY = y; lineStart = pos
@@ -182,6 +201,12 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                         .clickable { player?.seekTo((lineStart - REPLAY_LEAD_MS).coerceAtLeast(0L)) },
                 )
             }
+            if (pausedForLine) Text(
+                "Paused after the line · tap here to go on",
+                color = Color(0xFFFFD58A),
+                style = MaterialTheme.typography.labelMedium,
+                modifier = Modifier.padding(top = 4.dp).clickable { pausedForLine = false; player?.play() },
+            )
             val pinyinOn by LearnPrefs.pinyin.collectAsState()
             if (pinyinOn) pinyinLine(zh)?.let {
                 Text(it, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)

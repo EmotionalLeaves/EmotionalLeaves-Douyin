@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.RecordVoiceOver
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.ClosedCaption
+import androidx.compose.material.icons.filled.PauseCircle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.lazy.items
 import androidx.compose.ui.layout.positionInParent
@@ -327,6 +328,15 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
                     subtitle = "The subtitles in a video, read off the picture as they come up and shown in English just above them (on the phone). Tap one to learn its words.",
                     icon = Icons.Filled.ClosedCaption,
                     onChange = dev.dyfeed.ui.learn.LearnPrefs::setLiveSubs,
+                )
+                RowDivider()
+                val autoPause by dev.dyfeed.ui.learn.LearnPrefs.autoPause.collectAsStateWithLifecycle()
+                SwitchSetting(
+                    "Pause after each line",
+                    autoPause,
+                    subtitle = "The video stops when a subtitle line ends, so you can read its English (and pinyin) before going on",
+                    icon = Icons.Filled.PauseCircle,
+                    onChange = dev.dyfeed.ui.learn.LearnPrefs::setAutoPause,
                 )
                 RowDivider()
                 val slow by dev.dyfeed.ui.learn.LearnPrefs.slowVoice.collectAsStateWithLifecycle()
