@@ -1,3 +1,9 @@
+## 1.7.16 — 2026-11-20
+Speak it
+
+- New: Say it, on review cards. Tap the mic, say the word, and the phone's Mandarin listener tells you whether it heard it right (or what it heard instead).
+- New: hold the mic in Search to say it in Mandarin (tap still listens in your own language).
+
 ## 1.7.15 — 2026-11-20
 Memes in one tap
 

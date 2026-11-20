@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.16 — 2026-11-20
+- Review: zh-CN RecognizerIntent check against the card; Search mic long-press for zh-CN.
+
 ## 1.7.15 — 2026-11-20
 - Steer presets in the For You hold menu.
 
