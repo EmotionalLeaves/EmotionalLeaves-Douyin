@@ -693,20 +693,21 @@ private fun SuggestionsPane(
         }
         // Quick ways in, as on WeChat's Discover page: one tap each.
         if (t.isEmpty()) {
-            Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
+            Row(Modifier.fillMaxWidth().padding(top = 4.dp, bottom = 14.dp)) {
                 QUICK.forEach { (zh, en, q) ->
+                    // Equal shares of the width, so all five fit on a small phone.
                     Column(
-                        Modifier.clip(RoundedCornerShape(14.dp)).clickable { onPick(q) }.padding(horizontal = 6.dp, vertical = 4.dp),
+                        Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).clickable { onPick(q) }.padding(vertical = 4.dp),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
                         Box(
-                            Modifier.size(52.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                            Modifier.size(46.dp).clip(androidx.compose.foundation.shape.CircleShape)
                                 .background(androidx.compose.ui.graphics.Brush.linearGradient(listOf(Color.hsl((q.hashCode() and 0xff) * 1.4f % 360f, 0.55f, 0.42f), Color.hsl(((q.hashCode() and 0xff) * 1.4f + 40f) % 360f, 0.6f, 0.25f)))),
                             contentAlignment = Alignment.Center,
                         ) { Text(zh.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 22.sp) }
                         Spacer(Modifier.height(4.dp))
-                        Text(zh, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
-                        Text(en, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.55f))
+                        Text(zh, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold, maxLines = 1)
+                        Text(en, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.55f), maxLines = 1)
                     }
                 }
             }
