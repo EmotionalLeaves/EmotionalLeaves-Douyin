@@ -505,7 +505,7 @@ class SmokeTest {
         assertEquals(listOf("我", "喜欢", "吃", "重庆", "火锅"), words)
         rule.waitForIdle()
         dev.dyfeed.ui.learn.LearnWords.request.value = "我喜欢吃重庆火锅"
-        waitFor(timeoutMs = 20_000, what = "words sheet") { exists("词 Words") && exists("hotpot", substring = true) }
+        waitFor(timeoutMs = 20_000, what = "words sheet") { exists("词 Words") && exists("to like", substring = true) }
         shot("11_words")
         dev.dyfeed.ui.learn.LearnWords.request.value = null
         tab("Learn")
