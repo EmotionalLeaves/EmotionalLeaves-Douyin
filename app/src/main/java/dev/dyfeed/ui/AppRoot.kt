@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.selected
@@ -32,6 +33,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -379,7 +381,26 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
                     horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                     verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
                 ) {
-                    Icon(if (selected) tab.icon else tab.outline, contentDescription = null, tint = tint, modifier = Modifier.size(23.dp))
+                    Box {
+                        Icon(if (selected) tab.icon else tab.outline, contentDescription = null, tint = tint, modifier = Modifier.size(23.dp))
+                        // Words due for review: a red count on 学习, as WeChat marks what's waiting.
+                        if (tab.route == Routes.LEARN) {
+                            val cards by dev.dyfeed.domain.learn.WordBook.cards.collectAsStateWithLifecycle()
+                            val due = androidx.compose.runtime.remember(cards) { dev.dyfeed.domain.learn.Srs.due(cards, System.currentTimeMillis()).size }
+                            if (due > 0) Text(
+                                if (due > 99) "99+" else "$due",
+                                color = Color.White,
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd)
+                                    .offset(x = 9.dp, y = (-4).dp)
+                                    .clip(androidx.compose.foundation.shape.RoundedCornerShape(50))
+                                    .background(Color(0xFFFF3B30))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                            )
+                        }
+                    }
                     androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
                     // Over the feed only the current tab is named: fewer words on top of the video.
                     val labelAlpha by androidx.compose.animation.core.animateFloatAsState(if (selected || !immersive) 1f else 0f, label = "tabLabel")
