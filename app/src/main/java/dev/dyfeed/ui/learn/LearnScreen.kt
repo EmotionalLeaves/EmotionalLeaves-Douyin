@@ -3,6 +3,7 @@ package dev.dyfeed.ui.learn
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -198,6 +199,26 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                             }
                         }
                     }
+                }
+            }
+            // Today's trending topics, in English and pinyin: tap one for its words, hold to watch.
+            item {
+                val trending by produceState(emptyList<String>()) { value = vm.trending().take(6) }
+                if (trending.isNotEmpty()) Column {
+                    Section("Today on Douyin · 热搜")
+                    trending.forEach { topic ->
+                        val en = dev.dyfeed.ui.common.rememberEnglish(topic, force = true)
+                        Column(
+                            Modifier.fillMaxWidth()
+                                .combinedClickableCompat(onClick = { LearnWords.request.value = topic }, onLongClick = { nav.navigate(Routes.tag(topic)) })
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                        ) {
+                            (if (dictReady) pinyinLine(topic) else null)?.let { Text(it, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                            Text(topic, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
+                        }
+                    }
+                    Text("Tap for the words · hold to watch the videos", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
             item { Section("Watch and learn · 看视频学中文") }
@@ -484,3 +505,7 @@ private val TOPICS = listOf(
     Triple("古诗词", "Classic poems", 248f),
     Triple("街头采访", "Street interviews", 352f),
 )
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+private fun Modifier.combinedClickableCompat(onClick: () -> Unit, onLongClick: () -> Unit): Modifier =
+    this.then(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick))

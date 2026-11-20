@@ -9,7 +9,15 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 
 @HiltViewModel
-class LearnViewModel @Inject constructor(library: LibraryRepository) : ViewModel() {
+class LearnViewModel @Inject constructor(
+    library: LibraryRepository,
+    private val registry: dev.dyfeed.source.SourceRegistry,
+) : ViewModel() {
+    /** What China is talking about today (Douyin's trending list): real, current Chinese to learn from. */
+    suspend fun trending(): List<String> =
+        (registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter)
+            ?.let { runCatching { it.trending() }.getOrDefault(emptyList()) }.orEmpty()
+
     /** Captions of what you've watched lately (and liked, and saved): where your words come from. */
     val captions: Flow<List<String>> = kotlinx.coroutines.flow.combine(
         library.items(LibraryKind.HISTORY),
