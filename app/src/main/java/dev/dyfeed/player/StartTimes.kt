@@ -10,6 +10,8 @@ object StartTimes {
 
     @Synchronized fun add(ms: Long) { if (ms in 0..60_000) { times.addLast(ms); while (times.size > KEEP) times.removeFirst() } }
 
+    @Synchronized fun clear() = times.clear()
+
     @Synchronized fun summary(): String {
         if (times.isEmpty()) return "none yet"
         val sorted = times.sorted()
