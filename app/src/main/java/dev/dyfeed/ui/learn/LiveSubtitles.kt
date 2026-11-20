@@ -210,8 +210,8 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 modifier = Modifier.padding(top = 4.dp).clickable { pausedForLine = false; player?.play() },
             )
             val pinyinOn by LearnPrefs.pinyin.collectAsState()
-            if (pinyinOn) pinyinLine(zh)?.let {
-                Text(it, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+            if (pinyinOn) pinyinColored(zh)?.let {
+                Text(it, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
             }
         }
     }

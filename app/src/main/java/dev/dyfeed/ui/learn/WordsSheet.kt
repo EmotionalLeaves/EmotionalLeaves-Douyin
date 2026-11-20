@@ -174,6 +174,29 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
     }
 }
 
+/** [pinyinLine] with each syllable in its tone's colour; null until the dictionary is in. */
+fun pinyinColored(text: String): androidx.compose.ui.text.AnnotatedString? {
+    val d = Dict.ready ?: return null
+    return androidx.compose.ui.text.buildAnnotatedString {
+        var first = true
+        d.segment(text).forEach { t ->
+            val e = t.entries.firstOrNull()
+            if (e == null) {
+                val other = t.text.trim()
+                if (other.isNotEmpty()) { if (!first) append(" "); append(other); first = false }
+                return@forEach
+            }
+            if (!first) append(" ")
+            first = false
+            e.pinyin.split(' ').forEach { syl ->
+                pushStyle(androidx.compose.ui.text.SpanStyle(color = toneColor(Pinyin.tones(syl).first())))
+                append(Pinyin.marks(syl))
+                pop()
+            }
+        }
+    }
+}
+
 /** Pinyin for a whole line, word by word (for the feed's pinyin line); null until the dictionary is in. */
 fun pinyinLine(text: String): String? {
     val d = Dict.ready ?: return null

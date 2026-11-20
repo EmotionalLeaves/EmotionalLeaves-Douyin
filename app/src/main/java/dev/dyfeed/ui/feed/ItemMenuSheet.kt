@@ -196,8 +196,8 @@ fun ItemMenuSheet(
                             }
                             Spacer(Modifier.height(3.dp))
                             // Learn → Pinyin over captions: comments get it too.
-                            if (pinyinOn && dictIn) dev.dyfeed.ui.learn.pinyinLine(c.body)?.let { p ->
-                                Text(p, style = MaterialTheme.typography.labelSmall, color = androidx.compose.ui.graphics.Color(0xFFFFD58A), maxLines = 4, overflow = TextOverflow.Ellipsis)
+                            if (pinyinOn && dictIn) dev.dyfeed.ui.learn.pinyinColored(c.body)?.let { p ->
+                                Text(p, style = MaterialTheme.typography.labelSmall, maxLines = 4, overflow = TextOverflow.Ellipsis)
                             }
                             Text(c.body, style = MaterialTheme.typography.bodyMedium, maxLines = 8, overflow = TextOverflow.Ellipsis)
                             if (translateOn) {

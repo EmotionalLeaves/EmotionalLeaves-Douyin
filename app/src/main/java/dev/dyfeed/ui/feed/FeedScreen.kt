@@ -1727,11 +1727,12 @@ private fun Overlay(
                 val pinyinOn by dev.dyfeed.ui.learn.LearnPrefs.pinyin.collectAsStateWithLifecycle()
                 if (pinyinOn && dev.dyfeed.domain.lang.Zh.has(it)) {
                     val ctx = androidx.compose.ui.platform.LocalContext.current
-                    val line by androidx.compose.runtime.produceState(dev.dyfeed.ui.learn.pinyinLine(it), it) {
-                        dev.dyfeed.domain.learn.Dict.get(ctx); value = dev.dyfeed.ui.learn.pinyinLine(it)
+                    val line by androidx.compose.runtime.produceState(dev.dyfeed.ui.learn.pinyinColored(it), it) {
+                        dev.dyfeed.domain.learn.Dict.get(ctx); value = dev.dyfeed.ui.learn.pinyinColored(it)
                     }
                     line?.let { p ->
-                        Text(p, color = Color(0xFFFFD58A), maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium.shadowed())
+                        // Each syllable in its tone's colour.
+                        Text(p, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelMedium.shadowed())
                     }
                 }
                 // Two lines; tap for the rest (and again to fold it away).
