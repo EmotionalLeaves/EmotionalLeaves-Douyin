@@ -482,11 +482,18 @@ class DouyinAdapter @Inject constructor(
         val bodies = listOf(r.body) + runCatching { web.harvest(10_000) }.getOrDefault(emptyList())
         val pattern = Regex("subtit|caption|vtt|srt|asr|ocr|lyric|transcri|voice_text|text_extra_info", RegexOption.IGNORE_CASE)
         val found = LinkedHashMap<String, String>()
+        val filled = HashMap<String, Int>()
+        val seen = HashMap<String, Int>()
         fun walk(e: JsonElement, path: String) {
             when (e) {
                 is JsonObject -> e.forEach { (k, v) ->
                     val p = path.replace(Regex("""\[\d+]"""), "[]") + "." + k
-                    if (pattern.containsMatchIn(k) && p !in found) found[p] = v.toString().take(160)
+                    if (pattern.containsMatchIn(k) && !p.contains("text_extra") && !p.contains("poi_")) {
+                        seen[p] = (seen[p] ?: 0) + 1
+                        val empty = v is kotlinx.serialization.json.JsonNull || v.toString() in setOf("\"\"", "[]", "{}", "0")
+                        if (!empty) { filled[p] = (filled[p] ?: 0) + 1; if (found[p] == null || found[p] == "null") found[p] = v.toString().take(300) }
+                        else if (p !in found) found[p] = "null"
+                    }
                     walk(v, "$path.$k")
                 }
                 is JsonArray -> e.take(12).forEachIndexed { i, v -> walk(v, "$path[$i]") }
@@ -495,7 +502,7 @@ class DouyinAdapter @Inject constructor(
         }
         bodies.forEach { b -> runCatching { walk(json.parseToJsonElement(b), "") } }
         return if (found.isEmpty()) "no subtitle-like fields in ${bodies.size} answers"
-        else found.entries.take(14).joinToString(" || ") { (k, v) -> "$k=$v" }
+        else found.entries.take(14).joinToString(" || ") { (k, v) -> "$k (${filled[k] ?: 0}/${seen[k] ?: 0} filled)=$v" }
     }
 
     /** How each way of searching does right now, for the health test. */
