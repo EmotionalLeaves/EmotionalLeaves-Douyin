@@ -1103,6 +1103,22 @@ private fun ResultsPane(
         }
     }
     Column(Modifier.fillMaxSize()) {
+        // Typed in English: say what Douyin was searched for, in Chinese (a word learnt on the way).
+        ui.searched?.takeIf { dev.dyfeed.domain.lang.Zh.isLatinQuery(it) }?.let { typed ->
+            val zh by androidx.compose.runtime.produceState(dev.dyfeed.domain.lang.EnglishToChinese.cached(typed), typed) {
+                value = dev.dyfeed.domain.lang.EnglishToChinese.translate(typed).getOrNull()
+            }
+            zh?.takeIf { dev.dyfeed.domain.lang.Zh.has(it) }?.let { word ->
+                val ctx = androidx.compose.ui.platform.LocalContext.current
+                Text(
+                    "Searched Douyin for $word ${dev.dyfeed.ui.learn.pinyinLine(word)?.let { "($it)" } ?: ""} · tap for its words",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFFFFD58A),
+                    modifier = Modifier.fillMaxWidth().clickable { dev.dyfeed.ui.learn.LearnWords.request.value = word }.padding(horizontal = 16.dp, vertical = 6.dp),
+                )
+                LaunchedEffect(word) { dev.dyfeed.domain.learn.Dict.get(ctx) }
+            }
+        }
         if (ui.alsoTry.isNotEmpty()) {
             androidx.compose.foundation.lazy.LazyRow(
                 Modifier.fillMaxWidth().padding(vertical = 6.dp),
