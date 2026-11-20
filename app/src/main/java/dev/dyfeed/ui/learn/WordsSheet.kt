@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.BookmarkAdded
 import androidx.compose.material.icons.filled.BookmarkAdd
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -71,8 +73,29 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState, containerColor = MaterialTheme.colorScheme.surfaceContainerLow) {
         Column(Modifier.padding(horizontal = 20.dp).padding(bottom = 24.dp)) {
+            // Say the line back (shadowing): the phone listens in Mandarin and scores how much came through.
+            var shadow by androidx.compose.runtime.remember(text) { androidx.compose.runtime.mutableStateOf<Pair<String, Int>?>(null) }
+            val sayLine = androidx.activity.compose.rememberLauncherForActivityResult(androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()) { r ->
+                val said = r.data?.getStringArrayListExtra(android.speech.RecognizerIntent.EXTRA_RESULTS).orEmpty()
+                shadow = dev.dyfeed.domain.learn.Shadowing.best(text, said)
+            }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("词 Words", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.weight(1f))
+                if (text.trim().length <= 30) TextButton(onClick = {
+                    runCatching {
+                        sayLine.launch(
+                            android.content.Intent(android.speech.RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE_MODEL, android.speech.RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_LANGUAGE, "zh-CN")
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_MAX_RESULTS, 5)
+                                .putExtra(android.speech.RecognizerIntent.EXTRA_PROMPT, "说: ${text.trim()}"),
+                        )
+                    }
+                }) {
+                    Icon(Icons.Filled.Mic, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(4.dp))
+                    Text("Say it")
+                }
                 TextButton(onClick = { Speak.say(context, text) }) {
                     Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
@@ -80,6 +103,13 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
                 }
             }
             speechProblem?.let { Text(it, style = MaterialTheme.typography.labelMedium, color = Color(0xFFFBBF24)) }
+            shadow?.let { (heard, score) ->
+                Text(
+                    (if (score >= 85) "✓ $score% — 很好! " else "$score% · ") + "Heard: $heard",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (score >= 85) Color(0xFF34D399) else if (score >= 50) Color(0xFFFBBF24) else Color(0xFFF87171),
+                )
+            }
             val list = tokens
             if (list == null) {
                 Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) { dev.dyfeed.ui.common.BrandSpinner() }

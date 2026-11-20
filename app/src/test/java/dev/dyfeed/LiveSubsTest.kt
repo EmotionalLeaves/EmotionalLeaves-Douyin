@@ -47,4 +47,13 @@ class LiveSubsTest {
         assertEquals(listOf("第一句" to "first line", "第二句" to "second line"), t.of("v1").map { it.zh to it.en })
         assertEquals(listOf(1_000L, 5_000L), t.of("v1").map { it.atMs })
     }
+
+    @Test
+    fun `saying a line back is scored by how much of it came through`() {
+        val s = dev.dyfeed.domain.learn.Shadowing
+        assertEquals(100, s.score("我们今天去吃火锅", "我们今天去吃火锅。"))
+        assertEquals(75, s.score("我们今天去吃火锅", "我们今天吃锅"))
+        assertEquals(0, s.score("我们今天去吃火锅", "hello"))
+        assertEquals("我们去吃火锅" to 75, s.best("我们今天去吃火锅", listOf("我们去吃火锅", "我们")))
+    }
 }

@@ -100,3 +100,21 @@ object Transcripts {
 object SeekRequest {
     val request = kotlinx.coroutines.flow.MutableStateFlow<Pair<String, Long>?>(null)
 }
+
+/** Saying a line back: how much of it came through, character by character (0–100). */
+object Shadowing {
+    /** The share of [target]'s Chinese characters, in order, found in [said] (longest common subsequence). */
+    fun score(target: String, said: String): Int {
+        val a = target.filter { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+        val b = said.filter { Character.UnicodeScript.of(it.code) == Character.UnicodeScript.HAN }
+        if (a.isEmpty()) return 0
+        val dp = Array(a.length + 1) { IntArray(b.length + 1) }
+        for (i in 1..a.length) for (j in 1..b.length) {
+            dp[i][j] = if (a[i - 1] == b[j - 1]) dp[i - 1][j - 1] + 1 else maxOf(dp[i - 1][j], dp[i][j - 1])
+        }
+        return dp[a.length][b.length] * 100 / a.length
+    }
+
+    /** The best of the recogniser's guesses. */
+    fun best(target: String, guesses: List<String>): Pair<String, Int>? = guesses.map { it to score(target, it) }.maxByOrNull { it.second }
+}
