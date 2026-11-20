@@ -176,7 +176,7 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
 
     Box(Modifier.fillMaxSize()) {
         Column(Modifier.fillMaxSize()) {
-            ScreenHeader("Settings")
+            ScreenHeader("我 Me", subtitle = "Your library, your Chinese, your settings")
             // Jump straight to a section: the page is long.
             val scroll = rememberScrollState()
             val sectionY = remember { mutableStateMapOf<String, Int>() }
@@ -212,6 +212,15 @@ fun SettingsScreen(nav: NavController, vm: SettingsViewModel = hiltViewModel()) 
             // At a glance: what you've kept, and a way straight to it.
             val counts by vm.libraryCounts.collectAsStateWithLifecycle()
             LibraryCard(counts) { nav.navigate(Routes.LIBRARY) { launchSingleTop = true } }
+            // Your Chinese at a glance, as the library is above: words, due today, days in a row.
+            val words by dev.dyfeed.domain.learn.WordBook.cards.collectAsStateWithLifecycle()
+            val days by dev.dyfeed.domain.learn.WordBook.days.collectAsStateWithLifecycle()
+            val now = remember { System.currentTimeMillis() }
+            LearnCard(
+                words = words.size,
+                due = dev.dyfeed.domain.learn.Srs.due(words, now).size,
+                streak = dev.dyfeed.domain.learn.Srs.streak(days, dev.dyfeed.domain.learn.WordBook.today(now)),
+            ) { nav.navigate(Routes.LEARN) { launchSingleTop = true } }
 
             Section(footer = "If the feed stops loading, open Douyin here and pass its \"verify you're human\" check.") {
                 // The one place to sort out Douyin: sign in, or clear its human check.
@@ -844,6 +853,28 @@ private fun LibraryCard(counts: Triple<Int, Int, Int>, onOpen: () -> Unit) {
                     style = MaterialTheme.typography.titleLarge.copy(brush = dev.dyfeed.ui.theme.BrandGradient),
                     fontWeight = FontWeight.ExtraBold,
                 )
+                Text(label, style = MaterialTheme.typography.labelMedium, color = TextLow)
+            }
+        }
+    }
+}
+
+/** 学习 at a glance: saved words, due now, days in a row; opens Learn. */
+@Composable
+private fun LearnCard(words: Int, due: Int, streak: Int, onOpen: () -> Unit) {
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 4.dp)
+            .clip(androidx.compose.foundation.shape.RoundedCornerShape(20.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer)
+            .clickable(onClick = onOpen)
+            .padding(vertical = 14.dp),
+    ) {
+        listOf(words to "Words · 词", due to "To review", streak to "Days in a row").forEachIndexed { i, (n, label) ->
+            if (i > 0) Box(Modifier.width(0.5.dp).height(36.dp).align(Alignment.CenterVertically).background(MaterialTheme.colorScheme.outlineVariant))
+            Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("%,d".format(n), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = Color(0xFFFFD58A))
                 Text(label, style = MaterialTheme.typography.labelMedium, color = TextLow)
             }
         }
