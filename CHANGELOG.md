@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.36 — 2026-11-20
+- WordBook.reviewedToday (persisted per day); review card progress; Check sources quick path measured at 0.56 s.
+
 ## 1.7.35 — 2026-11-20
 - Smoke test checks DouyinLoginActivity registration via PackageManager instead of launching it mid-run (that cut 1.7.34's run short).
 

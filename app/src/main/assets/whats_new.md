@@ -1,3 +1,9 @@
+## 1.7.36 — 2026-11-20
+Today's goal
+
+- New: a daily goal on the review card: today's reviews out of ten, with a bar (✓ 今天完成了 when done).
+- Check sources, measured on the test phone: about half a second when the app already has posts at hand (it was about two minutes before 1.7.33).
+
 ## 1.7.35 — 2026-11-20
 Verify I'm human works
 
