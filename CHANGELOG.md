@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.19 — 2026-11-20
+- Transcripts (in-memory, 30 videos) + SeekRequest; Learn heard lines; lint fix (collectAsState for Heard in WordRow); release gate runs lint.
+
 ## 1.7.18 — 2026-11-20
 - Search quick-entry row; Heard example lines under words.
 

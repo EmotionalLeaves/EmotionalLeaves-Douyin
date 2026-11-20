@@ -1,3 +1,10 @@
+## 1.7.19 — 2026-11-20
+Transcripts
+
+- New: Transcript (⋯ menu on a video): everything said in it so far, read off its subtitles, with English and tone-coloured pinyin. Tap a line for its words; tap its time to hear it again.
+- New: Learn shows the lines you heard lately, in English.
+- Includes 1.7.18 (its build stopped on a code-check warning, now fixed): quick ways in on 发现 Search (梗图 Memes, 搞笑, 学中文, 美食, 萌宠), and lines where you heard a word under it in 词 Words.
+
 ## 1.7.18 — 2026-11-20
 Quick ways in
 

@@ -165,7 +165,8 @@ fun WordRow(word: String, entries: List<Entry>, saved: Boolean, onSpeak: () -> U
                 if (parts.all { it != null }) Text(parts.joinToString(" · "), style = MaterialTheme.typography.labelSmall, color = Color(0xFFFFD58A).copy(alpha = 0.8f))
             }
             // Where you heard it: lines from videos you watched (read off their subtitles).
-            if (word.length >= 2) dev.dyfeed.domain.learn.Heard.lines.value.asReversed().filter { word in it }.distinct().take(2).forEach { line ->
+            val heardLines by dev.dyfeed.domain.learn.Heard.lines.collectAsState()
+            if (word.length >= 2) heardLines.asReversed().filter { word in it }.distinct().take(2).forEach { line ->
                 Text("“${line.take(40)}”", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
             }
             if (entries.firstOrNull()?.traditional?.let { it != word } == true) {
