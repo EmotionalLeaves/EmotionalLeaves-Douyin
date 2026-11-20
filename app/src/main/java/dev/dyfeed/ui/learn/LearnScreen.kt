@@ -51,6 +51,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import kotlinx.coroutines.launch
 import dev.dyfeed.domain.learn.Card
 import dev.dyfeed.domain.learn.Dict
 import dev.dyfeed.domain.learn.Entry
@@ -352,6 +353,20 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                         Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
                     }
                     Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
+                }
+            }
+            item {
+                val easyOn by LearnPrefs.easy.collectAsState()
+                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Easier Chinese first", style = MaterialTheme.typography.titleSmall)
+                        Text("For You leans toward captions made of beginner words (HSK 1–3)", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                    }
+                    Switch(checked = easyOn, onCheckedChange = { on ->
+                        LearnPrefs.setEasy(on)
+                        // Its word lists have to be in memory for For You to use them.
+                        if (on) kotlinx.coroutines.MainScope().launch { Dict.get(context); dev.dyfeed.domain.learn.Hsk.get(context) }
+                    })
                 }
             }
             item {

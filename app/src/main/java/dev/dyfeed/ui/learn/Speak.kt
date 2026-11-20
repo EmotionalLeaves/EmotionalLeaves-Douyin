@@ -62,6 +62,11 @@ object LearnPrefs {
     val autoPause: StateFlow<Boolean> = _autoPause
     fun setAutoPause(on: Boolean) { _autoPause.value = on; prefs?.edit()?.putBoolean("autopause", on)?.apply() }
 
+    private val _easy = MutableStateFlow(false)
+    /** For You leans toward captions made of beginner words. */
+    val easy: StateFlow<Boolean> = _easy
+    fun setEasy(on: Boolean) { _easy.value = on; dev.dyfeed.domain.learn.LearnBoost.easy = on; prefs?.edit()?.putBoolean("easy", on)?.apply() }
+
     private val _boost = MutableStateFlow(false)
     /** For You leans toward videos whose captions use your saved words. */
     val boost: StateFlow<Boolean> = _boost
@@ -85,6 +90,8 @@ object LearnPrefs {
             _autoPause.value = it.getBoolean("autopause", false)
             _subSize.value = it.getInt("subsize", 0).coerceIn(0, 2)
             dev.dyfeed.domain.learn.LearnBoost.on = _boost.value
+            _easy.value = it.getBoolean("easy", false)
+            dev.dyfeed.domain.learn.LearnBoost.easy = _easy.value
         }
     }
 

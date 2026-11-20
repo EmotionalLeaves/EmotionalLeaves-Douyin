@@ -165,4 +165,12 @@ class LearnTest {
         assertEquals(1, real.level("喜欢"))
         assertTrue(real.count(1) in 400..600)
     }
+
+    @Test
+    fun `a caption of beginner words counts as easy`() {
+        val hsk = dev.dyfeed.domain.learn.HskTable.parse(sequenceOf("我\t1\t1\t3", "喜欢\t1\t1\t139", "吃\t1\t1\t50", "火锅\t7\t\t15037", "重庆\t5\t\t9000"))
+        val b = dev.dyfeed.domain.learn.LearnBoost
+        assertEquals(0.75, b.easyShare(dict, hsk, "我喜欢吃火锅 #美食")!!, 1e-9)
+        assertEquals(null, b.easyShare(dict, hsk, "火锅"))
+    }
 }

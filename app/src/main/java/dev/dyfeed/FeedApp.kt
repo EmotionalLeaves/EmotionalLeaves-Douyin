@@ -52,6 +52,10 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
         dev.dyfeed.domain.learn.WordBook.init(this)
         dev.dyfeed.domain.learn.Heard.init(this)
         dev.dyfeed.ui.learn.LearnPrefs.init(this)
+        // Easier Chinese first ranks by the word lists: have them in memory before the first feed.
+        if (dev.dyfeed.ui.learn.LearnPrefs.easy.value) kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            dev.dyfeed.domain.learn.Dict.get(this@FeedApp); dev.dyfeed.domain.learn.Hsk.get(this@FeedApp)
+        }
         dev.dyfeed.player.ComicPages.init(this)
         dev.dyfeed.source.net.GeoBlock.init(this)
         dev.dyfeed.source.douyin.CreatorAvatars.init(this)

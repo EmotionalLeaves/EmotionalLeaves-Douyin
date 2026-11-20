@@ -160,13 +160,33 @@ object Quiz {
 object LearnBoost {
     @Volatile var on = false
     @Volatile var words: Set<String> = emptySet()
+    /** Learn → Easier Chinese first: captions made mostly of beginner words rank higher. */
+    @Volatile var easy = false
     private const val BONUS = 0.25
+    /** At most this much either way: easy captions up, hard ones down, taste still leading. */
+    private const val EASY_SPAN = 0.3
 
     fun bonus(item: dev.dyfeed.domain.model.MediaItem): Double {
-        if (!on) return 0.0
         val title = item.title ?: return 0.0
+        var b = 0.0
         val w = words
-        return if (w.isNotEmpty() && w.any { it in title }) BONUS else 0.0
+        if (on && w.isNotEmpty() && w.any { it in title }) b += BONUS
+        if (easy) {
+            val d = Dict.ready
+            val h = Hsk.ready
+            if (d != null && h != null) easyShare(d, h, title)?.let { b += EASY_SPAN * (2 * it - 1) }
+        }
+        return b
+    }
+
+    /**
+     * The share of a caption's Chinese words that are beginner words (HSK 1–3), or null when it has
+     * too few words to say (hashtags and names left out as far as possible).
+     */
+    fun easyShare(dict: ZhDictionary, hsk: HskTable, text: String): Double? {
+        val words = dict.segment(text.replace(Regex("""[#＃@][^\s#＃@]+"""), " ")).filter { it.known && ZhDictionary.isHan(it.text[0]) }
+        if (words.size < 3) return null
+        return words.count { (hsk.level(it.text) ?: 9) <= 3 }.toDouble() / words.size
     }
 }
 
