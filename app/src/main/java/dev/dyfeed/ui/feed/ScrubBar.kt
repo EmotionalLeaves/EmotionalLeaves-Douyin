@@ -69,7 +69,7 @@ fun ScrubBar(
                 duration = player.duration.takeIf { it > 0 } ?: 0L
                 position = player.currentPosition.coerceAtLeast(0L)
             }
-            delay(if (player.isPlaying) 50 else 200)
+            delay(if (player.isPlaying) 100 else 250)
         }
     }
     if (duration <= 0L) return

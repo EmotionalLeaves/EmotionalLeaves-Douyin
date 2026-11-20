@@ -43,6 +43,8 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
 
     private var readyScheduled: Boolean? = null
 
+    @Volatile private var translatorWarmed = false
+
     override fun onCreate() {
         super.onCreate()
         dev.dyfeed.player.ResumePoints.init(this)
@@ -67,6 +69,8 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
                 dataSaver = it.dataSaver
                 dev.dyfeed.data.repo.OfflineStore.dataSaver = it.dataSaver
                 dev.dyfeed.domain.lang.ChineseToEnglish.auto = it.autoTranslate
+                // Load the translator now, not on the first caption (it takes a second or so the first time).
+                if (it.autoTranslate && !translatorWarmed) { translatorWarmed = true; launch(kotlinx.coroutines.Dispatchers.Default) { dev.dyfeed.domain.lang.ChineseToEnglish.translate("你好") } }
                 bestQuality = it.bestQuality
                 dev.dyfeed.player.Battery.saverOn = it.batterySaver
                 if (it.readyAhead != readyScheduled) { readyScheduled = it.readyAhead; dev.dyfeed.work.ReadyWorker.schedule(this@FeedApp, it.readyAhead) }

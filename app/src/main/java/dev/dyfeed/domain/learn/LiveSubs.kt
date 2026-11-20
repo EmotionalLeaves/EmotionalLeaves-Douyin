@@ -39,5 +39,35 @@ object LiveSubs {
         return common >= maxOf(a.toSet().size, b.toSet().size) * 0.8 && kotlin.math.abs(a.length - b.length) <= 2
     }
 
+    /**
+     * A cheap fingerprint of where subtitles go (rows [top] to [bottom] of [frame]): which cells of
+     * a 48×12 grid hold bright text-like pixels. Two the same means the subtitle hasn't changed, so
+     * the text reader needn't run again.
+     */
+    fun signature(frame: android.graphics.Bitmap, top: Int, bottom: Int): LongArray {
+        val cols = 48; val rows = 12
+        val out = LongArray((cols * rows + 63) / 64)
+        val w = frame.width
+        val h = (bottom - top).coerceAtLeast(1)
+        val px = IntArray(w)
+        for (r in 0 until rows) {
+            val y = top + (r * h + h / 2) / rows
+            frame.getPixels(px, 0, w, 0, y.coerceIn(0, frame.height - 1), w, 1)
+            for (c in 0 until cols) {
+                val x0 = c * w / cols; val x1 = (c + 1) * w / cols
+                var bright = 0
+                for (x in x0 until x1) { val p = px[x]; if (luma(p) > 200) bright++ }
+                if (bright * 6 >= (x1 - x0).coerceAtLeast(1)) { val bit = r * cols + c; out[bit / 64] = out[bit / 64] or (1L shl (bit % 64)) }
+            }
+        }
+        return out
+    }
+
+    /** Fingerprints that differ in at most a few cells: the same subtitle (video noise aside). */
+    fun sameSignature(a: LongArray, b: LongArray): Boolean = a.indices.sumOf { java.lang.Long.bitCount(a[it] xor b[it]) } <= SIGNATURE_SLACK
+
+    private fun luma(p: Int): Int = ((p shr 16 and 0xFF) * 3 + (p shr 8 and 0xFF) * 6 + (p and 0xFF)) / 10
+    private const val SIGNATURE_SLACK = 6
+
     private val WATERMARK = listOf("抖音号", "抖音", "DouYin", "TikTok", "关注", "点赞")
 }

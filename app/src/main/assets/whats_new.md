@@ -1,3 +1,11 @@
+## 1.7.7 — 2026-11-19
+Subtitles in time, a faster app
+
+- Fixed: the English for what's said now keeps time with the speech. It checks four times a second instead of under twice, takes the English down the moment a line ends, and never shows the last line's English under a new one. Clips loop, so from the second time round each line's English appears exactly on time.
+- Faster: the hidden Douyin web page the app uses to sign its requests is paused whenever it isn't fetching. Before, Douyin's website scripts kept running in the background all the time, taking processing power from the video you were watching.
+- Faster: the video you swipe to gets the connection to itself for its first moment before the next ones start downloading. The translator also loads when the app opens, not on the first caption.
+- Includes 1.7.6: Chinese on screen shows in English by default; review cards pick out the word in the line you met it in.
+
 ## 1.7.6 — 2026-11-19
 English on screen by default
 

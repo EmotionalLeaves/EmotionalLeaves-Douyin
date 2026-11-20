@@ -34,6 +34,9 @@ class DouyinLoginActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         CookieManager.getInstance().setAcceptCookie(true)
+        // The app pauses its hidden pages when idle; this one is on screen: keep everything awake.
+        DouyinWeb.visiblePages++
+        DouyinWeb.wakeTimers(this)
 
         web = WebView(this).apply {
             settings.javaScriptEnabled = true
@@ -103,6 +106,7 @@ class DouyinLoginActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        DouyinWeb.visiblePages = (DouyinWeb.visiblePages - 1).coerceAtLeast(0)
         CookieManager.getInstance().flush()
         web.destroy()
         if (isFinishing) closed?.complete(Unit)

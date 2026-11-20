@@ -622,14 +622,19 @@ class FeedViewModel @Inject constructor(
         val ahead = (index + 1..index + PRELOAD_AHEAD).mapNotNull { list.getOrNull(it) }
         ahead.forEach { preloader.thumbnail(it.thumbnailUrl) }
         val autoplay = autoplayAllowed()
-        // Douyin's servers are far away: on Wi-Fi, the start of the next four videos is fetched ahead.
-        val videosAhead = if (network.isMetered) 2 else 4
+        // Douyin's servers are far away: on Wi-Fi, the start of the next three videos is fetched
+        // ahead, but only after the one you're on has had a head start (they'd otherwise split the
+        // connection with it, and it would start slower).
+        val videosAhead = if (network.isMetered) 2 else 3
         ahead.take(RESOLVE_AHEAD).forEachIndexed { i, item ->
             viewModelScope.launch {
                 val s = resolve(item) as? StreamInfo.Direct ?: return@launch
                 val type = Display.effectiveType(item, s)
                 when {
-                    type == MediaType.VIDEO -> if (autoplay && i < videosAhead) preloader.video(item.key, s.url)
+                    type == MediaType.VIDEO -> if (autoplay && i < videosAhead) {
+                        kotlinx.coroutines.delay(HEAD_START_MS)
+                        if (lastSettled == index) preloader.video(item.key, s.url)
+                    }
                     else -> preloader.image(s.url)
                 }
             }
@@ -1025,6 +1030,8 @@ class FeedViewModel @Inject constructor(
         private const val HANDS_FREE_FULL_VIEW = 0.5
         private const val PRELOAD_AHEAD = 6
         private const val RESOLVE_AHEAD = 5
+        /** How long the video on screen downloads alone before the next ones start fetching. */
+        private const val HEAD_START_MS = 1_200L
         private const val CHAIN_DELAY_MS = 300L
         private const val RETRY_MIN_MS = 2_000L
         private const val RETRY_MAX_MS = 30_000L

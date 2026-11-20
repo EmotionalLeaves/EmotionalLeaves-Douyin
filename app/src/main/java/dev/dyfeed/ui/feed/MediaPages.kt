@@ -728,6 +728,7 @@ fun EmbedPage(item: MediaItem, active: Boolean, vm: FeedViewModel) {
         if (active && url != null) {
             AndroidView(
                 factory = { ctx ->
+                    dev.dyfeed.source.douyin.DouyinWeb.wakeTimers(ctx)
                     WebView(ctx).apply {
                         setBackgroundColor(AndroidColor.BLACK)
                         settings.javaScriptEnabled = true

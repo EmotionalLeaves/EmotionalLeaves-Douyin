@@ -69,52 +69,85 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
     LaunchedEffect(player, playerView, active, on) {
         chinese = null; english = null
         if (!on || !active || player == null || playerView == null || android.os.Build.VERSION.SDK_INT < 24) return@LaunchedEffect
+        // Lines met in this video, with when they were on screen: clips loop, so from the second
+        // time round each line shows exactly on time, already translated, without reading a frame.
+        val cues = ArrayList<Cue>()
+        var current: Cue? = null
+        var frame: Bitmap? = null
+        var lastSig: LongArray? = null
         var misses = 0
-        var lastSeenAt = 0L
-        while (true) {
-            delay(if (misses > MISSES_BEFORE_SLOWING) SLOW_MS else EVERY_MS)
-            if (!player.isPlaying) continue
-            val surface = playerView.videoSurfaceView as? android.view.SurfaceView ?: continue
-            val size = player.videoSize
-            if (size.width <= 0 || size.height <= 0) continue
-            val scale = minOf(1f, MAX_WIDTH.toFloat() / size.width)
-            val w = (size.width * scale).toInt()
-            val h = (size.height * scale).toInt()
-            val frame = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
-            val copied = suspendCancellableCoroutine { cont ->
-                runCatching {
-                    android.view.PixelCopy.request(surface, frame, { r -> cont.resume(r == android.view.PixelCopy.SUCCESS) }, android.os.Handler(android.os.Looper.getMainLooper()))
-                }.onFailure { cont.resume(false) }
+        try {
+            while (true) {
+                delay(if (misses > MISSES_BEFORE_SLOWING) SLOW_MS else EVERY_MS)
+                if (!player.isPlaying) continue
+                val pos = player.currentPosition
+                // Known already (a loop): show it from memory.
+                val known = cues.firstOrNull { it.end > it.start && pos in it.start..it.end }
+                if (known != null) {
+                    if (chinese != known.zh) { chinese = known.zh; english = known.en; lineY = known.y }
+                    continue
+                }
+                val surface = playerView.videoSurfaceView as? android.view.SurfaceView ?: continue
+                val size = player.videoSize
+                if (size.width <= 0 || size.height <= 0) continue
+                val scale = minOf(1f, MAX_WIDTH.toFloat() / size.width)
+                val w = (size.width * scale).toInt()
+                val h = (size.height * scale).toInt()
+                // One small frame, reused (no new picture memory every check).
+                val f = frame?.takeIf { it.width == w && it.height == h } ?: Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888).also { frame?.recycle(); frame = it }
+                val copied = suspendCancellableCoroutine { cont ->
+                    runCatching {
+                        android.view.PixelCopy.request(surface, f, { r -> cont.resume(r == android.view.PixelCopy.SUCCESS) }, android.os.Handler(android.os.Looper.getMainLooper()))
+                    }.onFailure { cont.resume(false) }
+                }
+                if (!copied) continue
+                val top = (h * 0.42f).toInt()
+                val bottom = (h * 0.96f).toInt()
+                // Nothing changed where subtitles go: the same line (or none) is still up.
+                val sig = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { LiveSubs.signature(f, top, bottom) }
+                val prev = lastSig
+                if (prev != null && LiveSubs.sameSignature(prev, sig)) {
+                    current?.let { it.end = pos }
+                    continue
+                }
+                lastSig = sig
+                val (lines, line) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
+                    val crop = Bitmap.createBitmap(f, 0, top, w, bottom - top)
+                    val read = Reader.lines(crop, top, w, h)
+                    crop.recycle()
+                    read to LiveSubs.pick(read)
+                }
+                if (line == null) {
+                    misses++
+                    // The line has gone: take its English down now, not later.
+                    current?.let { it.end = pos }
+                    current = null
+                    chinese = null; english = null
+                    continue
+                }
+                misses = 0
+                val y = lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }?.let { it.centerY - it.height } ?: lineY
+                if (LiveSubs.same(current?.zh, line)) { current?.let { it.end = pos }; continue }
+                current?.let { it.end = pos }
+                dev.dyfeed.domain.learn.Heard.add(line)
+                // The new line at once (the old English never sits under a new line), English as soon as it's in.
+                chinese = line; lineY = y
+                english = dev.dyfeed.domain.lang.ChineseToEnglish.cached(line)
+                val cue = Cue(pos, pos, line, english, y)
+                current = cue
+                cues += cue
+                if (english == null) {
+                    val en = dev.dyfeed.domain.lang.ChineseToEnglish.translate(line).getOrNull()
+                    cue.en = en
+                    if (chinese == line) english = en
+                }
             }
-            if (!copied) { frame.recycle(); continue }
-            // Subtitles live in the lower half: read only that.
-            val top = (h * 0.42f).toInt()
-            // Off the main thread: cropping, reading and picking the line.
-            val (lines, line) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
-                val crop = Bitmap.createBitmap(frame, 0, top, w, (h * 0.96f).toInt() - top)
-                frame.recycle()
-                val read = Reader.lines(crop, top, w, h)
-                crop.recycle()
-                read to LiveSubs.pick(read)
-            }
-            val now = System.currentTimeMillis()
-            if (line == null) {
-                misses++
-                // Keep the last line up a moment after it leaves the picture.
-                if (chinese != null && now - lastSeenAt > LINGER_MS) { chinese = null; english = null }
-                continue
-            }
-            misses = 0
-            lastSeenAt = now
-            lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }?.let { lineY = it.centerY - it.height }
-            if (LiveSubs.same(chinese, line)) continue
-            chinese = line
-            dev.dyfeed.domain.learn.Heard.add(line)
-            english = dev.dyfeed.domain.lang.ChineseToEnglish.translate(line).getOrNull()
+        } finally {
+            frame?.recycle()
         }
     }
-    val en = english ?: return
     val zh = chinese ?: return
+    val en = english ?: return
     // Just above the subtitle it translates (the video fills the height in the feed, near enough).
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.matchParentSize()) {
         // Where the line is on screen: the video is fitted, so a wide one sits in a band mid-screen.
@@ -143,8 +176,13 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
     }
 }
 
-private const val EVERY_MS = 700L
-private const val SLOW_MS = 2_500L
-private const val MISSES_BEFORE_SLOWING = 10
-private const val LINGER_MS = 1_800L
-private const val MAX_WIDTH = 720
+/** A line seen in this video, and from when to when (ms into it). */
+private class Cue(val start: Long, var end: Long, val zh: String, var en: String?, val y: Float)
+
+/** Four checks a second: a new line shows within about a quarter of a second of appearing. */
+private const val EVERY_MS = 250L
+/** Videos with no subtitles get looked at less often, to spare the battery. */
+private const val SLOW_MS = 2_000L
+private const val MISSES_BEFORE_SLOWING = 12
+/** Wide enough for subtitle text to be read reliably, small enough to copy four times a second. */
+private const val MAX_WIDTH = 480

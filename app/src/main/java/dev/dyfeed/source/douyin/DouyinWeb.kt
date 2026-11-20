@@ -138,6 +138,13 @@ class DouyinWeb @Inject constructor(
         waitMs: Long,
         withRenderData: Boolean = false,
         accept: (String, String) -> Boolean,
+    ): List<String> = awake { secondPageNow(url, waitMs, withRenderData, accept) }
+
+    private suspend fun secondPageNow(
+        url: String,
+        waitMs: Long,
+        withRenderData: Boolean,
+        accept: (String, String) -> Boolean,
     ): List<String> = searchMutex.withLock {
         closeSecond?.cancel()
         searchCaptured.clear()
@@ -164,7 +171,31 @@ class DouyinWeb @Inject constructor(
     }
 
     /** Loads the page now (if it isn't already), so the first feed request doesn't wait for it. */
-    suspend fun warmUp() = ensurePage()
+    suspend fun warmUp() = awake { ensurePage() }
+
+    // ── pausing when idle ──
+    // Douyin's site keeps its scripts busy all the time (timers, logging, polling) even in a hidden
+    // page, taking CPU from the video you're watching. Between requests the app's web pages are
+    // paused (all their timers and scripts), and woken for the next request.
+    private val users = java.util.concurrent.atomic.AtomicInteger(0)
+    @Volatile private var pauseJob: kotlinx.coroutines.Job? = null
+
+    private suspend fun <T> awake(block: suspend () -> T): T {
+        users.incrementAndGet()
+        pauseJob?.cancel()
+        if (timersPaused) withContext(Dispatchers.Main) { wakeTimers(context) }
+        try {
+            return block()
+        } finally {
+            if (users.decrementAndGet() == 0) pauseJob = idleScope.launch {
+                delay(IDLE_PAUSE_MS)
+                if (users.get() == 0) withContext(Dispatchers.Main) {
+                    val any = web ?: searchWeb
+                    if (any != null && users.get() == 0 && visiblePages == 0) { any.pauseTimers(); timersPaused = true }
+                }
+            }
+        }
+    }
 
     /**
      * Closes both hidden pages (the app has been in the background a while): Douyin's scripts
@@ -179,7 +210,9 @@ class DouyinWeb @Inject constructor(
     /** How many page-fetched feed answers are waiting (without using them up). */
     fun waitingAnswers(): Int = captured.size
 
-    suspend fun harvest(waitMs: Long = 15_000): List<String> {
+    suspend fun harvest(waitMs: Long = 15_000): List<String> = awake { harvestNow(waitMs) }
+
+    private suspend fun harvestNow(waitMs: Long): List<String> {
         // First the cheap way: move the open page along (as pressing ↓ does on douyin.com), which
         // makes it fetch its next batch. Only if that brings nothing, start a fresh page.
         // Stops trying once it has failed twice without ever working (the emulator showed Douyin
@@ -212,7 +245,9 @@ class DouyinWeb @Inject constructor(
      * douyin.com moves to the next videos, then waits up to [waitMs] for the batch it fetches.
      * Returns how many new feed answers arrived.
      */
-    suspend fun nudge(waitMs: Long): Int {
+    suspend fun nudge(waitMs: Long): Int = awake { nudgeNow(waitMs) }
+
+    private suspend fun nudgeNow(waitMs: Long): Int {
         val before = captured.size
         capturedSignal = CompletableDeferred()
         withContext(Dispatchers.Main) { web?.evaluateJavascript(NUDGE_JS, null) }
@@ -225,7 +260,9 @@ class DouyinWeb @Inject constructor(
      * GET [path] (e.g. `/aweme/v1/web/tab/feed/`) on www.douyin.com with [params] plus the usual
      * web-client parameters, signed by the page. Status -1 means the request itself failed.
      */
-    suspend fun get(path: String, params: Map<String, String>, timeoutMs: Long = 15_000): Reply {
+    suspend fun get(path: String, params: Map<String, String>, timeoutMs: Long = 15_000): Reply = awake { getNow(path, params, timeoutMs) }
+
+    private suspend fun getNow(path: String, params: Map<String, String>, timeoutMs: Long): Reply {
         ensurePage()
         val id = seq.incrementAndGet().toString()
         val done = CompletableDeferred<Reply>()
@@ -389,6 +426,24 @@ class DouyinWeb @Inject constructor(
         private const val NUDGE_WAIT_MS = 7_000L
         private const val SECOND_BATCH_WAIT_MS = 2_000L
         private const val SECOND_PAGE_IDLE_MS = 120_000L
+        /** Unused this long, the pages are paused (a feed pull or search wakes them at once). */
+        private const val IDLE_PAUSE_MS = 6_000L
+
+        /** Web pages on screen (Douyin's check, an embedded player): nothing is paused while any is. */
+        @Volatile var visiblePages = 0
+
+        /** Whether the app's web pages are paused (timers are paused for all of the app's web views at once). */
+        @Volatile var timersPaused = false
+            private set
+
+        /** Wakes every web view in the app (any instance does it; a throwaway one if none is at hand). Main thread. */
+        fun wakeTimers(context: Context) {
+            if (!timersPaused) return
+            val tmp = WebView(context.applicationContext)
+            tmp.resumeTimers()
+            tmp.destroy()
+            timersPaused = false
+        }
 
         /** ↓ ten times, a third of a second apart, on the page and whatever has focus, plus a scroll. */
         private val NUDGE_JS = """
