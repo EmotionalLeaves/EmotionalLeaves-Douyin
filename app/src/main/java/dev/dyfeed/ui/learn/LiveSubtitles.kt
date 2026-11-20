@@ -116,7 +116,12 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
     val zh = chinese ?: return
     // Just above the subtitle it translates (the video fills the height in the feed, near enough).
     androidx.compose.foundation.layout.BoxWithConstraints(Modifier.matchParentSize()) {
-        val y = (maxHeight * lineY - 64.dp).coerceAtLeast(80.dp)
+        // Where the line is on screen: the video is fitted, so a wide one sits in a band mid-screen.
+        val size = player?.videoSize
+        val aspect = if (size != null && size.width > 0 && size.height > 0) size.width.toFloat() / size.height else 9f / 16f
+        val shownH = minOf(maxHeight, maxWidth / aspect)
+        val top = (maxHeight - shownH) / 2
+        val y = (top + shownH * lineY - 64.dp).coerceAtLeast(80.dp)
         Column(
             Modifier.align(Alignment.TopCenter)
                 .offset(y = y)
