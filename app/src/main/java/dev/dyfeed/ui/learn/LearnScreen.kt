@@ -76,6 +76,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     val due = remember(cards, now) { Srs.due(cards, now) }
     var reviewing by remember { mutableStateOf(LearnOpen.review.also { LearnOpen.review = false } && Srs.due(WordBook.cards.value, System.currentTimeMillis()).isNotEmpty()) }
     var quizzing by remember { mutableStateOf(false) }
+    var listFilter by remember { mutableStateOf(WORD_FILTERS.first()) }
     var query by remember { mutableStateOf("") }
     val pinyinOn by LearnPrefs.pinyin.collectAsState()
     // Read the dictionary in as soon as the screen opens, so lookups are instant.
@@ -312,7 +313,26 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                         ) { Text("Share list") }
                     }
                 }
-                items(cards.sortedByDescending { it.addedAt }, key = { it.word }) { c ->
+                item {
+                    // Narrow the list down: what's due, single words, whole lines.
+                    androidx.compose.foundation.lazy.LazyRow(
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(WORD_FILTERS) { f ->
+                            androidx.compose.material3.FilterChip(selected = f == listFilter, onClick = { listFilter = f }, label = { Text(f) })
+                        }
+                    }
+                }
+                val shownCards = cards.sortedByDescending { it.addedAt }.filter { c ->
+                    when (listFilter) {
+                        "To review" -> c.due <= now
+                        "Words" -> c.word.length <= 4
+                        "Lines" -> c.word.length > 4
+                        else -> true
+                    }
+                }
+                items(shownCards, key = { it.word }) { c ->
                     Row(
                         Modifier.fillMaxWidth().clickable { Speak.say(context, c.word) }.padding(horizontal = 20.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -631,6 +651,7 @@ private fun whenNext(cards: List<Card>, now: Long): String {
 }
 
 private const val SESSION = 20
+private val WORD_FILTERS = listOf("All", "To review", "Words", "Lines")
 
 /** Douyin searches that bring up videos made for learners (and plain everyday speech). */
 private val TOPICS = listOf(
