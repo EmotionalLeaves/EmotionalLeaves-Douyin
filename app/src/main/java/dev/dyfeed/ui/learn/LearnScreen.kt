@@ -45,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -366,7 +367,20 @@ private fun Review(onDone: () -> Unit) {
                 Text(card.english, style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.9f), textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 card.example?.let {
                     Spacer(Modifier.height(14.dp))
-                    Text("“$it”", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.55f), maxLines = 3, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+                    // Where you met it, the word picked out.
+                    val example = androidx.compose.ui.text.buildAnnotatedString {
+                        append("“")
+                        var rest = it
+                        while (rest.isNotEmpty()) {
+                            val at = rest.indexOf(card.word)
+                            if (at < 0 || card.word.isEmpty()) { append(rest); break }
+                            append(rest.substring(0, at))
+                            withStyle(androidx.compose.ui.text.SpanStyle(color = Accent, fontWeight = FontWeight.Bold)) { append(card.word) }
+                            rest = rest.substring(at + card.word.length)
+                        }
+                        append("”")
+                    }
+                    Text(example, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 3, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
                 }
             } else {
                 Text("Tap to see the answer", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelLarge)
