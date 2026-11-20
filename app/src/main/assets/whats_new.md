@@ -1,3 +1,9 @@
+## 1.7.25 — 2026-11-20
+HSK levels
+
+- New: HSK levels. Words show their level in the Chinese proficiency test lists (HSK 1 = first words), so you can tell beginner words from advanced ones.
+- New: Learn the basics (Learn): tap HSK 1, 2 or 3 to add the next ten words of that level you haven't saved, commonest first, ready to review.
+
 ## 1.7.24 — 2026-11-20
 Say the line back
 

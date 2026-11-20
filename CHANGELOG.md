@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.25 — 2026-11-20
+- Bundled HSK 3.0 levels + frequency ranks (Complete HSK Vocabulary, MIT, 181 KB); WordRow badge; Learn HSK 1–3 starter (+10 by frequency).
+
 ## 1.7.24 — 2026-11-20
 - Shadowing.score (LCS of Han characters) with Say it in Words; Learn switches moved to the bottom.
 
