@@ -118,4 +118,10 @@ class LearnTest {
         }
         assertTrue(dev.dyfeed.domain.learn.Quiz.questions(cards.take(3)).isEmpty())
     }
+
+    @Test
+    fun `the word list exports as lines anki can import`() {
+        val out = dev.dyfeed.domain.learn.exportWords(listOf(Card("火锅", "huo3 guo1", "hotpot", example = "重庆火锅\t太好吃", addedAt = 1, due = 0)))
+        assertEquals("火锅\thuǒ guō\thotpot\t重庆火锅 太好吃", out)
+    }
 }

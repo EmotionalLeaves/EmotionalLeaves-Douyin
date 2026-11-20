@@ -119,6 +119,11 @@ object WordBook {
 /** A listening question: hear [answer] said, pick its meaning among [choices] (one of them is right). */
 data class Question(val answer: Card, val choices: List<Card>)
 
+/** Your words as tab-separated lines (word, pinyin, meaning, where you met it): Anki and spreadsheets import it. */
+fun exportWords(cards: List<Card>): String = cards.sortedBy { it.addedAt }.joinToString("\n") { c ->
+    listOf(c.word, Pinyin.marks(c.pinyin), c.english, c.example.orEmpty()).joinToString("\t") { it.replace('\t', ' ').replace('\n', ' ') }
+}
+
 object Quiz {
     /**
      * Up to [count] questions from your words, the ones you know least first, each with three other

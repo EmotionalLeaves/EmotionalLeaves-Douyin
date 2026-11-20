@@ -236,7 +236,22 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 }
             }
             if (cards.isNotEmpty()) {
-                item { Section("Your words · 生词本 (${cards.size})") }
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { Section("Your words · 生词本 (${cards.size})") }
+                        // Out to Anki, a spreadsheet or notes: word, pinyin, meaning, where you met it.
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(android.content.Intent.EXTRA_SUBJECT, "My Chinese words")
+                                    .putExtra(android.content.Intent.EXTRA_TEXT, dev.dyfeed.domain.learn.exportWords(cards))
+                                context.startActivity(android.content.Intent.createChooser(send, "Share your words"))
+                            },
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) { Text("Share list") }
+                    }
+                }
                 items(cards.sortedByDescending { it.addedAt }, key = { it.word }) { c ->
                     Row(
                         Modifier.fillMaxWidth().clickable { Speak.say(context, c.word) }.padding(horizontal = 20.dp, vertical = 8.dp),
