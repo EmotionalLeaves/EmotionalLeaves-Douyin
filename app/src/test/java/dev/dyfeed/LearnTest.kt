@@ -139,4 +139,19 @@ class LearnTest {
             assertTrue(ranker.baseScore(post("吃火锅"), emptyMap(), emptyMap(), now) > ranker.baseScore(post("吃面条"), emptyMap(), emptyMap(), now))
         } finally { b.on = false; b.words = emptySet() }
     }
+
+    @Test
+    fun `everyday readings come first, names and surnames last`() {
+        val d = ZhDictionary.parse(sequenceOf(
+            "说\t說\tshui4\tto persuade",
+            "说\t說\tshuo1\tto speak; to say",
+            "都\t\tDu1\tsurname Du",
+            "都\t\tdou1\tall; both",
+            "好\t\thao3\tgood",
+            "好\t\thao4\tto be fond of",
+        ))
+        assertEquals("shuo1", d.lookup("说").first().pinyin)
+        assertEquals("dou1", d.lookup("都").first().pinyin)
+        assertEquals("hao3", d.lookup("好").first().pinyin) // already right: order kept
+    }
 }

@@ -112,8 +112,29 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
                 map.getOrPut(e.simplified) { ArrayList(1) } += e
                 if (e.traditional != e.simplified) map.getOrPut(e.traditional) { ArrayList(1) } += e
             }
+            // A stable sort: within the same rank, the dictionary's own order stays.
+            map.values.forEach { list -> if (list.size > 1) list.sortBy { rank(it) } }
             return ZhDictionary(map)
         }
+
+        /**
+         * Which reading comes first: the everyday one. Names and surnames (capitalised pinyin,
+         * "surname …") and variants go last, and the commonest characters with several readings
+         * get the one they almost always have in speech (说 shuō, not shuì; 着 zhe, not zhāo).
+         */
+        private fun rank(e: Entry): Int {
+            PREFERRED[e.simplified]?.let { if (e.pinyin == it) return -1 }
+            val name = e.pinyin.firstOrNull()?.isUpperCase() == true || e.english.startsWith("surname") || e.english.startsWith("old variant") || e.english.startsWith("variant of")
+            return if (name) 1 else 0
+        }
+
+        /** Everyday readings of very common characters whose first dictionary reading is a rare one. */
+        private val PREFERRED = mapOf(
+            "着" to "zhe5", "得" to "de5", "行" to "xing2", "要" to "yao4", "看" to "kan4", "重" to "zhong4",
+            "觉" to "jue2", "说" to "shuo1", "吧" to "ba5", "啊" to "a5", "吗" to "ma5", "过" to "guo4",
+            "还" to "hai2", "和" to "he2", "中" to "zhong1", "都" to "dou1", "了" to "le5", "的" to "de5",
+            "地" to "de5", "呢" to "ne5", "哪" to "na3", "为" to "wei4", "只" to "zhi3", "没" to "mei2",
+        )
     }
 }
 
