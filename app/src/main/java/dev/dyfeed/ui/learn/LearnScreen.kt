@@ -234,6 +234,21 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     Text("Tap for the words · hold to watch the videos", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
             }
+            // The last lines heard in videos (read off subtitles), in English: tap one for its words.
+            item {
+                val heard by dev.dyfeed.domain.learn.Heard.lines.collectAsState()
+                val recent = remember(heard) { heard.asReversed().distinct().take(5) }
+                if (recent.isNotEmpty()) Column {
+                    Section("Lines you heard · 听到的句子")
+                    recent.forEach { line ->
+                        val en = dev.dyfeed.ui.common.rememberEnglish(line, force = true)
+                        Column(Modifier.fillMaxWidth().clickable { LearnWords.request.value = line }.padding(horizontal = 20.dp, vertical = 6.dp)) {
+                            Text(line, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
+                            en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 2) }
+                        }
+                    }
+                }
+            }
             item { Section("Watch and learn · 看视频学中文") }
             item {
                 Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
