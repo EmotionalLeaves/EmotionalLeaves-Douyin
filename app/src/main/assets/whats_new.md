@@ -1,3 +1,11 @@
+## 1.7.4 — 2026-11-19
+Words, closer up
+
+- New: each character's own meaning under a word (火 fire · 锅 pot), to see how words are built.
+- New: tap any word in the line at the top of 词 Words to hear it.
+- New: an English search says the Chinese it searched for, with pinyin; tap it for its words.
+- Fixed: in wide videos, the English for what's said sits just above the subtitle, not off to one side of the picture.
+
 ## 1.7.3 — 2026-11-19
 Practise with your words
 

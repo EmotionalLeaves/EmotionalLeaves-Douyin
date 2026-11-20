@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.4 — 2026-11-19
+- Per-character glosses, tap-to-hear ruby, Chinese-used hint on English searches, live-subtitle y mapped through the fitted video band.
+
 ## 1.7.3 — 2026-11-19
 - Quiz (least-known first, 3 distractors), LearnBoost (+0.25 base score for captions with saved words, off by default), exportWords (TSV), ExportBundle.words with merge on import.
 
