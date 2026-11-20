@@ -1,3 +1,11 @@
+## 1.7.3 — 2026-11-19
+Practise with your words
+
+- New: Listening quiz (Learn): hear a word you saved, pick what it means. The words you know least come first.
+- New: More videos with your words (Learn): For You leans toward captions that use the words you're learning.
+- New: Share list (Learn → Your words): word, pinyin, meaning and where you met it, ready for Anki, a spreadsheet or notes.
+- Backups now include your Chinese words and how well you know each.
+
 ## 1.7.2 — 2026-11-19
 Subtitles in English from the first video
 

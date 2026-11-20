@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.3 — 2026-11-19
+- Quiz (least-known first, 3 distractors), LearnBoost (+0.25 base score for captions with saved words, off by default), exportWords (TSV), ExportBundle.words with merge on import.
+
 ## 1.7.2 — 2026-11-19
 - Bundled ML Kit Chinese text recognition (the Play-services module read nothing on first use in the emulator run).
 - Sideload/release APK: arm64-v8a + x86_64 only (93 → 79 MB).
