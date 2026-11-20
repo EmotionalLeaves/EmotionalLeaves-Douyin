@@ -622,12 +622,14 @@ class FeedViewModel @Inject constructor(
         val ahead = (index + 1..index + PRELOAD_AHEAD).mapNotNull { list.getOrNull(it) }
         ahead.forEach { preloader.thumbnail(it.thumbnailUrl) }
         val autoplay = autoplayAllowed()
+        // Douyin's servers are far away: on Wi-Fi, the start of the next four videos is fetched ahead.
+        val videosAhead = if (network.isMetered) 2 else 4
         ahead.take(RESOLVE_AHEAD).forEachIndexed { i, item ->
             viewModelScope.launch {
                 val s = resolve(item) as? StreamInfo.Direct ?: return@launch
                 val type = Display.effectiveType(item, s)
                 when {
-                    type == MediaType.VIDEO -> if (autoplay && i < 2) preloader.video(item.key, s.url)
+                    type == MediaType.VIDEO -> if (autoplay && i < videosAhead) preloader.video(item.key, s.url)
                     else -> preloader.image(s.url)
                 }
             }
