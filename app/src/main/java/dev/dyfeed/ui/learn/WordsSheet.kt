@@ -88,7 +88,8 @@ fun WordsSheet(text: String, onDismiss: () -> Unit) {
             Dict.failure?.let { Text("The dictionary couldn't be read ($it)", color = Color(0xFFFBBF24), style = MaterialTheme.typography.labelMedium) }
             // The sentence, pinyin over each word (tone-coloured).
             FlowRow(Modifier.fillMaxWidth().padding(vertical = 12.dp), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                list.forEach { t -> Ruby(t) }
+                // Tap a word in the line to hear it.
+                list.forEach { t -> Box(Modifier.clip(RoundedCornerShape(6.dp)).clickable(enabled = t.known) { Speak.say(context, t.text) }) { Ruby(t) } }
             }
             // The whole line in English, and a card for it (short lines only: one you can learn whole).
             val english by produceState<String?>(null, text) { value = dev.dyfeed.domain.lang.ChineseToEnglish.translate(text).getOrNull() }

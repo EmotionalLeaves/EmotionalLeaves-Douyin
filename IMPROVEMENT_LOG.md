@@ -88,3 +88,10 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   User: accounts are impossible outside China, so every sign-in prompt is gone. Then, as asked once
   verified, the Learn section: dictionary, words under captions and comments, pinyin, voice, word list
   and review, learner topics, frequent words; and live English for subtitles burned into videos.
+- 2026-11-19 (chat, rounds 91–110 → 1.7.1, 1.7.2, 1.7.3): 1.7.0's emulator run caught the
+  dictionary missing from the APK (the build unpacks .gz assets) — fixed in 1.7.1, plus the half-open
+  words sheet. The Play-services text reader read nothing on first use, so the model is now inside
+  the app; the APK went 64-bit only (93 → 79 MB). Emulator: live subtitles read 我们今天去吃火锅 exactly,
+  translation both ways, English search 57 posts, monkey 0 crashes / 0 ANRs. Added: listening quiz,
+  share word list, words in backups, "More videos with your words", topic rows from remembered posts,
+  4 videos preloaded on Wi-Fi, English searches show the Chinese used, subtitle placement for wide videos.
