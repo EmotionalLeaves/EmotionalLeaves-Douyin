@@ -37,4 +37,14 @@ class LiveSubsTest {
         assertTrue(LiveSubs.same("我们今天去吃火锅", "我们今天去吃火锅！"))
         assertFalse(LiveSubs.same("我们今天去吃火锅", "明天见"))
     }
+
+    @Test
+    fun `a transcript keeps each line once, in time order, filling in its english`() {
+        val t = dev.dyfeed.domain.learn.Transcripts
+        t.add("v1", 5_000, "第二句", null)
+        t.add("v1", 1_000, "第一句", "first line")
+        t.add("v1", 9_000, "第二句", "second line") // the same line again, later in a loop
+        assertEquals(listOf("第一句" to "first line", "第二句" to "second line"), t.of("v1").map { it.zh to it.en })
+        assertEquals(listOf(1_000L, 5_000L), t.of("v1").map { it.atMs })
+    }
 }

@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Bedtime
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.BookmarkAdd
 import androidx.compose.material.icons.filled.School
+import androidx.compose.material.icons.automirrored.filled.Subject
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Autorenew
@@ -229,6 +230,34 @@ fun ItemMenuSheet(
                 }
                 return@Column
             }
+            if (mode == "transcript") {
+                ListItem(
+                    headlineContent = { Text("Transcript · 字幕", fontWeight = FontWeight.Bold) },
+                    supportingContent = { Text("Read off the video's subtitles as it played. Tap a line for its words, its time to hear it again.") },
+                    leadingContent = { Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back") },
+                    colors = androidx.compose.material3.ListItemDefaults.colors(containerColor = androidx.compose.ui.graphics.Color.Transparent),
+                    modifier = Modifier.clickable { pickTag = null },
+                )
+                HorizontalDivider()
+                val lines = remember(item.key) { dev.dyfeed.domain.learn.Transcripts.of(item.key) }
+                val dictReady by androidx.compose.runtime.produceState(dev.dyfeed.domain.learn.Dict.ready != null) { dev.dyfeed.domain.learn.Dict.get(context); value = true }
+                lines.forEach { l ->
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.Top) {
+                        Text(
+                            dev.dyfeed.ui.common.formatDuration((l.atMs / 1000).toInt()),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = dev.dyfeed.ui.theme.Accent,
+                            modifier = Modifier.width(48.dp).clickable { dev.dyfeed.domain.learn.SeekRequest.request.value = item.key to l.atMs; onDismiss() },
+                        )
+                        Column(Modifier.weight(1f).clickable { dev.dyfeed.ui.learn.LearnWords.request.value = l.zh }) {
+                            if (dictReady) dev.dyfeed.ui.learn.pinyinColored(l.zh)?.let { Text(it, style = MaterialTheme.typography.labelSmall) }
+                            Text(l.zh, style = MaterialTheme.typography.bodyLarge)
+                            l.en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)) }
+                        }
+                    }
+                }
+                return@Column
+            }
             if (mode == "sleep") {
                 ListItem(
                     headlineContent = { Text("Stop playing after…", fontWeight = FontWeight.Bold) },
@@ -364,6 +393,8 @@ fun ItemMenuSheet(
                     }
                 }
             }
+            val said = remember(item.key) { dev.dyfeed.domain.learn.Transcripts.of(item.key) }
+            if (said.isNotEmpty()) MenuRow("Transcript · ${said.size} line${if (said.size == 1) "" else "s"}", Icons.AutoMirrored.Filled.Subject, "What's been said in it so far, with English; tap a line for its words") { pickTag = "transcript" }
             if (item.type == dev.dyfeed.domain.model.MediaType.VIDEO) {
                 MenuRow("Save this moment", Icons.Filled.BookmarkAdd, "Marks where you are (a line worth hearing again): it shows on the scrub bar, and Saved → Moments plays it from there") { MomentGrab.request.value = item.key; onDismiss() }
             }

@@ -326,6 +326,14 @@ fun VideoPage(
     }
     LaunchedEffect(player, muted) { player?.let { dev.dyfeed.player.PlayerPool.applyMute(it, muted) } }
 
+    // The transcript's "jump to": this video, at that line.
+    val seekAsk by dev.dyfeed.domain.learn.SeekRequest.request.collectAsState()
+    LaunchedEffect(seekAsk) {
+        val (key, at) = seekAsk ?: return@LaunchedEffect
+        if (key != item.key) return@LaunchedEffect
+        dev.dyfeed.domain.learn.SeekRequest.request.value = null
+        player?.takeIf { it.currentMediaItem?.mediaId == item.key }?.let { it.seekTo((at - 300).coerceAtLeast(0)); it.play() }
+    }
     // "Save this moment": mark where this video is now.
     val momentAsk by MomentGrab.request.collectAsState()
     LaunchedEffect(momentAsk) {
@@ -432,7 +440,7 @@ fun VideoPage(
             modifier = Modifier.fillMaxSize(),
         )
         // What's said, in English, as it's said (read off the video's own subtitles).
-        LiveSubtitles(player, playerView, active = play && firstFrame && !detached && vScale <= 1.01f)
+        LiveSubtitles(player, playerView, active = play && firstFrame && !detached && vScale <= 1.01f, videoKey = item.key)
         // Same framing as the video (fit), so there's no jump when the first frame replaces it.
         if (!firstFrame) Thumbnail(item, contentScale = ContentScale.Fit)
         when {

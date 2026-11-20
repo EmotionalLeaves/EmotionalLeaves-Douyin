@@ -64,7 +64,7 @@ internal object Reader {
  * take the Chinese line apart, word by word. Learn → Translate what's said turns it off.
  */
 @Composable
-fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: Boolean) {
+fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: Boolean, videoKey: String? = null) {
     val on by LearnPrefs.liveSubs.collectAsState()
     var chinese by remember { mutableStateOf<String?>(null) }
     var english by remember { mutableStateOf<String?>(null) }
@@ -166,6 +166,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     cue.en = en
                     if (chinese == line) english = en
                 }
+                videoKey?.let { dev.dyfeed.domain.learn.Transcripts.add(it, pos, line, cue.en) }
             }
         } finally {
             frame?.recycle()

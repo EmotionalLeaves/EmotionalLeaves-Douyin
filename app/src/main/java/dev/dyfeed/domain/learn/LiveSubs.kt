@@ -71,3 +71,32 @@ object LiveSubs {
 
     private val WATERMARK = listOf("抖音号", "抖音", "DouYin", "TikTok", "关注", "点赞")
 }
+
+/**
+ * What's been said in each video lately (lines read off its subtitles, with when and their English),
+ * kept in memory for the last [MAX_VIDEOS] videos: the ⋯ menu's transcript.
+ */
+object Transcripts {
+    data class Line(val atMs: Long, val zh: String, val en: String?)
+
+    private const val MAX_VIDEOS = 30
+    private val byVideo = object : LinkedHashMap<String, MutableList<Line>>(32, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, MutableList<Line>>?) = size > MAX_VIDEOS
+    }
+
+    @Synchronized fun add(key: String, atMs: Long, zh: String, en: String?) {
+        if (dev.dyfeed.domain.privacy.Incognito.active) return
+        val list = byVideo.getOrPut(key) { ArrayList() }
+        val same = list.indexOfFirst { it.zh == zh }
+        if (same >= 0) { if (en != null && list[same].en == null) list[same] = list[same].copy(en = en); return }
+        list += Line(atMs, zh, en)
+        list.sortBy { it.atMs }
+    }
+
+    @Synchronized fun of(key: String): List<Line> = byVideo[key]?.toList().orEmpty()
+}
+
+/** "Jump to" asked from the transcript: the page playing that video seeks there. */
+object SeekRequest {
+    val request = kotlinx.coroutines.flow.MutableStateFlow<Pair<String, Long>?>(null)
+}
