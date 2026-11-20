@@ -1,3 +1,10 @@
+## 1.7.10 — 2026-11-20
+No more stutter when loading more
+
+- Smoother: when the app needs more posts, it reloads the same hidden Douyin page instead of building a new one each time. Building it held up the screen for a moment, which you could see as a stutter in the video.
+- Smoother: your word list and streak are saved in the background.
+- 1.7.8–1.7.9 (measured on the test phone): videos start in about half a second while you swipe (was over two seconds). The slowest ones start in about three seconds (was over eight). At a normal pace most are ready before you reach them.
+
 ## 1.7.9 — 2026-11-20
 Smoother
 

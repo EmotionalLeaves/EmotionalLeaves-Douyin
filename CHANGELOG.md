@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.10 — 2026-11-20
+- DouyinWeb.reload keeps the WebView (loadUrl again; destroy only in the background); ready signal via provider; WordBook writes on a background executor.
+
 ## 1.7.9 — 2026-11-20
 - wakeTimers uses the existing page (throwaway WebView only if none); Heard writes on a background executor; caption English max 3 lines; CI prints the ANR main-thread trace.
 

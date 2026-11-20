@@ -151,7 +151,7 @@ class DouyinWeb @Inject constructor(
         searchSignal = CompletableDeferred()
         secondAccept = accept
         withContext(Dispatchers.Main) {
-            val w = searchWeb ?: WebView(context).also { configure(it, Bridge(search = true), onReady = null); searchWeb = it }
+            val w = searchWeb ?: WebView(context).also { configure(it, Bridge(search = true), onReady = { null }); searchWeb = it }
             w.loadUrl(url)
         }
         withTimeoutOrNull(waitMs) { searchSignal.await() }
@@ -202,7 +202,7 @@ class DouyinWeb @Inject constructor(
      * would otherwise keep running and draining the battery. The next request opens a fresh one.
      */
     suspend fun sleep() {
-        reload()
+        reload(destroy = true)
         closeSecond?.cancel()
         withContext(Dispatchers.Main) { searchWeb?.destroy(); searchWeb = null }
     }
@@ -283,8 +283,13 @@ class DouyinWeb @Inject constructor(
     }
 
     /** Throws away the page (after signing in, or when it stops answering); the next call loads a fresh one. */
-    suspend fun reload() = loadMutex.withLock {
-        withContext(Dispatchers.Main) {
+    /**
+     * Starts the page over: the next request loads a fresh one. The web view itself is kept and
+     * just loads the page again (making a new one costs the main thread a lot, enough to stutter
+     * the video); [destroy] throws it away too (the app going to the background).
+     */
+    suspend fun reload(destroy: Boolean = false) = loadMutex.withLock {
+        if (destroy) withContext(Dispatchers.Main) {
             web?.destroy()
             web = null
         }
@@ -296,10 +301,7 @@ class DouyinWeb @Inject constructor(
     private suspend fun ensurePage() {
         val r = loadMutex.withLock {
             val stale = System.currentTimeMillis() - loadedAt > PAGE_TTL_MS
-            if (stale && ready != null) {
-                withContext(Dispatchers.Main) { web?.destroy(); web = null }
-                ready = null
-            }
+            if (stale && ready != null) ready = null
             ready ?: CompletableDeferred<Unit>().also { d ->
                 ready = d
                 loadedAt = System.currentTimeMillis()
@@ -311,15 +313,18 @@ class DouyinWeb @Inject constructor(
     }
 
     private fun createPage(done: CompletableDeferred<Unit>) {
-        val w = WebView(context)
-        configure(w, Bridge(search = false), onReady = done)
-        web = w
+        mainReady = done
+        // The same web view when there is one: only the page inside starts over.
+        val w = web ?: WebView(context).also { configure(it, Bridge(search = false), onReady = { mainReady }); web = it }
+        w.onResume()
         // Alternate between the home feed and 精选 (featured): each loads its own batch, so taking
         // turns brings more posts, and more varied ones, per fresh page.
         w.loadUrl(FEED_PAGES[(pageLoads++) % FEED_PAGES.size])
     }
 
     @Volatile private var pageLoads = 0
+    /** Completed once the current main page's signer is in place. */
+    @Volatile private var mainReady: CompletableDeferred<Unit>? = null
 
     /**
      * Settings shared by both hidden pages: a desktop browser, no pictures or video downloaded,
@@ -327,7 +332,7 @@ class DouyinWeb @Inject constructor(
      * Douyin's signer script is in place (only the main page waits for it).
      */
     @SuppressLint("SetJavaScriptEnabled", "JavascriptInterface")
-    private fun configure(w: WebView, bridge: Bridge, onReady: CompletableDeferred<Unit>?) {
+    private fun configure(w: WebView, bridge: Bridge, onReady: () -> CompletableDeferred<Unit>?) {
         val cookies = CookieManager.getInstance()
         cookies.setAcceptCookie(true)
         cookies.setAcceptThirdPartyCookies(w, true)
@@ -348,7 +353,7 @@ class DouyinWeb @Inject constructor(
             override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {}
 
             override fun onPageFinished(view: WebView, url: String?) {
-                val done = onReady ?: return
+                val done = onReady() ?: return
                 if (done.isCompleted) return
                 // Wait for Douyin's signer script to install itself, then a moment more.
                 view.postDelayed(object : Runnable {
