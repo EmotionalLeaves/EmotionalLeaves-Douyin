@@ -1,6 +1,7 @@
 ## 1.7.4 — 2026-11-19
 Words, closer up
 
+- New: Today on Douyin · 热搜 in Learn: today's trending topics with pinyin and English. Tap one for its words, hold it to watch the videos.
 - New: each character's own meaning under a word (火 fire · 锅 pot), to see how words are built.
 - New: tap any word in the line at the top of 词 Words to hear it.
 - New: an English search says the Chinese it searched for, with pinyin; tap it for its words.
