@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.27 — 2026-11-20
+- Dynamic shortcuts (ShortcutManagerCompat) with an extra routed through OpenTarget; Review opens Learn straight into the review.
+
 ## 1.7.26 — 2026-11-20
 - LearnBoost.easy: ±0.3 by the share of HSK≤3 words in the caption (hashtags out, ≥3 words); Dict+HSK loaded at start when on; HSK in word list and review.
 

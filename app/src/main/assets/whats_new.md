@@ -1,3 +1,8 @@
+## 1.7.27 — 2026-11-20
+Shortcuts
+
+- New: hold the app's icon on your home screen for shortcuts: 复习 Review (starts a review at once), 学习 Learn and 发现 Search.
+
 ## 1.7.26 — 2026-11-20
 Easier Chinese first
 
