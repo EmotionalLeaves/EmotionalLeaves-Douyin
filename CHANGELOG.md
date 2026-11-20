@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.23 — 2026-11-20
+- ZhDictionary.parse ranks entries: preferred everyday readings for common polyphones first, proper names/surnames/variants last (stable).
+
 ## 1.7.22 — 2026-11-20
 - Due-count badge on the Learn tab.
 

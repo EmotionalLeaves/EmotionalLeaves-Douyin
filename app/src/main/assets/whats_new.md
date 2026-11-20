@@ -1,3 +1,8 @@
+## 1.7.23 — 2026-11-20
+Right readings
+
+- Fixed: pinyin shows the everyday reading of common characters. 说 is shuō (it said shuì), 看 is kàn, 着 is zhe, 吗 is ma, and 都 and 还 are dōu and hái (they showed surnames). This applies everywhere pinyin shows: over captions, subtitles, comments and in 词 Words.
+
 ## 1.7.22 — 2026-11-20
 Words waiting
 
