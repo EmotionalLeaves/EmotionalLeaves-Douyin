@@ -217,6 +217,13 @@ class DouyinWeb @Inject constructor(
         // makes it fetch its next batch. Only if that brings nothing, start a fresh page.
         // Stops trying once it has failed twice without ever working (the emulator showed Douyin
         // ignoring the simulated keys): then each batch would just wait 7 s for nothing.
+        // A page that's only just been opened (app start) fetches its first batch by itself: wait
+        // for that rather than prod it, or throw it away and start over, as was done before.
+        val sinceLoad = System.currentTimeMillis() - loadedAt
+        if (captured.isEmpty() && web != null && sinceLoad < FRESH_PAGE_MS) {
+            capturedSignal = CompletableDeferred()
+            if (captured.isEmpty()) withTimeoutOrNull(FRESH_PAGE_MS - sinceLoad + 2_000) { capturedSignal.await() }
+        }
         val worthNudging = nudgesWorked > 0 || nudgesFailed < 2
         if (captured.isEmpty() && web != null && worthNudging) {
             if (nudge(NUDGE_WAIT_MS) > 0) nudgesWorked++ else nudgesFailed++
@@ -274,7 +281,9 @@ class DouyinWeb @Inject constructor(
             val reply = withTimeoutOrNull(timeoutMs) { done.await() } ?: Reply(-1, "")
             // A page whose signer has gone stale answers with nothing; start it over after a few.
             if (reply.status != 200 || reply.body.isBlank()) {
-                if (++badAnswers >= 3) { badAnswers = 0; reload() }
+                // (Not while the page is still loading: those failures are the loading, and
+                // reloading then only starts the wait over.)
+                if (System.currentTimeMillis() - loadedAt > FRESH_PAGE_MS && ++badAnswers >= 3) { badAnswers = 0; reload() }
             } else badAnswers = 0
             return reply
         } finally {
@@ -313,6 +322,8 @@ class DouyinWeb @Inject constructor(
     }
 
     private fun createPage(done: CompletableDeferred<Unit>) {
+        dev.dyfeed.player.StartTimes.mark("douyin page opening")
+        done.invokeOnCompletion { dev.dyfeed.player.StartTimes.mark("douyin page ready") }
         mainReady = done
         // The same web view when there is one: only the page inside starts over.
         val w = web ?: WebView(context).also { configure(it, Bridge(search = false), onReady = { mainReady }); web = it }
@@ -408,6 +419,7 @@ class DouyinWeb @Inject constructor(
                 captured.addLast(body)
                 while (captured.size > MAX_CAPTURED) captured.pollFirst()
                 capturedSignal.complete(Unit)
+                dev.dyfeed.player.StartTimes.mark("first feed answer captured")
             }
         }
     }
@@ -429,7 +441,9 @@ class DouyinWeb @Inject constructor(
         private const val PAGE_TTL_MS = 30 * 60_000L
         private const val MAX_CAPTURED = 6
         private const val NUDGE_WAIT_MS = 7_000L
-        private const val SECOND_BATCH_WAIT_MS = 2_000L
+        private const val SECOND_BATCH_WAIT_MS = 800L
+        /** A page opened this recently is still bringing its first batch: wait for it, don't reload. */
+        private const val FRESH_PAGE_MS = 25_000L
         private const val SECOND_PAGE_IDLE_MS = 120_000L
         /** Unused this long, the pages are paused (a feed pull or search wakes them at once). */
         private const val IDLE_PAUSE_MS = 6_000L

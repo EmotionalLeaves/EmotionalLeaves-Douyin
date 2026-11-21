@@ -243,7 +243,10 @@ fun VideoPage(
         val listener = object : Player.Listener {
             override fun onRenderedFirstFrame() {
                 if (!firstFrame && askedAt > 0) dev.dyfeed.player.StartTimes.add(android.os.SystemClock.elapsedRealtime() - askedAt)
-                if (play && dev.dyfeed.player.StartTimes.firstVideoAt == 0L) dev.dyfeed.player.StartTimes.firstVideoAt = android.os.SystemClock.elapsedRealtime()
+                if (play && dev.dyfeed.player.StartTimes.firstVideoAt == 0L) {
+                    dev.dyfeed.player.StartTimes.firstVideoAt = android.os.SystemClock.elapsedRealtime()
+                    dev.dyfeed.player.StartTimes.mark("first video on screen")
+                }
                 firstFrame = true; vm.markShown(item)
             }
             override fun onPositionDiscontinuity(old: Player.PositionInfo, new: Player.PositionInfo, reason: Int) {

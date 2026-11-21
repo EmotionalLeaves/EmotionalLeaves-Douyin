@@ -514,7 +514,7 @@ class DouyinAdapter @Inject constructor(
     suspend fun probeSubtitles(): String {
         val r = web.get("/aweme/v1/web/module/feed/", mapOf("module_id" to "3003101", "count" to "10", "refresh_index" to "1", "pull_type" to "0", "video_type_select" to "1"))
         val bodies = listOf(r.body) + runCatching { web.harvest(10_000) }.getOrDefault(emptyList())
-        val pattern = Regex("subtit|caption|vtt|srt|asr|ocr|lyric|transcri|voice_text|text_extra_info", RegexOption.IGNORE_CASE)
+        val pattern = Regex("subtit|caption|vtt|srt|asr|ocr|lyric|transcri|voice_text|text_extra_info|aigc|is_ai|created_by_ai", RegexOption.IGNORE_CASE)
         val found = LinkedHashMap<String, String>()
         val filled = HashMap<String, Int>()
         val seen = HashMap<String, Int>()

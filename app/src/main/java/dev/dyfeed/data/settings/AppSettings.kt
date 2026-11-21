@@ -106,7 +106,7 @@ data class AppSettings(
     /** Which videos the main feeds show by length: "any", "short" (clips under 3 min) or "long" (3 min and up). */
     val videoLength: String = "any",
     /** Leave out AI-generated art (Stable Diffusion, NovelAI…) everywhere: feeds, search, tag pages. */
-    val hideAiArt: Boolean = false,
+    val hideAiArt: Boolean = true,
     /** Show every Chinese caption in English straight away (on-device translation). */
     val autoTranslate: Boolean = true,
     /** 1: "Show Chinese in English" turned on once for installs from before it was the default. */

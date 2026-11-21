@@ -9,6 +9,13 @@ object StartTimes {
     @Volatile var appStartedAt = 0L
     @Volatile var firstVideoAt = 0L
 
+    /** Startup milestones, logged once each as "timeline +Nms what" (for the health run's cold start). */
+    private val marked = java.util.Collections.synchronizedSet(HashSet<String>())
+    fun mark(what: String) {
+        if (appStartedAt == 0L || !marked.add(what)) return
+        android.util.Log.i("PFHEALTH", "timeline +${android.os.SystemClock.elapsedRealtime() - appStartedAt}ms $what")
+    }
+
     /** From the app starting to the first video on screen, or null if none has shown yet. */
     fun firstVideoMs(): Long? = if (firstVideoAt > 0 && appStartedAt > 0) firstVideoAt - appStartedAt else null
 

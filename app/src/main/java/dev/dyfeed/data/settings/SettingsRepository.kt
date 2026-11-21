@@ -56,6 +56,8 @@ class SettingsRepository @Inject constructor(
         // 1.7.6: Chinese on screen shows in English by default (asked for); switched on once for
         // older installs, after which turning it off sticks.
         if (out.learnDefaultsVersion < 1) out = out.copy(autoTranslate = true, learnDefaultsVersion = 1)
+        // 1.7.41: AI-made posts hidden by default (asked for); switched on once, then up to you.
+        if (out.learnDefaultsVersion < 2) out = out.copy(hideAiArt = true, learnDefaultsVersion = 2)
         if (out.contentFilterVersion < 1) {
             // v1: drop sites that only host non-adult content (they were in older defaults).
             out = out.copy(

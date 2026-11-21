@@ -159,6 +159,8 @@ object DouyinParser {
             likes?.let { put("score", it) }
             commentCount?.let { put("comments", it) }
             put("at", fetchedAt.toString())
+            // Douyin's own "made with AI" label, in whichever form the answer carries it.
+            if (aiLabelled(a)) put(dev.dyfeed.domain.filter.AiArt.AI_LABEL, "1")
             // The text Douyin itself read off the video's frames (its subtitles, mostly): for Learn.
             ((a["seo_info"] ?: a["seoInfo"]) as? JsonObject)?.let { seo -> seo.str("ocr_content") ?: seo.str("ocrContent") }
                 ?.trim()?.takeIf { Zh.has(it) }?.let { put(SCREEN_TEXT, it.take(MAX_SCREEN_TEXT)) }
@@ -250,6 +252,24 @@ object DouyinParser {
             .map { it.replace("/playwm/", "/play/").replace("http://", "https://") }
             .filter { it.startsWith("https://") }
             .distinct()
+    }
+
+    /**
+     * Whether Douyin marks the post as made with AI: an `aigc_info` (or similar) object saying so
+     * (created_by_ai, a non-zero AIGC label type), or a top-level is_ai / aigc flag.
+     */
+    internal fun aiLabelled(a: JsonObject): Boolean {
+        fun truthy(e: JsonElement?): Boolean = when (e) {
+            is JsonPrimitive -> e.contentOrNull?.let { it == "true" || (it.toIntOrNull() ?: 0) > 0 } == true
+            else -> false
+        }
+        for ((k, v) in a) {
+            val key = k.lowercase()
+            if (!(key.contains("aigc") || key == "is_ai" || key == "created_by_ai")) continue
+            if (truthy(v)) return true
+            if (v is JsonObject && v.entries.any { (ik, iv) -> val n = ik.lowercase(); (n.contains("created_by_ai") || n.contains("label_type") || n == "is_aigc" || n == "aigc_type") && truthy(iv) }) return true
+        }
+        return false
     }
 
     /** Extra key: what the video says on screen (its subtitles), as Douyin read it. */

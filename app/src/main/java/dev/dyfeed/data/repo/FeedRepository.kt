@@ -194,6 +194,9 @@ class FeedSession(
         // among thousands of feeds, so search every source for each of them directly.
         val following = spec is FeedSpec.Main && mode == FeedMode.FOLLOWING
         val searches: List<String>? = when {
+            // Not on the very first load: they'd share Douyin's one hidden page with the feed
+            // and hold up the first screen (startup measured at up to two minutes).
+            forYou && loads == 1 && shown.isEmpty() -> null
             forYou -> interestQueries()
             // Coomer creators are stored as "name@service"; search by the name.
             following -> (follows.creators.map { it.substringBefore('@') } + follows.tags)
@@ -227,6 +230,7 @@ class FeedSession(
         val allowForcedRun = allDone || (inFlight.isEmpty() && poolOrigins <= 1)
         // The saved posts may be all there is for a moment; show them rather than hold out for variety.
         val batch = takeBatch(mode, allowForcedRun = allowForcedRun || instantStart)
+        if (batch.isNotEmpty() && spec is FeedSpec.Main) dev.dyfeed.player.StartTimes.mark("first batch: ${batch.size} posts")
         if (forYouMain) poolCache.save(candidates)
         val end = allDone && candidates.isEmpty() && batch.isEmpty()
         val hint = if (end && shown.isEmpty()) {

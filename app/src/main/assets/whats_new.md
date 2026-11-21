@@ -1,3 +1,10 @@
+## 1.7.41 — 2026-11-20
+Snappier start, a bar that stays, no AI
+
+- Faster start, aimed at the 2-minute wait. At launch the feed no longer shares Douyin's hidden page with searches for your interests: they piled requests onto the page while it was still loading, which made it reload itself again and again. The page now gets to bring its first batch alone; interest searches start once the first videos are up.
+- Fixed: the bottom bar is always there and answers the first tap. It used to fade out over the feed and slide away on long lists, and a tap on the faded bar only woke it.
+- No AI content: AI-made posts are hidden by default. That covers Douyin's own "made with AI" label, and captions or tags like AI绘画, AI创作, AIGC, AI生成 and 数字人. Settings can turn it off.
+
 ## 1.7.40 — 2026-11-20
 Save the whole transcript
 

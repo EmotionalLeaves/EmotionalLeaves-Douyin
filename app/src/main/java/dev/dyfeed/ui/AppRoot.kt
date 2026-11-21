@@ -315,26 +315,11 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
     }
     // Over the feed the bar fades back while you watch (0 = awake, 1 = dimmed, 2 = out of sight)
     // and returns the moment you touch the screen.
-    var stage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableIntStateOf(0) }
-    androidx.compose.runtime.LaunchedEffect(BottomBar.lastTouch, immersive) {
-        stage = 0
-        if (!immersive) return@LaunchedEffect
-        // Hands-free: nobody's touching the screen on purpose, so the bar settles back sooner.
-        val quick = dev.dyfeed.ui.feed.HandsFree.on.value
-        kotlinx.coroutines.delay(if (quick) IDLE_DIM_MS / 2 else IDLE_DIM_MS)
-        stage = 1
-        kotlinx.coroutines.delay(if (quick) IDLE_HIDE_MS / 2 else IDLE_HIDE_MS)
-        stage = 2
-    }
-    val fade by androidx.compose.animation.core.animateFloatAsState(
-        when (stage) { 0 -> 1f; 1 -> 0.35f; else -> 0f },
-        androidx.compose.animation.core.tween(if (stage == 0) 150 else 900),
-        label = "barFade",
-    )
-    // A touch on a bar that's out of sight only brings it back; it doesn't switch tabs by surprise.
-    var asleepAtTouch by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
+    // Always there, always tappable, as on Douyin and WeChat. (It used to fade out over the feed
+    // and slide away on long lists, and a tap on a faded bar only woke it: it felt unreachable.)
+    val fade = 1f
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    val collapse = if (immersive) 0f else BottomBar.collapse
+    val collapse = 0f
     val selectedIndex = tabs.indexOf(current).coerceAtLeast(0)
     val indicatorX by androidx.compose.animation.core.animateFloatAsState(
         selectedIndex.toFloat(), androidx.compose.animation.core.spring(dampingRatio = 0.8f, stiffness = 500f), label = "tabIndicator",
@@ -353,14 +338,6 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
             .background(background)
             .navigationBarsPadding()
             .height(BAR_HEIGHT)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) {
-                        val e = awaitPointerEvent(PointerEventPass.Initial)
-                        if (e.changes.any { it.pressed && it.previousPressed.not() }) asleepAtTouch = stage == 2
-                    }
-                }
-            },
     ) {
         // On a tablet or a wide screen the tabs stay together in the middle instead of spreading to the edges.
         androidx.compose.foundation.layout.Row(
@@ -382,7 +359,6 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
                             role = androidx.compose.ui.semantics.Role.Tab,
                             onClickLabel = tab.label,
                         ) {
-                            if (asleepAtTouch) { asleepAtTouch = false; return@clickable }
                             haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.TextHandleMove)
                             if (selected) BottomBar.reselected.tryEmit(tab.route) else onSelect(tab)
                         }
@@ -412,7 +388,7 @@ private fun SlimNavBar(current: Tab?, immersive: Boolean, onSelect: (Tab) -> Uni
                     }
                     androidx.compose.foundation.layout.Spacer(Modifier.height(2.dp))
                     // Over the feed only the current tab is named: fewer words on top of the video.
-                    val labelAlpha by androidx.compose.animation.core.animateFloatAsState(if (selected || !immersive) 1f else 0f, label = "tabLabel")
+                    val labelAlpha = 1f
                     // Both languages, as a Chinese app would show them to a learner: 首页 Feed.
                     androidx.compose.foundation.layout.Row(Modifier.graphicsLayer { alpha = labelAlpha }, verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                         Text(tab.zh, color = tint, fontSize = 10.5.sp, fontWeight = FontWeight.Bold, maxLines = 1)
@@ -456,9 +432,6 @@ private fun Modifier.androidx_semantics(label: String, selected: Boolean): Modif
 
 private val BAR_HEIGHT = 52.dp
 private val MAX_BAR_WIDTH = 520.dp
-private const val IDLE_DIM_MS = 3_500L
-/** After dimming, how much longer before the bar is out of sight entirely. */
-private const val IDLE_HIDE_MS = 8_000L
 
 /**
  * Opens a tag or creator page. Pages opened from pages (a creator, then one of their tags, then
