@@ -54,7 +54,11 @@ class DouyinWeb @Inject constructor(
     private val seq = AtomicLong()
     @Volatile private var badAnswers = 0
     /** Feed answers the page fetched for itself (see [HOOK_JS]), newest last. */
-    private val captured = java.util.concurrent.ConcurrentLinkedDeque<String>()
+    /**
+     * Feed answers waiting to be taken, as UTF-8 bytes: each is ~3 million characters of JSON,
+     * which as a String is twice that in memory (a heap dump found four waiting: 24 MB).
+     */
+    private val captured = java.util.concurrent.ConcurrentLinkedDeque<ByteArray>()
     @Volatile private var capturedSignal = CompletableDeferred<Unit>()
 
     /**
@@ -350,7 +354,7 @@ class DouyinWeb @Inject constructor(
             }
         }
         val out = ArrayList<String>()
-        while (true) out += captured.pollFirst() ?: break
+        while (true) out += captured.pollFirst()?.toString(Charsets.UTF_8) ?: break
         return out
     }
 
@@ -581,7 +585,7 @@ class DouyinWeb @Inject constructor(
                 searchSignal.complete(Unit)
             } else {
                 if (isSearch || "/aweme/post" in url || !body.contains("aweme")) return
-                captured.addLast(body)
+                captured.addLast(body.toByteArray(Charsets.UTF_8))
                 while (captured.size > MAX_CAPTURED) captured.pollFirst()
                 answersThisPage++
                 lastAnswerAt = System.currentTimeMillis()

@@ -1,3 +1,9 @@
+## 1.7.61 — 2026-11-21
+Leaner again
+
+- Uses less memory again. Douyin's feed answers waiting to be shown (about 3 MB of text each) are now kept in half the space. The memory snapshot found four of them waiting, using 24 MB.
+- Includes 1.7.60: the dictionary takes about 18 MB instead of 80 MB. In the test phone's stress test, the app's peak memory dropped from 119 MB to 73 MB.
+
 ## 1.7.60 — 2026-11-21
 A lighter dictionary
 
