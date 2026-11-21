@@ -1,3 +1,8 @@
+## 1.7.40 — 2026-11-20
+Save the whole transcript
+
+- New: Transcript (⋯ on a video) → "Save all lines to review": every short line said in the video, with its English, becomes a review card in one tap.
+
 ## 1.7.39 — 2026-11-20
 Quicker checks
 
