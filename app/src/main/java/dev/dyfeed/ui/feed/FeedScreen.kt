@@ -1883,6 +1883,7 @@ private fun Overlay(
                             modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { dev.dyfeed.ui.learn.LearnWords.request.value = it }.padding(vertical = 6.dp),
                         )
                         // How hard the caption is for a learner: the share of beginner (HSK 1–3) words.
+                        // (The key word to learn from it follows this row, below.)
                         val share = remember(it, dev.dyfeed.domain.learn.Dict.ready, dev.dyfeed.domain.learn.Hsk.ready) {
                             val d = dev.dyfeed.domain.learn.Dict.ready; val h = dev.dyfeed.domain.learn.Hsk.ready
                             if (d != null && h != null) dev.dyfeed.domain.learn.LearnBoost.easyShare(d, h, it) else null
@@ -1896,6 +1897,8 @@ private fun Overlay(
                             Text(label, color = color, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.labelMedium.shadowed())
                         }
                     }
+                    // One word from it to learn, right there: tap to hear it, + to save it.
+                    KeyWordChip(it)
                 }
             }
             // The sound, as Douyin shows it: ♪ song – artist.
@@ -2364,6 +2367,42 @@ private suspend fun dominantHue(context: android.content.Context, url: String): 
 }
 
 /** A pill over the feed: one of your tastes (or All). */
+/** The caption's most useful word to learn (see KeyWord): its pinyin, the word and its meaning, and + to save. */
+@Composable
+private fun KeyWordChip(caption: String) {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val cards by dev.dyfeed.domain.learn.WordBook.cards.collectAsStateWithLifecycle()
+    // The dictionary is read once, in the background, the first time a caption asks.
+    val word by androidx.compose.runtime.produceState<dev.dyfeed.domain.learn.Token?>(null, caption) {
+        val dict = dev.dyfeed.domain.learn.Dict.get(context)
+        val hsk = runCatching { dev.dyfeed.domain.learn.Hsk.get(context) }.getOrNull()
+        val saved = dev.dyfeed.domain.learn.WordBook.cards.value.mapTo(HashSet()) { it.word }
+        value = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { dev.dyfeed.domain.learn.KeyWord.pick(dict, hsk, caption, saved) }
+    }
+    val w = word ?: return
+    val e = w.entries.first()
+    val saved = cards.any { it.word == w.text }
+    Row(
+        Modifier.padding(top = 2.dp).clip(RoundedCornerShape(50)).background(Color.Black.copy(alpha = 0.35f))
+            .clickable { dev.dyfeed.ui.learn.Speak.say(context, w.text) }
+            .padding(start = 10.dp, end = 4.dp, top = 3.dp, bottom = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(w.text, color = Color.White, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelLarge.shadowed())
+        Spacer(Modifier.width(6.dp))
+        Text(e.pinyinMarks, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelMedium.shadowed())
+        Spacer(Modifier.width(6.dp))
+        Text(e.english.substringBefore(';').substringBefore('/').take(28), color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.labelMedium.shadowed(), maxLines = 1)
+        Text(
+            if (saved) "✓" else "＋",
+            color = if (saved) Color(0xFF34D399) else Accent,
+            fontWeight = FontWeight.Bold,
+            style = MaterialTheme.typography.titleMedium,
+            modifier = Modifier.clip(RoundedCornerShape(50)).clickable(enabled = !saved) { dev.dyfeed.domain.learn.WordBook.add(e, example = caption) }.padding(horizontal = 8.dp),
+        )
+    }
+}
+
 /** Topics always offered over For You (after your own): Douyin's big channels, Chinese with English. */
 private val DEFAULT_TOPICS = listOf(
     "美食" to "Food", "搞笑" to "Funny", "萌宠" to "Pets", "旅行" to "Travel", "风景" to "Scenery",

@@ -232,3 +232,17 @@ object Heard {
 
     fun clear() { _lines.value = emptyList(); file?.delete() }
 }
+
+
+/**
+ * The one word in a caption most worth learning now: a real word (two characters or more, in the
+ * dictionary, not a name), not one you've saved, and the most useful (commonest HSK level first,
+ * beginner levels before advanced; words outside HSK last).
+ */
+object KeyWord {
+    fun pick(dict: ZhDictionary, hsk: HskTable?, caption: String, saved: Set<String>): Token? =
+        dict.segment(caption)
+            .filter { t -> t.known && t.text.length in 2..4 && t.text !in saved && !t.entries.first().pinyin.first().isUpperCase() }
+            .distinctBy { it.text }
+            .minByOrNull { t -> hsk?.level(t.text)?.let { lv -> if (lv in 1..6) lv else 7 } ?: 8 }
+}

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.74 — 2026-11-21
+- KeyWordChip under Chinese captions: most useful unsaved word (HSK level order, no names), tap to hear, + to save with the caption.
+
 ## 1.7.73 — 2026-11-21
 - reactNow: related inserted after enjoy/like, upcoming posts sharing traits of two quick skips removed; Douyin sug while typing; OCR min gap 350 ms; finite loading timers; captions off in UI tests.
 

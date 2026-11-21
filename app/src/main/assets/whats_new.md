@@ -1,3 +1,8 @@
+## 1.7.74 — 2026-11-21
+A word from every caption
+
+- Learn while you watch: under each Chinese caption there's now one word worth learning from it, with its pinyin and meaning (for example 火锅 huǒ guō · hot pot). It picks the most useful word you haven't saved: everyday HSK words first, never names. Tap the word to hear it, or ＋ to save it to your list, with the caption as its example. It turns into ✓ once saved.
+
 ## 1.7.73 — 2026-11-21
 Reacts now, suggests as you type
 
