@@ -241,6 +241,16 @@ fun ItemMenuSheet(
                 HorizontalDivider()
                 val lines = remember(item.key) { dev.dyfeed.domain.learn.Transcripts.of(item.key) }
                 val dictReady by androidx.compose.runtime.produceState(dev.dyfeed.domain.learn.Dict.ready != null) { dev.dyfeed.domain.learn.Dict.get(context); value = true }
+                // Every short line, with its English, as review cards in one tap.
+                val savable = lines.filter { it.en != null && it.zh.length in 2..40 }
+                if (savable.isNotEmpty() && dictReady) androidx.compose.material3.TextButton(
+                    onClick = {
+                        val d = dev.dyfeed.domain.learn.Dict.ready ?: return@TextButton
+                        savable.forEach { l -> dev.dyfeed.domain.learn.WordBook.addSentence(l.zh, d.segment(l.zh), l.en!!) }
+                        vm.offer("Saved ${savable.size} lines to review", "OK") {}
+                    },
+                    modifier = Modifier.padding(horizontal = 8.dp),
+                ) { Text("Save all ${savable.size} lines to review") }
                 lines.forEach { l ->
                     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.Top) {
                         Text(
