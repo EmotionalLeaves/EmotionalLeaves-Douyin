@@ -855,10 +855,72 @@ private fun LoadingPost(modifier: Modifier = Modifier) {
         Column(Modifier.align(Alignment.BottomEnd).padding(end = 14.dp, bottom = 40.dp), verticalArrangement = Arrangement.spacedBy(22.dp)) {
             repeat(4) { Box(Modifier.size(44.dp).clip(CircleShape).background(shine)) }
         }
-        Column(Modifier.align(Alignment.Center), horizontalAlignment = Alignment.CenterHorizontally) {
+        // How long it's been: after a few seconds, a word to learn while Douyin's page loads (its
+        // first batch takes ~15 s on a fresh install), and a word on why.
+        var waited by remember { mutableStateOf(0) }
+        LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1_000); waited++ } }
+        Column(Modifier.align(Alignment.Center).padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Loading your feed", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))
-            Text("Fetching Douyin's recommendations", color = Color.White.copy(alpha = 0.45f), style = MaterialTheme.typography.bodySmall)
+            Text(
+                if (waited < WAIT_EXPLAIN_S) "Fetching Douyin's recommendations" else "Douyin's page is still loading its first batch. The first launch is the slowest.",
+                color = Color.White.copy(alpha = 0.45f), style = MaterialTheme.typography.bodySmall, textAlign = TextAlign.Center,
+            )
+            androidx.compose.animation.AnimatedVisibility(visible = waited >= WAIT_WORD_S) { WaitWord() }
+        }
+    }
+}
+
+/** After this many seconds of loading, a word to learn appears. */
+private const val WAIT_WORD_S = 3
+/** After this many, say why it's taking a while. */
+private const val WAIT_EXPLAIN_S = 8
+
+/**
+ * Everyday words for the wait (a fixed list: loading the whole dictionary now would slow the
+ * start down further). Tap to hear it; "Another" for the next.
+ */
+private val WAIT_WORDS = listOf(
+    Triple("你好", "nǐ hǎo", "hello"), Triple("谢谢", "xiè xie", "thank you"), Triple("好吃", "hǎo chī", "tasty"),
+    Triple("视频", "shì pín", "video"), Triple("朋友", "péng you", "friend"), Triple("喜欢", "xǐ huan", "to like"),
+    Triple("厉害", "lì hai", "awesome; impressive"), Triple("火锅", "huǒ guō", "hot pot"), Triple("可爱", "kě ài", "cute"),
+    Triple("加油", "jiā yóu", "go for it!"), Triple("搞笑", "gǎo xiào", "funny"), Triple("今天", "jīn tiān", "today"),
+    Triple("猫", "māo", "cat"), Triple("狗", "gǒu", "dog"), Triple("开心", "kāi xīn", "happy"),
+    Triple("没问题", "méi wèn tí", "no problem"), Triple("太好了", "tài hǎo le", "great!"), Triple("什么", "shén me", "what"),
+    Triple("怎么样", "zěn me yàng", "how is it?"), Triple("真的", "zhēn de", "really"), Triple("哈哈", "hā hā", "haha"),
+    Triple("美食", "měi shí", "delicious food"), Triple("旅行", "lǚ xíng", "to travel"), Triple("音乐", "yīn yuè", "music"),
+    Triple("一起", "yì qǐ", "together"), Triple("漂亮", "piào liang", "pretty"), Triple("关注", "guān zhù", "follow"),
+    Triple("点赞", "diǎn zàn", "to like (a post)"), Triple("评论", "píng lùn", "comment"), Triple("收藏", "shōu cáng", "to save"),
+)
+
+@Composable
+private fun WaitWord() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var at by remember { mutableStateOf(kotlin.random.Random.nextInt(WAIT_WORDS.size)) }
+    val (hanzi, pinyin, english) = WAIT_WORDS[at]
+    Column(
+        Modifier.padding(top = 28.dp).clip(RoundedCornerShape(20.dp)).background(Color.White.copy(alpha = 0.07f))
+            .clickable { dev.dyfeed.ui.learn.Speak.say(context, hanzi) }.padding(horizontal = 28.dp, vertical = 18.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text("A word while you wait", color = Color.White.copy(alpha = 0.5f), style = MaterialTheme.typography.labelMedium)
+        Spacer(Modifier.height(8.dp))
+        Text(pinyin, color = Accent, style = MaterialTheme.typography.titleMedium)
+        Text(hanzi, color = Color.White, style = MaterialTheme.typography.displaySmall, fontWeight = FontWeight.Bold)
+        Text(english, color = Color.White.copy(alpha = 0.75f), style = MaterialTheme.typography.bodyLarge)
+        Spacer(Modifier.height(10.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Text(
+                "🔊 Hear it", color = Color.White, style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))
+                    .clickable { dev.dyfeed.ui.learn.Speak.say(context, hanzi) }.padding(horizontal = 14.dp, vertical = 8.dp),
+            )
+            Text(
+                "Another", color = Color.White, style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier.clip(RoundedCornerShape(50)).background(Color.White.copy(alpha = 0.12f))
+                    .clickable { at = (at + 1 + kotlin.random.Random.nextInt(WAIT_WORDS.size - 1)) % WAIT_WORDS.size }
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            )
         }
     }
 }

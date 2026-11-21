@@ -85,9 +85,18 @@ class DouyinAdapter @Inject constructor(
         val next = (index + 1).toString().takeIf { index < MAX_FEED_PULLS }
         // What Douyin's own page loaded for itself: the backup when the app's own request is
         // turned away, or answers in a form with no readable posts.
-        suspend fun fromPage(): List<MediaItem> = web.harvest().flatMap { body ->
-            runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
-        }.distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
+        suspend fun fromPage(): List<MediaItem> {
+            // A fresh page's first answer is often one with nothing playable in it, and its real
+            // batch follows seconds later (the test phone: 0 posts, then 19, 3.5 s apart). So when
+            // answers came but none played, take the next one rather than show nothing until a retry.
+            repeat(PAGE_TRIES) {
+                val bodies = web.harvest()
+                val got = bodies.flatMap { body -> runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList()) }
+                    .distinctBy { it.id }.filterNot { seen.isSeen(it.key) }
+                if (got.isNotEmpty() || bodies.isEmpty()) return got
+            }
+            return emptyList()
+        }
         // Douyin's feed address answers a visitor with posts whose video addresses are scrambled
         // (1.4 MB of nothing playable). After two such answers, go straight to what its own page
         // loads, which plays: saves seconds on every pull. Signing in tries the address again.
@@ -745,6 +754,8 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
+        /** Page answers taken per pull when the first had nothing playable (see fromPage). */
+        private const val PAGE_TRIES = 2
         /** How long "the feed API gives visitors nothing playable" is trusted before trying it again. */
         private const val DIRECT_FEED_RECHECK_MS = 24 * 60 * 60_000L
         private const val MAX_WEB_RESULTS = 16

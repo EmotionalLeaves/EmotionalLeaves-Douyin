@@ -233,6 +233,10 @@ class DouyinWeb @Inject constructor(
         // ignoring the simulated keys): then each batch would just wait 7 s for nothing.
         // A page that's only just been opened (app start) fetches its first batch by itself: wait
         // for that rather than prod it, or throw it away and start over, as was done before.
+        // No page yet (the feed can ask before launch has opened it): open it, don't "reload" it,
+        // and wait for its first batch like any fresh page. (Reloading here restarted a page that
+        // was half-loaded: the first posts came 15 s later than they would have.)
+        if (web == null) startPage()
         val sinceLoad = System.currentTimeMillis() - loadedAt
         if (captured.isEmpty() && web != null && sinceLoad < FRESH_PAGE_MS) {
             capturedSignal = CompletableDeferred()
@@ -321,6 +325,17 @@ class DouyinWeb @Inject constructor(
 
     fun signedIn(): Boolean = isSignedIn()
 
+    /** Opens the page if there isn't one, without waiting for it to be ready. */
+    private suspend fun startPage() {
+        loadMutex.withLock {
+            if (ready == null) CompletableDeferred<Unit>().also { d ->
+                ready = d
+                loadedAt = System.currentTimeMillis()
+                withContext(Dispatchers.Main) { createPage(d) }
+            }
+        }
+    }
+
     private suspend fun ensurePage() {
         val r = loadMutex.withLock {
             val stale = System.currentTimeMillis() - loadedAt > PAGE_TTL_MS
@@ -375,9 +390,12 @@ class DouyinWeb @Inject constructor(
             runCatching { androidx.webkit.WebViewCompat.addDocumentStartJavaScript(w, HOOK_JS, setOf("https://www.douyin.com")) }
         }
         w.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {}
+            override fun onPageStarted(view: WebView, url: String?, favicon: Bitmap?) {
+                if (!bridge.search) dev.dyfeed.player.StartTimes.mark("douyin page started")
+            }
 
             override fun onPageFinished(view: WebView, url: String?) {
+                if (!bridge.search) dev.dyfeed.player.StartTimes.mark("douyin page finished loading")
                 val done = onReady() ?: return
                 if (done.isCompleted) return
                 // Wait for Douyin's signer script to install itself, then a moment more.
@@ -386,6 +404,7 @@ class DouyinWeb @Inject constructor(
                     override fun run() {
                         view.evaluateJavascript(SIGNER_PRESENT_JS) { v ->
                             if (v == "true" || ++tries >= 20) {
+                                if (!bridge.search) dev.dyfeed.player.StartTimes.mark("douyin signer ${if (v == "true") "found" else "not found"} after $tries checks")
                                 view.postDelayed({ done.complete(Unit) }, 800)
                                 view.onPause() // stops animations; scripts keep running
                             } else view.postDelayed(this, 500)
@@ -406,7 +425,7 @@ class DouyinWeb @Inject constructor(
         }
     }
 
-    private inner class Bridge(private val search: Boolean) {
+    private inner class Bridge(val search: Boolean) {
         @JavascriptInterface
         fun reply(id: String, status: Int, body: String) {
             pending[id]?.complete(Reply(status, body))

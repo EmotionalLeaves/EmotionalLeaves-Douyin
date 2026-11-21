@@ -1,3 +1,12 @@
+## 1.7.45 — 2026-11-20
+Faster first posts, a word while you wait
+
+- Faster first posts. Two fixes, both found in the test phone's timeline:
+  - If the feed asked before Douyin's hidden page had opened, the app reloaded the half-open page and started it over. It now opens the page and waits for it.
+  - The page's first answer often has nothing playable in it, and the real batch follows a few seconds later. The app now takes that next answer straight away instead of showing an empty screen until a retry.
+- A word while you wait: if the feed is still loading after 3 seconds, a common Chinese word appears with its pinyin and meaning. Tap it to hear it, or tap Another. After 8 seconds the screen also says why it's taking a while.
+- Includes 1.7.44: the related-videos first screen from 1.7.43 is gone (its videos never loaded).
+
 ## 1.7.44 — 2026-11-20
 Snappy start, fixed
 

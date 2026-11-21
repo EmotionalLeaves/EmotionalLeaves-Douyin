@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.45 — 2026-11-20
+- Harvest opens a missing page instead of reloading it; fromPage takes a second answer when the first had nothing playable; loading screen teaches a word; page lifecycle timeline marks.
+
 ## 1.7.44 — 2026-11-20
 - Drop the related-of-history first-screen race (related addresses silent on the emulator); tag related posts via=related in failure reasons.
 
