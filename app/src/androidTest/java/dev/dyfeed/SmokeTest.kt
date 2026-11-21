@@ -515,15 +515,10 @@ class SmokeTest {
             android.util.Log.i("PFHEALTH", "douyin cover: ${img.javaClass.simpleName} in ${System.currentTimeMillis() - i0} ms from ${android.net.Uri.parse(thumb).host}${android.net.Uri.parse(thumb).path?.takeLast(30)}" +
                 ((img as? coil.request.ErrorResult)?.throwable?.let { " (${it.javaClass.simpleName}: ${it.message?.take(120)})" } ?: ""))
         } else android.util.Log.i("PFHEALTH", "douyin cover: no post in hand")
-        // A creator's public share page: does it list their posts without an account?
-        val sec = douyin.readyPosts(5).firstNotNullOfOrNull { it.extras["secUid"] }
-        if (sec != null) {
-            val u0 = System.currentTimeMillis()
-            val shared = runCatching { runBlocking { douyin.shareUserPosts(sec) } }
-            android.util.Log.i("PFHEALTH", "douyin share user page: " + shared.fold({ "${it.size} posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - u0} ms")
-            if (shared.getOrNull().isNullOrEmpty()) android.util.Log.i("PFHEALTH", "douyin share user trace: " + runBlocking { douyin.shareUserTrace(sec) })
-        }
-        android.util.Log.i("PFHEALTH", "douyin feed page calls: " + douyin.pageCalls().joinToString("; ").take(1500))
+        // How much of what Douyin sends is AI (all of it hidden, by default): the filter's catch.
+        val inHand = douyin.readyPosts(300)
+        val ai = inHand.filter(dev.dyfeed.domain.filter.AiArt::isAi)
+        android.util.Log.i("PFHEALTH", "douyin ai filter: ${ai.size} of ${inHand.size} posts caught; e.g. " + ai.take(5).joinToString(" | ") { (it.creator ?: "") + ": " + (it.title ?: "").take(30) })
         val g0 = System.currentTimeMillis()
         val sug = runCatching { runBlocking { douyin.suggest("火锅") } }
         android.util.Log.i("PFHEALTH", "douyin suggestions '火锅': " + sug.fold({ it.take(6).joinToString(" / ").ifEmpty { "none" } }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - g0} ms")

@@ -27,6 +27,8 @@ class AiDouyinTest {
         assertTrue(AiArt.isAi(post("新作品", tags = listOf("即梦"))))
         assertTrue(AiArt.isAi(post("可灵生成的猫猫跳舞")))
         assertTrue(AiArt.isAi(post("虚拟主播今天唱歌")))
+        assertTrue(AiArt.isAi(post("第一集", tags = listOf("漫剧"))))
+        assertTrue(AiArt.isAi(post("新作品").copy(creator = "呀呀漫剧")))
         assertTrue(AiArt.isAi(post("小猫咪", extras = emptyMap()).copy(creator = "AI小助手")))
         // But not words that merely contain the letters.
         assertFalse(AiArt.isAi(post("Thai food 泰国美食 paint the wall")))

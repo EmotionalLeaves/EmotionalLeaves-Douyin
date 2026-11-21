@@ -1,3 +1,9 @@
+## 1.7.76 — 2026-11-21
+No AI dramas
+
+- Stricter about AI again: Douyin's "manga dramas" (漫剧, 动态漫) and novel read-alongs (小说推文) are hidden, by tag, caption or account name. Nearly all of them are made with AI pictures and voices now.
+- Correction to 1.7.75: Douyin's public share page for a creator turned out to list nothing without an account (checked on the test phone), so that route is removed. Following works as it did before.
+
 ## 1.7.75 — 2026-11-21
 Following without an account
 

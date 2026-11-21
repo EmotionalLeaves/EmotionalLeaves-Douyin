@@ -186,9 +186,7 @@ class DouyinAdapter @Inject constructor(
             if (maxCursor > 0) throw e
             // Signed out the post list answers 403: take what the creator's own page loads, plus
             // their posts the app already has.
-            // Their public share page first (no account needed, when it lists posts).
-            val shared = runCatching { shareUserPosts(secUid) }.getOrDefault(emptyList())
-            val fromPage = if (shared.size >= 3 || !allowPage) emptyList() else creatorPageGate.attempt {
+            val fromPage = if (!allowPage) emptyList() else creatorPageGate.attempt {
                 runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
                     runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
                 }
@@ -198,7 +196,7 @@ class DouyinAdapter @Inject constructor(
             // Douyin's related videos for their posts often include more of theirs.
             val viaRelated = if (!allowPage) emptyList() else runCatching { relatedPosts(known.take(3)) }.getOrDefault(emptyList())
                 .filter { it.extras["secUid"] == secUid }
-            val all = (shared + fromPage + known + viaRelated).distinctBy { it.id }.sortedByDescending { it.publishedAt }
+            val all = (fromPage + known + viaRelated).distinctBy { it.id }.sortedByDescending { it.publishedAt }
             if (all.isEmpty()) throw e
             Page(all, null)
         }
@@ -841,53 +839,6 @@ class DouyinAdapter @Inject constructor(
         DouyinParser.parse(item, PlayerPool.maxHeight)?.also { parsed ->
             parsed.extras["secUid"]?.let { sec -> parsed.creator?.let { remember(it, sec) } }
         }
-    }
-
-    /**
-     * A creator's posts from Douyin's public share page for them (what a shared profile link opens
-     * on a phone without the app): no account needed, if it lists them. Empty when it doesn't.
-     */
-    suspend fun shareUserPosts(secUid: String): List<MediaItem> = withContext(Dispatchers.IO) {
-        val req = Request.Builder()
-            .url("https://www.iesdouyin.com/share/user/$secUid")
-            .header("User-Agent", MOBILE_UA)
-            .header("Referer", "https://www.douyin.com/")
-            .build()
-        val html = runCatching { http.newCall(req).execute().use { if (it.isSuccessful) it.body?.string() else null } }.getOrNull()
-            ?: return@withContext emptyList()
-        val data = ROUTER_DATA.find(html)?.groupValues?.get(1) ?: return@withContext emptyList()
-        val root = runCatching { json.parseToJsonElement(data) }.getOrNull() ?: return@withContext emptyList()
-        val list = findItemList(root) ?: findAwemeList(root) ?: return@withContext emptyList()
-        list.mapNotNull { (it as? JsonObject)?.let { o -> DouyinParser.parse(o, PlayerPool.maxHeight) } }
-            .map { it.copy(extras = it.extras + ("secUid" to secUid)) }
-    }
-
-    /** The addresses Douyin's own feed page has called (health check). */
-    fun pageCalls(): List<String> = web.pageCalls()
-
-    /** What the share page for a creator holds (for the health check): size, its data's keys. */
-    suspend fun shareUserTrace(secUid: String): String = withContext(Dispatchers.IO) {
-        val req = Request.Builder().url("https://www.iesdouyin.com/share/user/$secUid").header("User-Agent", MOBILE_UA).header("Referer", "https://www.douyin.com/").build()
-        runCatching {
-            http.newCall(req).execute().use { r ->
-                val html = r.body?.string().orEmpty()
-                val data = ROUTER_DATA.find(html)?.groupValues?.get(1)
-                val keys = data?.let { d -> runCatching { (json.parseToJsonElement(d) as? JsonObject)?.let { o -> o.keys.take(6) + ((o["loaderData"] as? JsonObject)?.let { l -> l.entries.map { (k, v) -> "$k:" + ((v as? JsonObject)?.keys?.take(8)?.joinToString("|") ?: "-") } } ?: emptyList()) } }.getOrNull() }
-                "http ${r.code} ${r.request.url.host}${r.request.url.encodedPath.take(40)}, ${html.length} chars, router data ${if (data == null) "none" else "${data.length} chars"}, keys $keys, mentions aweme_list=${"aweme_list" in html} item_list=${"item_list" in html} post=${"\"post\"" in html}"
-            }
-        }.getOrElse { "error ${it.message}" } + " | api: " + runCatching {
-            // The address that page's own script asks for the list (older, unsigned).
-            val api = Request.Builder().url("https://www.iesdouyin.com/web/api/v2/aweme/post/?reflow_source=reflow_page&sec_uid=$secUid&count=21&max_cursor=0")
-                .header("User-Agent", MOBILE_UA).header("Referer", "https://www.iesdouyin.com/share/user/$secUid").build()
-            http.newCall(api).execute().use { r -> val b = r.body?.string().orEmpty(); "http ${r.code}, ${b.length} chars: ${b.take(160)}" }
-        }.getOrElse { "error ${it.message}" }
-    }
-
-    private fun findAwemeList(e: JsonElement?): kotlinx.serialization.json.JsonArray? {
-        val o = e as? JsonObject ?: return null
-        (o["aweme_list"] as? kotlinx.serialization.json.JsonArray)?.let { return it }
-        for (v in o.values) findAwemeList(v)?.let { return it }
-        return null
     }
 
     private fun findItemList(e: JsonElement?): kotlinx.serialization.json.JsonArray? {

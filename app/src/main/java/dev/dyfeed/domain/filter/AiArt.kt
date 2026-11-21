@@ -29,13 +29,15 @@ object AiArt {
 
     /** Douyin's words for it: AI创作, AI绘画, AIGC, AI生成, AI视频, 数字人 (AI presenters)… */
     private val CHINESE = Regex(
-        """(?i)(?:(?:ai|ＡＩ|人工智能)\s*(?:生成|创作|绘画|绘图|作图|画图|动画|视频|写真|短剧|漫剧|漫画|合成|换脸|配音|歌手|翻唱|模特|美女|特效|变装|复活|制作|做的|作品|音乐|歌曲|唱|演唱|主播|虚拟|绘本|电影|动漫|风格|图片|照片|还原|修复|扩图|舞蹈|跳舞|老照片)|aigc|数字人|虚拟人|虚拟主播|ai小说|ai漫|即梦|可灵|海螺ai|通义万相|文心一格|豆包ai|剪映ai|midjourney|sora|vidu|内容由ai生成|由ai生成|疑似ai|ai辅助)""",
+        """(?i)(?:(?:ai|ＡＩ|人工智能)\s*(?:生成|创作|绘画|绘图|作图|画图|动画|视频|写真|短剧|漫剧|漫画|合成|换脸|配音|歌手|翻唱|模特|美女|特效|变装|复活|制作|做的|作品|音乐|歌曲|唱|演唱|主播|虚拟|绘本|电影|动漫|风格|图片|照片|还原|修复|扩图|舞蹈|跳舞|老照片)|aigc|数字人|虚拟人|虚拟主播|ai小说|ai漫|即梦|可灵|海螺ai|通义万相|文心一格|豆包ai|剪映ai|midjourney|sora|vidu|内容由ai生成|由ai生成|疑似ai|ai辅助|漫剧|动态漫|小说推文|推文漫|ai解说)""",
     )
     private val CHINESE_TAGS = setOf(
         "ai", "aigc", "ai创作", "ai绘画", "ai生成", "ai视频", "ai动画", "数字人", "ai短剧", "ai漫剧", "ai写真", "ai翻唱", "ai作图", "ai特效",
         "人工智能", "ai音乐", "ai歌曲", "ai制作", "ai作品", "ai动漫", "ai电影", "ai漫画", "ai绘本", "ai还原", "ai修复", "ai老照片", "ai舞蹈",
         "虚拟人", "虚拟主播", "即梦", "即梦ai", "可灵", "可灵ai", "海螺ai", "豆包", "剪映ai", "通义万相", "sora", "midjourney", "aiart", "ai艺术",
         "ai原创", "ai小说", "ai故事", "ai配音", "aiai",
+        // Douyin's "manga dramas" and novel read-alongs: nearly all made with AI images and voices now.
+        "漫剧", "动态漫", "小说推文", "推文", "漫画解说",
     )
 
     /** "AI" standing on its own in a Chinese caption, name or tag ("用AI做的", "#AI", "AI美女"): Douyin's AI posts nearly always say it. */
