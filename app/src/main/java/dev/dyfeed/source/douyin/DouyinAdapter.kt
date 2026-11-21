@@ -17,6 +17,7 @@ import dev.dyfeed.source.SourceException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -226,6 +227,12 @@ class DouyinAdapter @Inject constructor(
         }
         // Later pages: only the signed search API pages; the other two ways give one page.
         if (cursor == "end") return Page(emptyList(), null)
+        // The slower ways' results, for the first page's searches that weren't back in time.
+        if (cursor == LATE) {
+            val (shown, work) = lateSearches.remove(q) ?: return Page(emptyList(), null)
+            val late = kotlinx.coroutines.withTimeoutOrNull(LATE_WAIT_MS) { work.await() }.orEmpty()
+            return Page(late.distinctBy { it.id }.filter { it.id !in shown }.sortedBy { !DouyinParser.matches(it, q) }, null)
+        }
         val offset = cursor?.toIntOrNull() ?: 0
         // Signed out, the search API always says "sign in first": don't spend the time asking.
         val direct = if (web.signedIn() || offset > 0) runCatching { directSearch(q, offset) }
@@ -236,27 +243,54 @@ class DouyinAdapter @Inject constructor(
         // visitor results, so open that and take what it loads; and add matching posts the feed
         // has already brought in, so a search is never empty.
         val fromFeed = loadedMatching(q)
-        val found = coroutineScope {
-            val tag = async { runCatching { hashtagPosts(q) }.getOrDefault(emptyList()) }
-            val related = async { runCatching { relatedPosts(fromFeed.take(5)) }.getOrDefault(emptyList()) }
-            val trending = async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) }
-            val trendPage = async { runCatching { trendPosts(q) }.getOrDefault(emptyList()) }
-            val page = async {
+        // Every way at once, detached from this call: what's back within FIRST_RESULTS_MS is the first
+        // page (results showed only when the slowest way finished: 15–18 s on the test phone), and
+        // the rest come as a second page when it's asked for.
+        val ways: List<kotlinx.coroutines.Deferred<List<MediaItem>>> = listOf(
+            // Best evidence first: the tag's own list and Douyin's own results, then the rest.
+            indexScope.async { runCatching { hashtagPosts(q) }.getOrDefault(emptyList()) },
+            indexScope.async { runCatching { trendPosts(q) }.getOrDefault(emptyList()) },
+            indexScope.async {
                 pageSearchGate.attempt {
                     runCatching { web.pageSearch(q) }.getOrDefault(emptyList()).flatMap { body ->
                         runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
                     }
                 }
-            }
-            val engine = async { webSearchGate.attempt { runCatching { webSearch(q) }.getOrDefault(emptyList()) } }
-            // Best evidence first: the tag's own list and Douyin's own results, then the rest.
-            tag.await() + trendPage.await() + page.await() + fromFeed + related.await() + trending.await() + engine.await()
+            },
+            kotlinx.coroutines.CompletableDeferred(fromFeed),
+            indexScope.async { runCatching { relatedPosts(fromFeed.take(5)) }.getOrDefault(emptyList()) },
+            indexScope.async { runCatching { trendingPosts(q) }.getOrDefault(emptyList()) },
+            indexScope.async { webSearchGate.attempt { runCatching { webSearch(q) }.getOrDefault(emptyList()) } },
+        )
+        // Wait for the first results (or everything, if it's all back sooner).
+        kotlinx.coroutines.withTimeoutOrNull(FIRST_RESULTS_MS) {
+            // (Not counting the posts already in hand: they're there at once.)
+            val remote = ways.filterIndexed { i, _ -> i != FROM_FEED_AT }
+            while (remote.none { it.isCompleted && it.getCompleted().isNotEmpty() } && !remote.all { it.isCompleted }) delay(100)
+            delay(FIRST_RESULTS_GRACE_MS)
         }
+        val done = ways.filter { it.isCompleted }
+        val waiting = ways.filterNot { it.isCompleted }
+        val found = done.flatMap { it.getCompleted() }
         // Posts that contain every word of the search first; related ones after (order kept within each).
         val all = found.distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
-        if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
-        return Page(all, null)
+        if (waiting.isEmpty() || all.isEmpty()) {
+            if (waiting.isNotEmpty()) {
+                // Nothing yet from the quick ways: wait for the rest after all.
+                val rest = kotlinx.coroutines.withTimeoutOrNull(LATE_WAIT_MS) { waiting.flatMap { it.await() } }.orEmpty()
+                val everything = (found + rest).distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
+                if (everything.isEmpty()) direct.exceptionOrNull()?.let { throw it }
+                return Page(everything, null)
+            }
+            if (all.isEmpty()) direct.exceptionOrNull()?.let { throw it }
+            return Page(all, null)
+        }
+        lateSearches[q] = all.mapTo(HashSet()) { it.id } to indexScope.async { waiting.flatMap { it.await() } }
+        return Page(all, LATE)
     }
+
+    /** Searches whose slower ways were still out when the first page went back: (ids shown, the rest). */
+    private val lateSearches = java.util.concurrent.ConcurrentHashMap<String, Pair<Set<String>, kotlinx.coroutines.Deferred<List<MediaItem>>>>()
 
     private suspend fun directSearch(q: String, offset: Int): Page<MediaItem> {
         val root = call(
@@ -786,6 +820,14 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
+        /** A search's first page: what's back by now (counted from the first results, plus a grace). */
+        private const val FIRST_RESULTS_MS = 6_000L
+        private const val FIRST_RESULTS_GRACE_MS = 1_200L
+        /** The slower ways get this long more, as the second page. */
+        private const val LATE_WAIT_MS = 30_000L
+        private const val LATE = "late"
+        /** Where the posts already in hand sit among the search's ways. */
+        private const val FROM_FEED_AT = 3
         private const val RACE_MS = 2_500L
         private const val MAX_RACE = 4
         /** Page answers taken per pull when the first had nothing playable (see fromPage). */

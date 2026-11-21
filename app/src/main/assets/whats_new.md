@@ -1,3 +1,8 @@
+## 1.7.64 — 2026-11-21
+Search results sooner
+
+- Faster search: results appear as soon as the quicker sources come back (a few seconds), and the slower ones (Douyin's own search page, the web) add theirs underneath when they arrive. Before, nothing showed until the slowest had finished, 15 to 18 seconds on the test phone.
+
 ## 1.7.63 — 2026-11-21
 Every video from the fastest mirror
 

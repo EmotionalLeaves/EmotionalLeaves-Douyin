@@ -95,18 +95,34 @@ class SearchRepository @Inject constructor(
         adapters.forEach { a ->
             launch {
                 val t0 = System.currentTimeMillis()
-                val r = searchOne(a, query)
+                var counted = false
+                var added = 0
+                fun addLocked(list: List<MediaItem>) {
+                    val allowed = list.drop(added).filter(blocklist::allows)
+                    added = list.size
+                    if (allowed.isNotEmpty() && !counted) { withResults++; counted = true }
+                    collected += allowed
+                    allowed.forEach { item -> if (item.key !in scores) scores[item.key] = relevance(item) }
+                }
+                fun snapshotLocked() = SearchResult(
+                    items = mixSources(Deduplicator().filter(collected, hasher.cached(collected)).sortedByDescending { scores[it.key] ?: 0.0 }),
+                    errors = errors.toList(),
+                    elapsedMs = System.currentTimeMillis() - started,
+                    pending = pending,
+                    sourcesWithResults = withResults,
+                    timings = LinkedHashMap(timings),
+                )
+                // Each page as it comes (a source's first page is often seconds ahead of its last).
+                val r = searchOne(a, query) { soFar ->
+                    val early = lock.withLock { addLocked(soFar); snapshotLocked() }
+                    runCatching { send(early) }
+                }
                 val snapshot = lock.withLock {
                     timings[a.id] = System.currentTimeMillis() - t0
                     // How long sources waited to start: high means the search's own threads were busy.
                     timings["queued"] = maxOf(timings["queued"] ?: 0L, t0 - started)
                     pending--
-                    r.onSuccess { list ->
-                        val allowed = list.filter(blocklist::allows)
-                        if (allowed.isNotEmpty()) withResults++
-                        collected += allowed
-                        allowed.forEach { item -> if (item.key !in scores) scores[item.key] = relevance(item) }
-                    }.onFailure { e -> errors += "${a.displayName}: ${e.message ?: "failed"}" }
+                    r.onSuccess { list -> addLocked(list) }.onFailure { e -> errors += "${a.displayName}: ${e.message ?: "failed"}" }
                     // Search is latency-bound: dedup on titles/durations plus any hashes already memoised.
                     val unique = Deduplicator().filter(collected, hasher.cached(collected))
                     SearchResult(
@@ -128,7 +144,7 @@ class SearchRepository @Inject constructor(
      * awaited for that long: a source busy parsing (or ignoring cancellation) can't hold the search
      * past its budget, and whatever pages it already returned are kept.
      */
-    private suspend fun searchOne(a: SourceAdapter, query: String): Result<List<MediaItem>> {
+    private suspend fun searchOne(a: SourceAdapter, query: String, onPage: suspend (List<MediaItem>) -> Unit = {}): Result<List<MediaItem>> {
         val got = java.util.Collections.synchronizedList(ArrayList<MediaItem>())
         var failure: Exception? = null
         val work = detached.async {
@@ -144,6 +160,7 @@ class SearchRepository @Inject constructor(
                 }
                 got += page.items
                 cursor = page.nextCursor
+                if (cursor != null && page.items.isNotEmpty()) onPage(synchronized(got) { got.toList() })
             } while (cursor != null && got.size < MAX_PER_SOURCE)
         }
         val finished = withTimeoutOrNull(PER_SOURCE_TIMEOUT_MS) { work.await(); true }

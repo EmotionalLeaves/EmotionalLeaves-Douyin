@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.64 — 2026-11-21
+- Douyin search: detached ways, first page at first results + 1.2 s grace (6 s cap), the rest as a 'late' page; SearchRepository streams each page.
+
 ## 1.7.63 — 2026-11-21
 - Race mirrors for every Douyin video (v3-web-prime 403s minutes-old addresses).
 
