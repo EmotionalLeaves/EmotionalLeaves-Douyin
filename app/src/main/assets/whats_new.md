@@ -1,3 +1,9 @@
+## 1.7.75 — 2026-11-21
+Following without an account
+
+- Following works better without an account: a creator you follow now has their posts read from Douyin's public share page for them (what a shared profile link opens), on top of what the app already had of theirs. Douyin's own profile page shows nothing to visitors.
+- Includes 1.7.74: a word to learn under every Chinese caption, with pinyin, meaning and ＋ to save.
+
 ## 1.7.74 — 2026-11-21
 A word from every caption
 

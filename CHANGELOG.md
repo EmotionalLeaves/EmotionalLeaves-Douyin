@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.75 — 2026-11-21
+- Creators' posts from iesdouyin share/user pages (ROUTER_DATA item/aweme list) in userPosts' signed-out fallback; health probe.
+
 ## 1.7.74 — 2026-11-21
 - KeyWordChip under Chinese captions: most useful unsaved word (HSK level order, no names), tap to hear, + to save with the caption.
 

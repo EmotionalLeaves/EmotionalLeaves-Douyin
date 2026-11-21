@@ -186,7 +186,9 @@ class DouyinAdapter @Inject constructor(
             if (maxCursor > 0) throw e
             // Signed out the post list answers 403: take what the creator's own page loads, plus
             // their posts the app already has.
-            val fromPage = if (!allowPage) emptyList() else creatorPageGate.attempt {
+            // Their public share page first (no account needed, when it lists posts).
+            val shared = runCatching { shareUserPosts(secUid) }.getOrDefault(emptyList())
+            val fromPage = if (shared.size >= 3 || !allowPage) emptyList() else creatorPageGate.attempt {
                 runCatching { web.creatorPage(secUid) }.getOrDefault(emptyList()).flatMap { body ->
                     runCatching { items(json.parseToJsonElement(body)) }.getOrDefault(emptyList())
                 }
@@ -196,7 +198,7 @@ class DouyinAdapter @Inject constructor(
             // Douyin's related videos for their posts often include more of theirs.
             val viaRelated = if (!allowPage) emptyList() else runCatching { relatedPosts(known.take(3)) }.getOrDefault(emptyList())
                 .filter { it.extras["secUid"] == secUid }
-            val all = (fromPage + known + viaRelated).distinctBy { it.id }.sortedByDescending { it.publishedAt }
+            val all = (shared + fromPage + known + viaRelated).distinctBy { it.id }.sortedByDescending { it.publishedAt }
             if (all.isEmpty()) throw e
             Page(all, null)
         }
@@ -839,6 +841,32 @@ class DouyinAdapter @Inject constructor(
         DouyinParser.parse(item, PlayerPool.maxHeight)?.also { parsed ->
             parsed.extras["secUid"]?.let { sec -> parsed.creator?.let { remember(it, sec) } }
         }
+    }
+
+    /**
+     * A creator's posts from Douyin's public share page for them (what a shared profile link opens
+     * on a phone without the app): no account needed, if it lists them. Empty when it doesn't.
+     */
+    suspend fun shareUserPosts(secUid: String): List<MediaItem> = withContext(Dispatchers.IO) {
+        val req = Request.Builder()
+            .url("https://www.iesdouyin.com/share/user/$secUid")
+            .header("User-Agent", MOBILE_UA)
+            .header("Referer", "https://www.douyin.com/")
+            .build()
+        val html = runCatching { http.newCall(req).execute().use { if (it.isSuccessful) it.body?.string() else null } }.getOrNull()
+            ?: return@withContext emptyList()
+        val data = ROUTER_DATA.find(html)?.groupValues?.get(1) ?: return@withContext emptyList()
+        val root = runCatching { json.parseToJsonElement(data) }.getOrNull() ?: return@withContext emptyList()
+        val list = findItemList(root) ?: findAwemeList(root) ?: return@withContext emptyList()
+        list.mapNotNull { (it as? JsonObject)?.let { o -> DouyinParser.parse(o, PlayerPool.maxHeight) } }
+            .map { it.copy(extras = it.extras + ("secUid" to secUid)) }
+    }
+
+    private fun findAwemeList(e: JsonElement?): kotlinx.serialization.json.JsonArray? {
+        val o = e as? JsonObject ?: return null
+        (o["aweme_list"] as? kotlinx.serialization.json.JsonArray)?.let { return it }
+        for (v in o.values) findAwemeList(v)?.let { return it }
+        return null
     }
 
     private fun findItemList(e: JsonElement?): kotlinx.serialization.json.JsonArray? {
