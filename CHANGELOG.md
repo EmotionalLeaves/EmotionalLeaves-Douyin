@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.65 — 2026-11-21
+- Health: time a Douyin cover load through Coil; loop log.
+
 ## 1.7.64 — 2026-11-21
 - Douyin search: detached ways, first page at first results + 1.2 s grace (6 s cap), the rest as a 'late' page; SearchRepository streams each page.
 

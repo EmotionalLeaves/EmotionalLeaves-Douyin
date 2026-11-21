@@ -495,6 +495,16 @@ class SmokeTest {
         val t0 = System.currentTimeMillis()
         val checked = runCatching { runBlocking { rule.activity.sourceChecker.check(douyin) } }
         android.util.Log.i("PFHEALTH", "douyin check sources: ${System.currentTimeMillis() - t0} ms: " + checked.fold({ "${it.ok} ${it.detail}" }, { "error ${it.message}" }) + " | quick: ${rule.activity.sourceChecker.lastQuick}")
+        // Covers: do Douyin's thumbnails load, and how fast (search's cards looked blank in a screenshot).
+        val thumb = douyin.readyPosts(1).firstOrNull()?.thumbnailUrl
+        if (thumb != null) {
+            val i0 = System.currentTimeMillis()
+            val img = runBlocking {
+                coil.Coil.imageLoader(rule.activity).execute(coil.request.ImageRequest.Builder(rule.activity).data(thumb).build())
+            }
+            android.util.Log.i("PFHEALTH", "douyin cover: ${img.javaClass.simpleName} in ${System.currentTimeMillis() - i0} ms from ${android.net.Uri.parse(thumb).host}${android.net.Uri.parse(thumb).path?.takeLast(30)}" +
+                ((img as? coil.request.ErrorResult)?.throwable?.let { " (${it.javaClass.simpleName}: ${it.message?.take(120)})" } ?: ""))
+        } else android.util.Log.i("PFHEALTH", "douyin cover: no post in hand")
         val s0 = System.currentTimeMillis()
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - s0} ms")

@@ -1,3 +1,9 @@
+## 1.7.65 — 2026-11-21
+Cover check
+
+- Behind the scenes: health checks now test whether Douyin's cover pictures load, and how fast. Some search cards looked blank on the test phone.
+- Includes 1.7.64: search results in about 3.5 seconds on the test phone, down from 15–18.
+
 ## 1.7.64 — 2026-11-21
 Search results sooner
 
