@@ -233,6 +233,7 @@ fun VideoPage(
         val host = failedUrl?.let { android.net.Uri.parse(it).host }.orEmpty()
         val reason = "$why [$host, ${tried.size + 1} tried${item.extras[dev.dyfeed.source.douyin.DouyinParser.VIA]?.let { ", via $it" } ?: ""}]"
         tried = tried + listOfNotNull(failedUrl)
+        if (dev.dyfeed.player.StartTimes.firstVideoAt == 0L) dev.dyfeed.player.StartTimes.mark("before the first video: next address, $reason")
         if (tried.size > MAX_ADDRESS_TRIES || item.sourceId != dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) { error = code; vm.markBroken(item, reason) }
         else copyScope.launch {
             val other = vm.findElsewhere(item, failedUrl, tried)

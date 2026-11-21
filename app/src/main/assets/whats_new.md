@@ -1,3 +1,8 @@
+## 1.7.56 — 2026-11-21
+Tracing the first video
+
+- Behind the scenes: health checks now trace each network step of the first video. When you reopen the app, the posts appear at 2.4 s but the first video took until 10 s, and this shows where that time goes.
+
 ## 1.7.55 — 2026-11-21
 Leftovers first
 

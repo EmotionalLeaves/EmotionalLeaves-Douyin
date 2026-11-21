@@ -24,14 +24,19 @@ object MediaBytes : TransferListener {
     fun arrivedSince(url: String, since: Long): Boolean =
         (last[key(Uri.parse(url))] ?: 0L) >= since
 
-    override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {}
-    override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {}
+    override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+        if (isNetwork && StartTimes.firstVideoAt == 0L) StartTimes.mark("first video request sent to ${dataSpec.uri.host}")
+    }
+    override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+        if (isNetwork && StartTimes.firstVideoAt == 0L) StartTimes.mark("first video request answered by ${dataSpec.uri.host}")
+    }
     override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {}
 
     override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
         if (bytesTransferred <= 0) return
         if (last.size > MAX) last.clear()
         last[key(dataSpec.uri)] = SystemClock.elapsedRealtime()
+        if (StartTimes.firstVideoAt == 0L) StartTimes.mark("first video bytes from ${dataSpec.uri.host}")
     }
 
     private const val MAX = 500

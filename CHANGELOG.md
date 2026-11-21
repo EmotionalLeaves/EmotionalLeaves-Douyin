@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.56 — 2026-11-21
+- Timeline marks for the first video's requests, bytes and address switches.
+
 ## 1.7.55 — 2026-11-21
 - Break the first-load loop before waiting when a few candidates are in hand; first-video marks; search timings in the health test.
 
