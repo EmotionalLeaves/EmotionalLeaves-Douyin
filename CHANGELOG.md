@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.71 — 2026-11-21
+- Hold menu: Made with AI → not interested + item and creator blocked.
+
 ## 1.7.70 — 2026-11-21
 - General feed room = max(4, 12 - yours), best by base score; asked-for steers searched on the first load.
 

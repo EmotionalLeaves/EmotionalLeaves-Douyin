@@ -949,6 +949,18 @@ class FeedViewModel @Inject constructor(
         _undoables.tryEmit(text to { viewModelScope.launch { blocks.unblock(kind.name, stored) }; Unit })
     }
 
+    /** An AI post the filter missed: not interested, and its creator blocked (AI accounts post nothing else). */
+    fun reportAi(item: MediaItem) {
+        val creator = item.creator ?: return
+        statsFor(item.key).explicit = true
+        viewModelScope.launch {
+            signals.record(item, Signal(SignalType.NOT_INTERESTED))
+            blocks.block(BlockKind.ITEM, item.key)
+            blocks.block(BlockKind.CREATOR, creator)
+            undoable("Hidden: AI from " + (Display.creator(item)?.let { "@$it" } ?: "this creator"), BlockKind.CREATOR, creator)
+        }
+    }
+
     fun blockCreator(item: MediaItem) {
         val creator = item.creator ?: return
         viewModelScope.launch {

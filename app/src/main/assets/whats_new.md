@@ -1,3 +1,8 @@
+## 1.7.71 — 2026-11-21
+Report AI
+
+- "Made with AI · 是AI" in the hold menu: when an AI post slips past the filter, hold it and tap this. It hides the post and everything from that account (AI accounts rarely post anything else), and tells For You you're not interested.
+
 ## 1.7.70 — 2026-11-21
 Closer to you
 

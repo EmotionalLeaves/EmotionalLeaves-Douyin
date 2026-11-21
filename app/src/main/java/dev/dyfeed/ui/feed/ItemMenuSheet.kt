@@ -413,6 +413,8 @@ fun ItemMenuSheet(
                 MenuRow("Save this moment", Icons.Filled.BookmarkAdd, "Marks where you are (a line worth hearing again): it shows on the scrub bar, and Saved → Moments plays it from there") { MomentGrab.request.value = item.key; onDismiss() }
             }
             MenuRow("Not interested", Icons.Filled.ThumbDown, "Show fewer posts like this") { vm.notInterested(item); onDismiss() }
+            // The AI filter missed one: one tap hides it, everything from whoever posts it, and moves on.
+            if (creator != null) MenuRow("Made with AI · 是AI", Icons.Filled.Block, "Hide it and everything from @$creator") { vm.reportAi(item); onDismiss() }
             if (tags.isNotEmpty()) MenuRow("Hide a tag…", Icons.Filled.Block, "Never show posts with that tag") { pickTag = "block" }
             if (creator != null) {
                 MenuRow("Block @$creator", Icons.Filled.PersonOff, "Never show their posts") { vm.blockCreator(item); onDismiss() }
