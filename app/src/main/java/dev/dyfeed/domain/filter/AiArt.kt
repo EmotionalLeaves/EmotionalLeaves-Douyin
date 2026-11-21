@@ -50,7 +50,7 @@ object AiArt {
         if (item.title?.let { CHINESE.containsMatchIn(it) } == true) return true
         // Douyin posts: "AI" on its own in the caption, a tag or the creator's name. (Hidden by
         // default and wanted gone altogether: a post merely about AI goes too, which is the trade.)
-        if (item.sourceId == "douyin") {
+        if (item.sourceId in CHINESE_SOURCES) {
             val text = listOfNotNull(item.title, item.creator) + item.tags
             if (text.any { LONE_AI.containsMatchIn(it) || CHINESE.containsMatchIn(it) }) return true
         }
@@ -64,6 +64,9 @@ object AiArt {
 
     /** Extra key set by the Douyin parser when a post carries Douyin's AI-made label. */
     const val AI_LABEL = "ai"
+
+    /** The Chinese platforms, whose posts get the stricter Chinese checks. */
+    private val CHINESE_SOURCES = setOf("douyin", "bilibili", "kuaishou")
 
     private fun normalize(tag: String) = tag.trim().removePrefix("#").lowercase().replace(' ', '_')
 }

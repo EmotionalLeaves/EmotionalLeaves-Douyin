@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.77 — 2026-11-21
+- BilibiliAdapter: visitor buvid, WBI signing (tested against the probe's reference), rcmd + popular feed, video search, html5 progressive playurl; Sources/Display/AI/pool caps; health test bilibiliWorks; probe workflow.
+
 ## 1.7.76 — 2026-11-21
 - AI filter: 漫剧/动态漫/小说推文/推文/漫画解说; remove the share/user route (0 posts, API empty); health: AI share of posts in hand.
 

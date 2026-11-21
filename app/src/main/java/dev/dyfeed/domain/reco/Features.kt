@@ -104,7 +104,7 @@ object Features {
     /** "douyin" → "抖音"; anything else as it is. */
     private fun prettyOrigin(o: String): String = KNOWN_ORIGINS[o.lowercase()] ?: o
 
-    private val KNOWN_ORIGINS = mapOf("douyin" to "抖音", "local" to "this phone")
+    private val KNOWN_ORIGINS = mapOf("douyin" to "抖音", "bilibili" to "B站", "kuaishou" to "快手", "local" to "this phone")
 
     fun label(feature: String): String = when {
         feature.startsWith("w:") -> "“${feature.removePrefix("w:")}” in titles"

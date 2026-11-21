@@ -68,6 +68,8 @@ object Display {
     fun source(item: MediaItem, fallback: String): String {
         return when (item.sourceId) {
             "douyin" -> "抖音"
+            "bilibili" -> "B站"
+            "kuaishou" -> "快手"
             else -> fallback
         }
     }

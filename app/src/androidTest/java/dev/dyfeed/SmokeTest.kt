@@ -690,6 +690,25 @@ class SmokeTest {
         }
     }
 
+    /** Bilibili, as a visitor from here: feed, search, a file that plays. */
+    @Test
+    fun bilibiliWorks() {
+        val b = rule.activity.sourceRegistry.byId("bilibili") ?: return android.util.Log.i("PFHEALTH", "bilibili: not registered").let { }
+        val t0 = System.currentTimeMillis()
+        val feed = runCatching { runBlocking { b.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU, null, emptySet(), emptySet())) } }
+        val t1 = System.currentTimeMillis()
+        val found = runCatching { runBlocking { b.search("美食", null) } }
+        val t2 = System.currentTimeMillis()
+        val first = feed.getOrNull()?.items?.firstOrNull()
+        val stream = first?.let { runCatching { runBlocking { b.resolveStream(it) } } }
+        val url = (stream?.getOrNull() as? dev.dyfeed.domain.model.StreamInfo.Direct)?.url
+        val plays = url?.let { runBlocking { rule.activity.httpJson.reachable(it) } }
+        android.util.Log.i("PFHEALTH", "bilibili: feed " + feed.fold({ "${it.items.size} posts" }, { "error ${it.message}" }) + " in ${t1 - t0} ms; search " +
+            found.fold({ "${it.items.size} posts" }, { "error ${it.message}" }) + " in ${t2 - t1} ms; file " + (stream?.fold({ if (plays == true) "plays from ${android.net.Uri.parse(url).host}" else "didn't load" }, { "error ${it.message}" }) ?: "no post") +
+            "; e.g. " + feed.getOrNull()?.items?.take(3)?.joinToString(" | ") { it.title.orEmpty().take(20) })
+        assertTrue("Bilibili feed: ${feed.exceptionOrNull()?.message}", feed.getOrNull()?.items?.isNotEmpty() == true)
+    }
+
     /** "More like this": a feed around one post finds posts that share its tags. */
     @Test
     fun moreLikeThis() {

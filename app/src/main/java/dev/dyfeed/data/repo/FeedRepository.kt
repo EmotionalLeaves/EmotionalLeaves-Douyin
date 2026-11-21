@@ -625,7 +625,7 @@ class FeedSession(
          * per-source cap the pool could never fill (the ranker saw 20 posts at most and the feed kept
          * fetching for a target it couldn't reach). Each creator is still held to [PER_ORIGIN_POOL_CAP].
          */
-        private val SOURCE_POOL_CAPS = mapOf("douyin" to POOL_MAX)
+        private val SOURCE_POOL_CAPS = mapOf("douyin" to POOL_MAX, "bilibili" to 60, "kuaishou" to 60)
         /** Most candidates one subreddit / board site / server may hold at once. */
         private const val PER_ORIGIN_POOL_CAP = 10
         /** Most images taken from one multi-image post per session. */

@@ -105,10 +105,11 @@ import dev.dyfeed.ui.theme.Warn
 private val USER_FILLED = listOf("direct", "local")
 
 /** Display order: the big built-in sources first, in roughly the order people use them. */
-private val ORDER = listOf("douyin") + USER_FILLED
+private val ORDER = listOf("douyin", "bilibili", "kuaishou") + USER_FILLED
 
 private fun iconFor(id: String): ImageVector = when (id) {
     "douyin" -> Icons.Filled.Videocam
+    "bilibili", "kuaishou" -> Icons.Filled.Videocam
     "direct" -> Icons.Filled.Link
     "local" -> Icons.Filled.Folder
     else -> Icons.Filled.Widgets
@@ -515,6 +516,8 @@ internal fun feedCount(id: String, s: AppSettings): Int? = when (id) {
 /** One line about what a source is pulling from. */
 internal fun feedSummary(id: String, s: AppSettings): String? = when (id) {
     "douyin" -> "Recommended feed, search, creators"
+    "bilibili" -> "Recommended, popular and search; no account needed"
+    "kuaishou" -> "Featured feed; no account needed"
     "direct" -> if (s.directUrls.isEmpty()) "Paste a video or image link" else "${s.directUrls.size} links"
     "local" -> if (s.localFolders.isEmpty()) "Pick a folder on this phone" else "${s.localFolders.size} folders"
     else -> null

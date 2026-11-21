@@ -1,3 +1,11 @@
+## 1.7.77 — 2026-11-21
+Bilibili
+
+- New: Bilibili (哔哩哔哩, B站), no account needed. Its recommended videos and what's popular now join For You alongside Douyin, its search joins yours, and its videos play in the feed at up to 720p. Bilibili is where the longer videos are: food, travel, games, science, explainers.
+  - Everything else works on these too: AI filtered out, captions translated, a word to learn under each caption, topics, likes and saves.
+  - Turn it off in Me → Sources if you only want Douyin.
+- Checked from a US server: feed, search, rankings and video files all answer without an account.
+
 ## 1.7.76 — 2026-11-21
 No AI dramas
 

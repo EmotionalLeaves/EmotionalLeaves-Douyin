@@ -18,6 +18,9 @@ abstract class SourceModule {
     abstract fun douyin(adapter: DouyinAdapter): SourceAdapter
 
     @Binds @IntoSet
+    abstract fun bilibili(adapter: dev.dyfeed.source.bilibili.BilibiliAdapter): SourceAdapter
+
+    @Binds @IntoSet
     abstract fun local(adapter: LocalFilesAdapter): SourceAdapter
 
     @Binds @IntoSet
