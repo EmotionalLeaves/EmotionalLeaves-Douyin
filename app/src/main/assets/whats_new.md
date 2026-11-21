@@ -1,3 +1,11 @@
+## 1.7.47 — 2026-11-20
+Real AI labels, fewer skipped videos
+
+- Fixes a bug in the unreleased AI filter. A Douyin field on every post ("you can film an AI follow-along of this") was read as "made with AI", so the filter could hide almost everything. It now reads only Douyin's real AI labels.
+- Videos no longer get skipped on slow connections. The app used to give up on a video server after 3.5 seconds with an empty buffer, even while data was arriving. It now checks whether any bytes came in.
+- Clearer caption buttons: "Hide English" instead of "Show original" (the Chinese was showing anyway), with bigger tap areas for it and for 词 Words.
+- Includes 1.7.45–1.7.46: faster first posts and pulls, and a word to learn while the feed loads.
+
 ## 1.7.46 — 2026-11-20
 Faster pulls
 

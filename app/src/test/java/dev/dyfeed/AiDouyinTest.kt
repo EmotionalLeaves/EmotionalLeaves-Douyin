@@ -31,4 +31,13 @@ class AiDouyinTest {
         assertTrue(DouyinParser.aiLabelled(labelled))
         assertFalse(DouyinParser.aiLabelled(plain))
     }
+
+    @Test
+    fun `other aigc-named fields on every post don't count as an ai label`() {
+        // As on the test phone: every post carries these, none made with AI.
+        val ordinary = Json.parseToJsonElement("""{"aweme_id":"3","is_aigc_media":false,"item_aigc_follow_shot":1,"aigc_chat_follow_shoot_property":null,"aigc_follow_shot_left_top_label":null}""") as JsonObject
+        assertFalse(DouyinParser.aiLabelled(ordinary))
+        val flagged = Json.parseToJsonElement("""{"aweme_id":"4","is_aigc_media":true,"item_aigc_follow_shot":1}""") as JsonObject
+        assertTrue(DouyinParser.aiLabelled(flagged))
+    }
 }

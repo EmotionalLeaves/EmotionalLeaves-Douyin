@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.47 — 2026-11-20
+- AI label only from is_aigc_media/aigc_info flags (item_aigc_follow_shot=1 everywhere hid all); silent-server check uses real transferred bytes; Hide English toggle with larger targets.
+
 ## 1.7.46 — 2026-11-20
 - Fresh-page wait only until the page's first answer; 6 s follow-up wait for its second; timeline marks for the page's first answers.
 

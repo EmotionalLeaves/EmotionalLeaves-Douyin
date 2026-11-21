@@ -1835,11 +1835,13 @@ private fun Overlay(
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                         Text(
-                            if (showing) "Show original" else "See translation",
+                            // (The Chinese stays above either way, so this hides the English, not "shows the original".)
+                            if (showing) "Hide English" else "See translation",
                             color = Color.White.copy(alpha = 0.75f),
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.labelMedium.shadowed(),
-                            modifier = Modifier.clickable { showing = !showing }, // the effect above fetches it
+                            // A bigger place to tap than the words themselves.
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { showing = !showing }.padding(vertical = 6.dp), // the effect above fetches it
                         )
                         // Learn: the caption taken apart, word by word, with pinyin and a voice.
                         Text(
@@ -1847,7 +1849,7 @@ private fun Overlay(
                             color = Color(0xFFFFD58A),
                             fontWeight = FontWeight.SemiBold,
                             style = MaterialTheme.typography.labelMedium.shadowed(),
-                            modifier = Modifier.clickable { dev.dyfeed.ui.learn.LearnWords.request.value = it },
+                            modifier = Modifier.clip(RoundedCornerShape(6.dp)).clickable { dev.dyfeed.ui.learn.LearnWords.request.value = it }.padding(vertical = 6.dp),
                         )
                         // How hard the caption is for a learner: the share of beginner (HSK 1–3) words.
                         val share = remember(it, dev.dyfeed.domain.learn.Dict.ready, dev.dyfeed.domain.learn.Hsk.ready) {

@@ -319,7 +319,11 @@ fun VideoPage(
             // A server that has sent nothing at all by now won't: try the next mirror straight away.
             kotlinx.coroutines.delay(SILENT_TIMEOUT_MS)
             val p = player
-            val nothing = p != null && p.currentMediaItem?.mediaId == item.key && p.bufferedPosition <= 0L && p.totalBufferedDuration <= 0L
+            // Nothing arrived at all (asked of the network itself: a slow phone's buffer can be
+            // empty while bytes are coming in, and that isn't a dead server).
+            val url = (stream as? StreamInfo.Direct)?.url
+            val heard = url != null && dev.dyfeed.player.MediaBytes.arrivedSince(url, askedAt.takeIf { it > 0 } ?: (android.os.SystemClock.elapsedRealtime() - SILENT_TIMEOUT_MS))
+            val nothing = p != null && p.currentMediaItem?.mediaId == item.key && p.bufferedPosition <= 0L && p.totalBufferedDuration <= 0L && !heard
             if (!firstFrame && nothing && item.sourceId == dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) {
                 nextAddress.value("SILENT", "nothing from the server after ${SILENT_TIMEOUT_MS / 1000.0}s")
                 return@LaunchedEffect

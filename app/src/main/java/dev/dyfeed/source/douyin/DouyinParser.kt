@@ -255,22 +255,24 @@ object DouyinParser {
     }
 
     /**
-     * Whether Douyin marks the post as made with AI: an `aigc_info` (or similar) object saying so
-     * (created_by_ai, a non-zero AIGC label type), or a top-level is_ai / aigc flag.
+     * Whether Douyin marks the post as made with AI: `is_aigc_media`, an `aigc_info` object saying
+     * so (created_by_ai, a non-zero AIGC label type), or a top-level is_ai / created_by_ai flag.
+     * Only those exact keys: Douyin has others with "aigc" in the name that mean something else
+     * (`item_aigc_follow_shot` is 1 on every post: "you can film an AI follow-along of this"),
+     * and matching on the name alone hid every post as AI in 1.7.41–1.7.46.
      */
     internal fun aiLabelled(a: JsonObject): Boolean {
         fun truthy(e: JsonElement?): Boolean = when (e) {
             is JsonPrimitive -> e.contentOrNull?.let { it == "true" || (it.toIntOrNull() ?: 0) > 0 } == true
             else -> false
         }
-        for ((k, v) in a) {
-            val key = k.lowercase()
-            if (!(key.contains("aigc") || key == "is_ai" || key == "created_by_ai")) continue
-            if (truthy(v)) return true
-            if (v is JsonObject && v.entries.any { (ik, iv) -> val n = ik.lowercase(); (n.contains("created_by_ai") || n.contains("label_type") || n == "is_aigc" || n == "aigc_type") && truthy(iv) }) return true
-        }
-        return false
+        if (AI_FLAGS.any { truthy(a[it]) }) return true
+        val info = a["aigc_info"] as? JsonObject ?: return false
+        return AI_INFO_FLAGS.any { truthy(info[it]) }
     }
+
+    private val AI_FLAGS = listOf("is_aigc_media", "is_ai", "created_by_ai", "is_aigc", "aigc_label_type")
+    private val AI_INFO_FLAGS = listOf("created_by_ai", "aigc_label_type", "is_aigc", "aigc_type", "label_type")
 
     /** Extra key: which Douyin answer a post came from, when it's worth telling apart (e.g. "related"). */
     const val VIA = "via"

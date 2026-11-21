@@ -57,7 +57,7 @@ class MediaCache @Inject constructor(
 
     /** Writes into [offline] (used to download a saved post's stream). */
     val offlineWriteFactory: CacheDataSource.Factory by lazy {
-        CacheDataSource.Factory().setCache(offline).setUpstreamDataSourceFactory(OkHttpDataSource.Factory(media))
+        CacheDataSource.Factory().setCache(offline).setUpstreamDataSourceFactory(OkHttpDataSource.Factory(media).setTransferListener(MediaBytes))
     }
 
     /**
@@ -68,7 +68,7 @@ class MediaCache @Inject constructor(
     val streamingFactory: CacheDataSource.Factory by lazy {
         CacheDataSource.Factory()
             .setCache(cache)
-            .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(media))
+            .setUpstreamDataSourceFactory(OkHttpDataSource.Factory(media).setTransferListener(MediaBytes))
             .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
     }
 
