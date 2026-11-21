@@ -223,6 +223,9 @@ class DouyinWeb @Inject constructor(
         return try { job.await() } finally { if (harvestInFlight === job) harvestInFlight = null }
     }
 
+    /** Requests by host the page made before its first feed answer (for the start-up timeline). */
+    private val hostsBeforeFirst = java.util.concurrent.ConcurrentHashMap<String, Int>()
+
     /** Feed answers the current page has brought, and when the last came. */
     @Volatile private var answersThisPage = 0
     @Volatile private var lastAnswerAt = 0L
@@ -430,6 +433,7 @@ class DouyinWeb @Inject constructor(
                 val u = request.url
                 val host = u.host.orEmpty()
                 val path = u.path.orEmpty()
+                if (!bridge.search && answersThisPage == 0) hostsBeforeFirst.merge(host + if (path.endsWith(".js")) " js" else if (path.endsWith(".css")) " css" else "", 1, Int::plus)
                 val heavy = MEDIA_HOSTS.any { host.contains(it) } ||
                     MEDIA_EXT.any { path.endsWith(it, ignoreCase = true) } ||
                     request.requestHeaders["Accept"]?.startsWith("image/") == true
@@ -469,6 +473,11 @@ class DouyinWeb @Inject constructor(
                 capturedSignal.complete(Unit)
                 dev.dyfeed.player.StartTimes.mark("first feed answer captured")
                 if (answersThisPage <= 2) dev.dyfeed.player.StartTimes.mark("page answer $answersThisPage: ${android.net.Uri.parse(url).path} ${body.length / 1024} KB")
+                if (answersThisPage == 1 && hostsBeforeFirst.isNotEmpty()) {
+                    // What the page fetched before its first batch: what could be skipped to get there sooner.
+                    dev.dyfeed.player.StartTimes.mark("page fetched before its first batch: " + hostsBeforeFirst.entries.sortedByDescending { it.value }.take(14).joinToString { "${it.key}×${it.value}" })
+                    hostsBeforeFirst.clear()
+                }
             }
         }
     }

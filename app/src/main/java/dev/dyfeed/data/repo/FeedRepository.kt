@@ -220,6 +220,9 @@ class FeedSession(
             awaitSome(budget, needAny = candidates.isEmpty())
             errors += collect(follows, tag, mode)
             if (candidates.size >= BATCH && inFlight.isNotEmpty()) break
+            // Nothing on screen yet: a few posts now beat a full batch seconds later (the test
+            // phone had 10 at +12.3 s and waited for the 12th until +15 s). The rest follow behind.
+            if (shown.isEmpty() && candidates.size >= FIRST_SCREEN_MIN) break
         }
 
         // A batch may fall back to running one origin only when variety genuinely isn't available:
@@ -571,6 +574,8 @@ class FeedSession(
         private const val LONG_VIDEO_SEC = 180
         /** Items handed to the screen per call; small so ranking reacts quickly to new signals. */
         const val BATCH = 12
+        /** The very first screen goes out with this many, rather than wait for a full [BATCH]. */
+        private const val FIRST_SCREEN_MIN = 4
         /**
          * Candidates to keep on hand. Enough that ranking has real choice (~4 batches), but small so
          * the newest signals reshape the next batch quickly — a big backlog means the ranker keeps

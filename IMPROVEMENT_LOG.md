@@ -124,3 +124,9 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   quick path (posts in hand + mirrors + one trending call, parallel): 2 min → 2.4 s measured; For You
   60 posts 31 s → 21 s. Monkey found DouyinLoginActivity never declared in the manifest (Verify I'm
   human crashed) — fixed, registration checked each run. Daily goal, tone trainer.
+
+## Rounds 206–215 (1.7.41–1.7.48): the two-minute start
+- Timeline marks (`timeline +Nms …`) in PFHEALTH, from app start: page opening/started/finished, each page answer, harvest calls, first batch, first video.
+- Found: concurrent harvests reloading each other's page; a harvest before the page existed "reloading" it; the fresh-page wait applied after the first batch had come (40 s stalls); the first answer often had nothing playable; an `item_aigc_follow_shot=1` field on every post read as an AI label (filter hid nearly everything); the silent-server check firing on slow but working downloads.
+- Tried and dropped: related-videos-of-history as the first screen (1.7.43): their addresses sent no bytes from any mirror on the emulator.
+- Result: cold install → first video at +16.4 s on the emulator (was 89–535 s); 0 silent-server skips; For You 64 posts in 44 s, Latest 60 in 71 s.

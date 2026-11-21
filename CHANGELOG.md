@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.48 — 2026-11-20
+- First screen goes out at 4 candidates; log hosts fetched before the page's first answer; loop log.
+
 ## 1.7.47 — 2026-11-20
 - AI label only from is_aigc_media/aigc_info flags (item_aigc_follow_shot=1 everywhere hid all); silent-server check uses real transferred bytes; Hide English toggle with larger targets.
 

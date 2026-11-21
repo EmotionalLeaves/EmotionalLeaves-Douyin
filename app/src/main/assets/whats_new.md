@@ -1,3 +1,9 @@
+## 1.7.48 — 2026-11-20
+First screen sooner
+
+- The first screen shows up as soon as a few posts are in, instead of waiting for a full batch of twelve. That's about 3 seconds sooner on the test phone. The rest load in behind it.
+- Health checks now record what Douyin's page downloads before its first batch, to find what can be skipped next.
+
 ## 1.7.47 — 2026-11-20
 Real AI labels, fewer skipped videos
 
