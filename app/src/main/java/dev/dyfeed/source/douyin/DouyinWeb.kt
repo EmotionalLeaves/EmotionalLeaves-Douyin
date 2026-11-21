@@ -226,6 +226,38 @@ class DouyinWeb @Inject constructor(
     /** Requests by host the page made before its first feed answer (for the start-up timeline). */
     private val hostsBeforeFirst = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
+    /**
+     * The app's window, while it's on screen. The feed page sits in it, behind everything, 2 px
+     * and invisible: a web view in no window counts as a hidden tab, whose timers the browser
+     * slows to once a second, and Douyin's page runs on timers (6.6 s from loaded to its first
+     * batch was measured that way). Main thread only.
+     */
+    private var host: java.lang.ref.WeakReference<android.view.ViewGroup>? = null
+
+    fun host(group: android.view.ViewGroup?) {
+        host = group?.let { java.lang.ref.WeakReference(it) }
+        web?.let(::placeInHost)
+    }
+
+    private fun placeInHost(w: WebView) {
+        val g = host?.get()
+        val parent = w.parent as? android.view.ViewGroup
+        if (parent === g) return
+        parent?.removeView(w)
+        if (g == null) return
+        w.alpha = 0.01f
+        w.isFocusable = false
+        w.isFocusableInTouchMode = false
+        w.importantForAccessibility = android.view.View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS
+        g.addView(w, 0, android.widget.FrameLayout.LayoutParams(2, 2))
+    }
+
+    /** Never takes a touch or a key, even if one lands on its 2 px. */
+    private class HiddenWebView(context: Context) : WebView(context) {
+        override fun dispatchTouchEvent(event: android.view.MotionEvent?): Boolean = false
+        override fun onCheckIsTextEditor(): Boolean = false
+    }
+
     /** Feed answers the current page has brought, and when the last came. */
     @Volatile private var answersThisPage = 0
     @Volatile private var lastAnswerAt = 0L
@@ -332,6 +364,7 @@ class DouyinWeb @Inject constructor(
      */
     suspend fun reload(destroy: Boolean = false) = loadMutex.withLock {
         if (destroy) withContext(Dispatchers.Main) {
+            web?.let { (it.parent as? android.view.ViewGroup)?.removeView(it) }
             web?.destroy()
             web = null
         }
@@ -371,7 +404,8 @@ class DouyinWeb @Inject constructor(
         done.invokeOnCompletion { dev.dyfeed.player.StartTimes.mark("douyin page ready") }
         mainReady = done
         // The same web view when there is one: only the page inside starts over.
-        val w = web ?: WebView(context).also { configure(it, Bridge(search = false), onReady = { mainReady }); web = it }
+        val w = web ?: HiddenWebView(context).also { configure(it, Bridge(search = false), onReady = { mainReady }); web = it }
+        placeInHost(w)
         w.onResume()
         // Alternate between the home feed and 精选 (featured): each loads its own batch, so taking
         // turns brings more posts, and more varied ones, per fresh page.

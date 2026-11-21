@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.51 — 2026-11-21
+- Host the feed WebView in the activity window (2 px, alpha 0.01, behind content, touch-proof) so Chromium doesn't treat it as a hidden tab.
+
 ## 1.7.50 — 2026-11-20
 - Page readiness check ran via view.postDelayed on a never-attached WebView (never ran): use the main looper; no onPause.
 

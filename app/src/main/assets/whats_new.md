@@ -1,3 +1,9 @@
+## 1.7.51 — 2026-11-21
+A page that isn't throttled
+
+- Douyin's hidden page now sits inside the app's window while you're using it: 2 pixels, invisible, behind everything, and it never takes a tap. A page in no window counts as a background tab, so the browser slows its timers right down. On the test phone the page finished loading at 2.7 s, but its first batch only came at 13.8 s.
+- Includes 1.7.50: no more 14-second waits before searches, comments and creator pages. For You and Latest now load their first 60 posts in 27 s and 16 s on the test phone (they took 38 s and 73 s).
+
 ## 1.7.50 — 2026-11-20
 No more 14-second waits
 
