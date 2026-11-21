@@ -179,7 +179,18 @@ class FeedSession(
         val forYouMain = spec is FeedSpec.Main && mode == FeedMode.FOR_YOU
         // Very first load of the main feed: start from what last session fetched but never showed,
         // so there's a first screen right away while fresh fetches (launched below) catch up.
-        if (loads == 1 && forYouMain) seed += poolCache.take()
+        if (loads == 1 && forYouMain) {
+            seed += poolCache.take()
+            // Few left over from last time: top up with posts Douyin sent earlier that you never
+            // saw and whose videos still load (it keeps thousands), so the first minute doesn't
+            // wait on its page (~15 s to load) once the leftovers run out.
+            if (PoolCache.enabled && seed.size < LEFTOVER_TOP_UP) {
+                val douyin = registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter
+                val have = seed.mapTo(HashSet()) { it.key }
+                seed += runCatching { douyin?.readyPosts(LEFTOVER_TOP_UP * 3).orEmpty() }.getOrDefault(emptyList())
+                    .filter { it.key !in have && !seen.isSeen(it.key) }.take(LEFTOVER_TOP_UP - seed.size)
+            }
+        }
 
         // For You: what Douyin showed beside videos you just enjoyed joins the pool first.
         if (forYouMain) seed += dev.dyfeed.domain.reco.Related.drain()
@@ -577,6 +588,8 @@ class FeedSession(
         private const val LONG_VIDEO_SEC = 180
         /** Items handed to the screen per call; small so ranking reacts quickly to new signals. */
         const val BATCH = 12
+        /** At launch, posts in hand (leftovers, then unseen earlier ones) topped up to this many. */
+        private const val LEFTOVER_TOP_UP = 24
         /** The very first screen goes out with this many, rather than wait for a full [BATCH]. */
         private const val FIRST_SCREEN_MIN = 4
         /**

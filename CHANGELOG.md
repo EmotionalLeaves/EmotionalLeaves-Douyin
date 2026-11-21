@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.57 — 2026-11-21
+- Top up the launch pool to 24 with unseen, unexpired posts from the Douyin index.
+
 ## 1.7.56 — 2026-11-21
 - Timeline marks for the first video's requests, bytes and address switches.
 

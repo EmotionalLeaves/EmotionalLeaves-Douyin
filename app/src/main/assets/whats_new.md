@@ -1,3 +1,9 @@
+## 1.7.57 — 2026-11-21
+More ready at launch
+
+- Opening the app again: the first video plays at about 3.5 seconds on the test phone (posts appear at 1.3 s).
+- More to watch straight away: if few posts were left over from last time, the app adds others Douyin sent earlier that you haven't seen and whose videos still load. You get about 24 posts right away, which covers the time Douyin's page takes to load (around 15 s).
+
 ## 1.7.56 — 2026-11-21
 Tracing the first video
 
