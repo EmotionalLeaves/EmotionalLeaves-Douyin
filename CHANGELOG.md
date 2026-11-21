@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.63 — 2026-11-21
+- Race mirrors for every Douyin video (v3-web-prime 403s minutes-old addresses).
+
 ## 1.7.62 — 2026-11-21
 - Race the mirrors of addresses older than 20 min (1-byte range GETs, 2.5 s cap) in resolveStream.
 

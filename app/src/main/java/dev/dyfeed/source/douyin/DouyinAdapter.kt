@@ -453,10 +453,10 @@ class DouyinAdapter @Inject constructor(
         val stillGood = cached != null && (DouyinParser.expiresAt(cached)?.let { it - System.currentTimeMillis() > 60_000 }
             ?: (System.currentTimeMillis() - at < URL_TTL_MS))
         val media = if (stillGood) cached else null
-        // An address fetched a while ago (last session's leftovers): some of its mirror servers
-        // have often stopped taking it by now (the test phone's first video waited 3.8 s for a 403
-        // before trying the next). Ask them all for one byte at once and play from the first to answer.
-        if (media != null && item.type == MediaType.VIDEO && System.currentTimeMillis() - at > RACE_AFTER_MS) {
+        // Some of a video's mirror servers turn the address away (the test phone's first video waited
+        // 3.8 s for a 403 from one, with addresses only minutes old). Ask them all for one byte at
+        // once and play from the first to answer; the connection it opened is then reused to play.
+        if (media != null && item.type == MediaType.VIDEO) {
             val mirrors = (listOf(media) + item.extras[DouyinParser.ALTERNATES].orEmpty().split(' ').filter { it.isNotBlank() }).distinct().take(MAX_RACE)
             if (mirrors.size > 1) firstAnswering(mirrors, RACE_MS)?.let { return StreamInfo.Direct(it, "video/mp4") }
         }
@@ -786,8 +786,6 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
-        /** Addresses older than this get their mirrors raced before playing (see resolveStream). */
-        private const val RACE_AFTER_MS = 20 * 60_000L
         private const val RACE_MS = 2_500L
         private const val MAX_RACE = 4
         /** Page answers taken per pull when the first had nothing playable (see fromPage). */

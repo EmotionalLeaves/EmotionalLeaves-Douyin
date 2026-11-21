@@ -1,3 +1,8 @@
+## 1.7.63 — 2026-11-21
+Every video from the fastest mirror
+
+- Every Douyin video now starts from whichever of its mirror servers answers first. In 1.7.62 this only covered posts fetched over 20 minutes earlier. The test phone showed a server refusing addresses only minutes old, so it now applies to every video. The quick check also opens the connection the video then plays over, so it costs almost nothing.
+
 ## 1.7.62 — 2026-11-21
 Fastest mirror first
 
