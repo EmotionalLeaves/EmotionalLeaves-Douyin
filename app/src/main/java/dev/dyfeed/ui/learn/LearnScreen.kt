@@ -174,7 +174,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 if (frequent.isNotEmpty()) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.weight(1f)) { Section("Words you keep hearing · 常见词") }
+                            Box(Modifier.weight(1f)) { Section("Often heard · 常见词") }
                             androidx.compose.material3.TextButton(
                                 onClick = { frequent.forEach { (t, _) -> WordBook.add(t.entries.first(), example = captions.firstOrNull { t.text in it }) } },
                                 modifier = Modifier.padding(end = 8.dp),

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.59 — 2026-11-21
+- Shorter Douyin card subtitle and Learn section title.
+
 ## 1.7.58 — 2026-11-21
 - Record status/size/head of replayed feed requests in the timeline.
 

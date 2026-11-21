@@ -1,3 +1,8 @@
+## 1.7.59 — 2026-11-21
+Tidier text
+
+- Tidier text: the Douyin card in Me now just says "No account needed" (the old line was cut off), and Learn's "Often heard · 常见词" heading fits on one line.
+
 ## 1.7.58 — 2026-11-21
 Replay answers
 
