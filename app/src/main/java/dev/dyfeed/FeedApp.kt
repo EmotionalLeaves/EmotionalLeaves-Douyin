@@ -95,9 +95,11 @@ class FeedApp : Application(), Configuration.Provider, ImageLoaderFactory {
                 kotlinx.coroutines.MainScope().launch { runCatching { douyinWeb.warmUp() } }
             }
             override fun onStop(owner: androidx.lifecycle.LifecycleOwner) {
-                // Away for a minute: close the hidden Douyin pages (their scripts cost battery).
+                // Away for a while: close the hidden Douyin pages. Not sooner: their timers are
+                // already paused when idle (no battery cost), and a page closed after a quick look
+                // at another app takes ~14 s to be ready again (its signer sets itself up slowly).
                 douyinSleep = kotlinx.coroutines.MainScope().launch {
-                    kotlinx.coroutines.delay(60_000)
+                    kotlinx.coroutines.delay(5 * 60_000L)
                     runCatching { douyinWeb.sleep() }
                 }
                 tasteEngine.flush()

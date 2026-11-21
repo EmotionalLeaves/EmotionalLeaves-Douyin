@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.66 — 2026-11-21
+- Close the hidden pages 5 min (was 1) after the app leaves the screen.
+
 ## 1.7.65 — 2026-11-21
 - Health: time a Douyin cover load through Coil; loop log.
 

@@ -1,3 +1,8 @@
+## 1.7.66 — 2026-11-21
+Back quicker
+
+- Quicker back from another app. Douyin's hidden page now stays open for 5 minutes after you leave the app, instead of 1. It's paused while idle, so it costs no battery. Before, a quick look at another app meant reopening the page, which takes about 14 seconds to be ready.
+
 ## 1.7.65 — 2026-11-21
 Cover check
 
