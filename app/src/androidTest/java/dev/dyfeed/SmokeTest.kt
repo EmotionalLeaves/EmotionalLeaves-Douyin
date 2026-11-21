@@ -523,6 +523,7 @@ class SmokeTest {
             android.util.Log.i("PFHEALTH", "douyin share user page: " + shared.fold({ "${it.size} posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - u0} ms")
             if (shared.getOrNull().isNullOrEmpty()) android.util.Log.i("PFHEALTH", "douyin share user trace: " + runBlocking { douyin.shareUserTrace(sec) })
         }
+        android.util.Log.i("PFHEALTH", "douyin feed page calls: " + douyin.pageCalls().joinToString("; ").take(1500))
         val g0 = System.currentTimeMillis()
         val sug = runCatching { runBlocking { douyin.suggest("火锅") } }
         android.util.Log.i("PFHEALTH", "douyin suggestions '火锅': " + sug.fold({ it.take(6).joinToString(" / ").ifEmpty { "none" } }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - g0} ms")

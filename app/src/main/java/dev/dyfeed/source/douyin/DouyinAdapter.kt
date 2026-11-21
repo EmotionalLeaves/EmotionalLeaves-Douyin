@@ -862,6 +862,9 @@ class DouyinAdapter @Inject constructor(
             .map { it.copy(extras = it.extras + ("secUid" to secUid)) }
     }
 
+    /** The addresses Douyin's own feed page has called (health check). */
+    fun pageCalls(): List<String> = web.pageCalls()
+
     /** What the share page for a creator holds (for the health check): size, its data's keys. */
     suspend fun shareUserTrace(secUid: String): String = withContext(Dispatchers.IO) {
         val req = Request.Builder().url("https://www.iesdouyin.com/share/user/$secUid").header("User-Agent", MOBILE_UA).header("Referer", "https://www.douyin.com/").build()
@@ -872,6 +875,11 @@ class DouyinAdapter @Inject constructor(
                 val keys = data?.let { d -> runCatching { (json.parseToJsonElement(d) as? JsonObject)?.let { o -> o.keys.take(6) + ((o["loaderData"] as? JsonObject)?.let { l -> l.entries.map { (k, v) -> "$k:" + ((v as? JsonObject)?.keys?.take(8)?.joinToString("|") ?: "-") } } ?: emptyList()) } }.getOrNull() }
                 "http ${r.code} ${r.request.url.host}${r.request.url.encodedPath.take(40)}, ${html.length} chars, router data ${if (data == null) "none" else "${data.length} chars"}, keys $keys, mentions aweme_list=${"aweme_list" in html} item_list=${"item_list" in html} post=${"\"post\"" in html}"
             }
+        }.getOrElse { "error ${it.message}" } + " | api: " + runCatching {
+            // The address that page's own script asks for the list (older, unsigned).
+            val api = Request.Builder().url("https://www.iesdouyin.com/web/api/v2/aweme/post/?reflow_source=reflow_page&sec_uid=$secUid&count=21&max_cursor=0")
+                .header("User-Agent", MOBILE_UA).header("Referer", "https://www.iesdouyin.com/share/user/$secUid").build()
+            http.newCall(api).execute().use { r -> val b = r.body?.string().orEmpty(); "http ${r.code}, ${b.length} chars: ${b.take(160)}" }
         }.getOrElse { "error ${it.message}" }
     }
 

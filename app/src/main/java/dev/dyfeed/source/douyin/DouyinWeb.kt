@@ -301,6 +301,11 @@ class DouyinWeb @Inject constructor(
     /** Stops replaying once it has failed three times without ever working. */
     private fun replayWorth(): Boolean = replaysWorked > 0 || replays - replaysWorked < 3
 
+    private val mainCalls = java.util.concurrent.ConcurrentLinkedDeque<String>()
+
+    /** The different Douyin addresses the feed page has called (health check). */
+    fun pageCalls(): List<String> = mainCalls.toList()
+
     /** Feed answers the current page has brought, and when the last came. */
     @Volatile private var answersThisPage = 0
     @Volatile private var lastAnswerAt = 0L
@@ -569,7 +574,13 @@ class DouyinWeb @Inject constructor(
 
         @JavascriptInterface
         fun saw(url: String, status: Int, size: Int) {
-            if (!search) return
+            if (!search) {
+                // What the feed page itself asks Douyin for (for the health check: which calls
+                // could tell Douyin what you watch).
+                val path = url.substringBefore('?').removePrefix("https://www.douyin.com")
+                if (mainCalls.none { it.startsWith(path) }) { mainCalls.addLast("$path $status"); while (mainCalls.size > 40) mainCalls.pollFirst() }
+                return
+            }
             searchTrace.addLast(url.substringBefore('?').removePrefix("https://www.douyin.com") + " $status ${size}B")
             while (searchTrace.size > 30) searchTrace.pollFirst()
         }
