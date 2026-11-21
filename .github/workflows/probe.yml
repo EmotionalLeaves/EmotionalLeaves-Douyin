@@ -1,0 +1,27 @@
+name: probe
+# Fetch real responses from outside services (from a US runner, like the user) and keep them as an
+# artifact, to build adapters against what's really there. Manual only.
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: "Python script path in the repo"
+        required: true
+        default: "tools/probe/probe.py"
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - name: Probe
+        run: mkdir -p out && python3 "${{ inputs.script }}" out | tee out/report.txt
+      - uses: actions/upload-artifact@v5
+        with:
+          name: probe-out
+          path: out/
+          retention-days: 5
