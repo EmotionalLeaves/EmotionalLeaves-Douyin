@@ -560,7 +560,13 @@ class SmokeTest {
         val crop = android.graphics.Bitmap.createBitmap(bmp, 0, top, 720, (1280 * 0.96f).toInt() - top)
         val lines = runBlocking { kotlinx.coroutines.withTimeoutOrNull(60_000) { dev.dyfeed.ui.learn.Reader.lines(crop, top, 720, 1280) } }.orEmpty()
         val picked = dev.dyfeed.domain.learn.LiveSubs.pick(lines)
-        android.util.Log.i("PFHEALTH", "translate: live subtitles read ${lines.map { it.text }} → $picked")
+        // How quickly a line goes from picture to English once everything's loaded (the second read).
+        val r0 = System.currentTimeMillis()
+        val again = runBlocking { kotlinx.coroutines.withTimeoutOrNull(20_000) { dev.dyfeed.ui.learn.Reader.lines(crop, top, 720, 1280) } }.orEmpty()
+        val readMs = System.currentTimeMillis() - r0
+        val t0 = System.currentTimeMillis()
+        val en = runBlocking { dev.dyfeed.domain.lang.ChineseToEnglish.translate(dev.dyfeed.domain.learn.LiveSubs.pick(again) ?: "我们今天去吃火锅") }
+        android.util.Log.i("PFHEALTH", "translate: live subtitles read ${lines.map { it.text }} → $picked; warm: read in $readMs ms, English in ${System.currentTimeMillis() - t0} ms (${en.getOrNull()})")
         // The reader comes from Play services; where the emulator has none, nothing to check.
         org.junit.Assume.assumeTrue(lines.isNotEmpty())
         assertTrue("subtitle read: $picked", picked?.contains("火锅") == true)
