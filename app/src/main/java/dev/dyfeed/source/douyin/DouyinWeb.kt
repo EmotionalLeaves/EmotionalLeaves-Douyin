@@ -267,6 +267,7 @@ class DouyinWeb @Inject constructor(
         p.getString("url", null)?.let { FeedTemplate(it, p.getString("method", "GET")!!, p.getString("body", "")!!, p.getString("type", "")!!) }
     }.getOrNull()
     @Volatile private var replays = 0
+    @Volatile private var lastReplayAnswer = "no answer"
     @Volatile var replaysWorked = 0
         private set
 
@@ -282,13 +283,14 @@ class DouyinWeb @Inject constructor(
         if (mainReady?.isCompleted != true) return false
         val url = DouyinFeedTemplate.prepare(t.url, ++replays)
         val before = answersThisPage
+        lastReplayAnswer = "no answer within ${waitMs / 1000} s"
         capturedSignal = CompletableDeferred()
         val js = "($REPLAY_JS)(${JsonPrimitive(url)}, ${JsonPrimitive(t.method)}, ${JsonPrimitive(t.body)}, ${JsonPrimitive(t.type)})"
         withContext(Dispatchers.Main) { w.evaluateJavascript(js, null) }
         withTimeoutOrNull(waitMs) { capturedSignal.await() }
         val worked = answersThisPage > before
         if (worked) replaysWorked++
-        dev.dyfeed.player.StartTimes.mark("replayed the page's feed request #$replays: ${if (worked) "answered" else "nothing"}")
+        dev.dyfeed.player.StartTimes.mark("replayed the page's feed request #$replays: ${if (worked) "answered" else "nothing ($lastReplayAnswer, page ${System.currentTimeMillis() - loadedAt} ms old, ${answersThisPage} answers of its own)"}")
         return worked
     }
 
@@ -542,6 +544,12 @@ class DouyinWeb @Inject constructor(
             pending[id]?.complete(Reply(status, body))
         }
 
+        /** How a replayed feed request was answered (for the timeline, when it brought nothing). */
+        @JavascriptInterface
+        fun replayed(status: Int, size: Int, head: String) {
+            lastReplayAnswer = "status $status, $size chars" + if (size in 1..2000) ": ${head.replace('\n', ' ')}" else ""
+        }
+
         @JavascriptInterface
         fun template(url: String, method: String, body: String, type: String) {
             if (search) return
@@ -622,6 +630,7 @@ class DouyinWeb @Inject constructor(
                 x.open(method, url, true);
                 x.withCredentials = true;
                 if (type) x.setRequestHeader('Content-Type', type);
+                x.addEventListener('loadend', function () { try { DYB.replayed(x.status, (x.responseText || '').length, (x.responseText || '').slice(0, 120)); } catch (e) {} });
                 x.send(method === 'GET' ? null : body);
               } catch (e) {}
             }

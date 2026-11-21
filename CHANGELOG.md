@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.58 — 2026-11-21
+- Record status/size/head of replayed feed requests in the timeline.
+
 ## 1.7.57 — 2026-11-21
 - Top up the launch pool to 24 with unseen, unexpired posts from the Douyin index.
 

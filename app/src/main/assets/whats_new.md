@@ -1,3 +1,8 @@
+## 1.7.58 — 2026-11-21
+Replay answers
+
+- Behind the scenes: when the app asks Douyin for posts the page's way and gets nothing back, health checks now record what Douyin answered. This is to get a fresh install's first posts sooner, too.
+
 ## 1.7.57 — 2026-11-21
 More ready at launch
 
