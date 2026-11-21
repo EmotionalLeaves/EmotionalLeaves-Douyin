@@ -10,6 +10,7 @@ import dev.dyfeed.domain.model.StreamInfo
 import dev.dyfeed.source.SourceAdapter
 import dev.dyfeed.source.SourceException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
@@ -90,9 +91,28 @@ class BilibiliAdapter @Inject constructor(private val http: OkHttpClient) : Sour
             mapOf("bvid" to bvid, "cid" to cid, "qn" to "64", "fnval" to "1", "fnver" to "0", "fourk" to "0", "platform" to "html5", "high_quality" to "1"),
             signed = true,
         )
-        val url = ((root.data()["durl"] as? JsonArray)?.firstOrNull() as? JsonObject)?.let { (it["url"] as? JsonPrimitive)?.contentOrNull }
-            ?: throw SourceException(id, "Bilibili didn't give this video's file")
-        return StreamInfo.Direct(url, "video/mp4")
+        val durl = (root.data()["durl"] as? JsonArray)?.firstOrNull() as? JsonObject
+        val url = (durl?.get("url") as? JsonPrimitive)?.contentOrNull ?: throw SourceException(id, "Bilibili didn't give this video's file")
+        // Its mirrors: the first one given was sometimes too slow to show a frame in 8 s on the
+        // test phone. Ask them all for one byte and play from the first to answer.
+        val backups = (durl["backup_url"] as? JsonArray).orEmpty().mapNotNull { (it as? JsonPrimitive)?.contentOrNull }
+        val best = if (backups.isEmpty()) url else firstAnswering((listOf(url) + backups).distinct().take(4)) ?: url
+        return StreamInfo.Direct(best, "video/mp4")
+    }
+
+    private suspend fun firstAnswering(urls: List<String>): String? = kotlinx.coroutines.coroutineScope {
+        val winners = kotlinx.coroutines.channels.Channel<String>(urls.size)
+        val jobs = urls.map { u ->
+            launch(Dispatchers.IO) {
+                val ok = runCatching {
+                    http.newCall(Request.Builder().url(u).header("Range", "bytes=0-0").header("User-Agent", UA).header("Referer", "https://www.bilibili.com/").build()).execute().use { it.code in 200..299 }
+                }.getOrDefault(false)
+                if (ok) winners.trySend(u)
+            }
+        }
+        val first = kotlinx.coroutines.withTimeoutOrNull(RACE_MS) { winners.receive() }
+        jobs.forEach { it.cancel() }
+        first
     }
 
     override fun reportUrl(item: MediaItem): String? = item.pageUrl
@@ -160,6 +180,7 @@ class BilibiliAdapter @Inject constructor(private val http: OkHttpClient) : Sour
         private const val KEY_TTL_MS = 6 * 60 * 60_000L
         private const val MAX_PULLS = 300
         private const val MAX_SEARCH_PAGES = 5
+        private const val RACE_MS = 2_500L
     }
 }
 

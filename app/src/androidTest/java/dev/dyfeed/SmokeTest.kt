@@ -709,6 +709,19 @@ class SmokeTest {
         assertTrue("Bilibili feed: ${feed.exceptionOrNull()?.message}", feed.getOrNull()?.items?.isNotEmpty() == true)
     }
 
+    /** Kuaishou, as a visitor from here: its featured feed and a file that plays. */
+    @Test
+    fun kuaishouWorks() {
+        val k = rule.activity.sourceRegistry.byId("kuaishou") ?: return android.util.Log.i("PFHEALTH", "kuaishou: not registered").let { }
+        val t0 = System.currentTimeMillis()
+        val feed = runCatching { runBlocking { k.fetchFeed(null, dev.dyfeed.domain.model.FeedPrefs(dev.dyfeed.domain.model.FeedMode.FOR_YOU)) } }
+        val first = feed.getOrNull()?.items?.firstOrNull()
+        val url = first?.let { runCatching { runBlocking { k.resolveStream(it) } }.getOrNull() as? dev.dyfeed.domain.model.StreamInfo.Direct }?.url
+        val plays = url?.let { runBlocking { rule.activity.httpJson.reachable(it) } }
+        android.util.Log.i("PFHEALTH", "kuaishou: feed " + feed.fold({ "${it.items.size} posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - t0} ms; file " +
+            (if (url == null) "none" else if (plays == true) "plays" else "didn't load") + "; e.g. " + feed.getOrNull()?.items?.take(3)?.joinToString(" | ") { it.title.orEmpty().take(20) })
+    }
+
     /** "More like this": a feed around one post finds posts that share its tags. */
     @Test
     fun moreLikeThis() {

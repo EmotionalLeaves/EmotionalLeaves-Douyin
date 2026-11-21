@@ -21,6 +21,9 @@ abstract class SourceModule {
     abstract fun bilibili(adapter: dev.dyfeed.source.bilibili.BilibiliAdapter): SourceAdapter
 
     @Binds @IntoSet
+    abstract fun kuaishou(adapter: dev.dyfeed.source.kuaishou.KuaishouAdapter): SourceAdapter
+
+    @Binds @IntoSet
     abstract fun local(adapter: LocalFilesAdapter): SourceAdapter
 
     @Binds @IntoSet

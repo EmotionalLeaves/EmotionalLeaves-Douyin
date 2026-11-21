@@ -1,3 +1,10 @@
+## 1.7.78 — 2026-11-21
+Kuaishou
+
+- New: Kuaishou (快手), no account needed. Its featured feed (精选) joins For You beside Douyin and Bilibili, about 20 videos a pull. Its search and creator pages ask visitors to solve a captcha, so those aren't offered. Turn it off in Me → Sources if you don't want it.
+- Bilibili videos start from whichever of its mirror servers answers first. One mirror was too slow to show a picture in 8 seconds on the test phone.
+- Bilibili on the test phone (1.7.77): its feed answers in 0.4 s, search in 0.6 s, and its videos play. For You's first 70 posts were 57 from Douyin and 13 from Bilibili.
+
 ## 1.7.77 — 2026-11-21
 Bilibili
 
