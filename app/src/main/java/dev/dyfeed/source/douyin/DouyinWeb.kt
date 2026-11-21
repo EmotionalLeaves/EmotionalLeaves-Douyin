@@ -449,7 +449,14 @@ class DouyinWeb @Inject constructor(
         done.invokeOnCompletion { dev.dyfeed.player.StartTimes.mark("douyin page ready") }
         mainReady = done
         // The same web view when there is one: only the page inside starts over.
-        val w = web ?: HiddenWebView(context).also { configure(it, Bridge(search = false), onReady = { mainReady }); web = it }
+        val w = web ?: run {
+            val t0 = android.os.SystemClock.elapsedRealtime()
+            HiddenWebView(context).also {
+                // The first web view in a process starts the browser engine, on the main thread.
+                dev.dyfeed.player.StartTimes.mark("web view made in ${android.os.SystemClock.elapsedRealtime() - t0} ms (main thread)")
+                configure(it, Bridge(search = false), onReady = { mainReady }); web = it
+            }
+        }
         placeInHost(w)
         w.onResume()
         // Alternate between the home feed and 精选 (featured): each loads its own batch, so taking

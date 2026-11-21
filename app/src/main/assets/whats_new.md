@@ -1,3 +1,8 @@
+## 1.7.54 — 2026-11-21
+Start-up check
+
+- Behind the scenes: health checks now time how long the phone's browser engine takes to start, which blocks the screen while it happens. The start-up log is also capped so it can't grow during long sessions.
+
 ## 1.7.53 — 2026-11-21
 Clear screen
 

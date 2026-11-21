@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.54 — 2026-11-21
+- Mark web view creation time; cap StartTimes marks at 400.
+
 ## 1.7.53 — 2026-11-21
 - Clear screen reachable from the hold menu (CleanScreen had no way in); CI times a relaunch (WARMSTART).
 
