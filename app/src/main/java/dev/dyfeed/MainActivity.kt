@@ -32,7 +32,6 @@ class MainActivity : FragmentActivity() {
     @Inject lateinit var playerPool: PlayerPool
     /** For the on-device health test: the same check Settings → Sources runs. */
     @Inject lateinit var sourceChecker: dev.dyfeed.source.SourceChecker
-    @Inject lateinit var douyinWeb: dev.dyfeed.source.douyin.DouyinWeb
     @Inject lateinit var sourceRegistry: dev.dyfeed.source.SourceRegistry
     @Inject lateinit var httpJson: dev.dyfeed.source.net.HttpJson
     @Inject lateinit var searchRepository: dev.dyfeed.data.repo.SearchRepository
@@ -185,17 +184,6 @@ class MainActivity : FragmentActivity() {
             else -> null
         }?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         runCatching { startActivity(target ?: home) }.onFailure { startActivity(home) }
-    }
-
-    // Douyin's hidden page lives in this window while it's showing (see DouyinWeb.host).
-    override fun onStart() {
-        super.onStart()
-        (window.decorView as? android.view.ViewGroup)?.let(douyinWeb::host)
-    }
-
-    override fun onStop() {
-        douyinWeb.host(null)
-        super.onStop()
     }
 
     override fun onDestroy() {

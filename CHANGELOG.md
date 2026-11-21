@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.52 — 2026-11-21
+- Record the page's module/feed request (method/url/body/type); replay it in-page (signed, captured) once ready and before any reload; refresh_index bumped; give up after 3 misses. Undo window hosting.
+
 ## 1.7.51 — 2026-11-21
 - Host the feed WebView in the activity window (2 px, alpha 0.01, behind content, touch-proof) so Chromium doesn't treat it as a hidden tab.
 

@@ -1,3 +1,9 @@
+## 1.7.52 — 2026-11-21
+Ask the page's way
+
+- Pulls should be much faster. The app now notes how Douyin's own page asks for its feed, keeps that across launches, and asks the same way from inside the page as soon as the page can sign requests. Before, it waited about 10 seconds for the page to ask by itself, and restarted the page for every new batch (about 13 seconds each).
+- Undoes 1.7.51's change: keeping the hidden page in the app's window didn't bring the first batch any sooner, and the page took longer to load.
+
 ## 1.7.51 — 2026-11-21
 A page that isn't throttled
 

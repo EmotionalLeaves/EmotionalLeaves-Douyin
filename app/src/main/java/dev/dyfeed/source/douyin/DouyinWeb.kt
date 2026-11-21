@@ -227,10 +227,10 @@ class DouyinWeb @Inject constructor(
     private val hostsBeforeFirst = java.util.concurrent.ConcurrentHashMap<String, Int>()
 
     /**
-     * The app's window, while it's on screen. The feed page sits in it, behind everything, 2 px
-     * and invisible: a web view in no window counts as a hidden tab, whose timers the browser
-     * slows to once a second, and Douyin's page runs on timers (6.6 s from loaded to its first
-     * batch was measured that way). Main thread only.
+     * A window to keep the feed page in, behind everything, 2 px and invisible (so it doesn't count
+     * as a hidden tab). Tried in 1.7.51 from the main screen: the page's first batch came no
+     * sooner (13.9 s, as before) and the page took longer to load, so nothing calls this now.
+     * Main thread only.
      */
     private var host: java.lang.ref.WeakReference<android.view.ViewGroup>? = null
 
@@ -258,6 +258,43 @@ class DouyinWeb @Inject constructor(
         override fun onCheckIsTextEditor(): Boolean = false
     }
 
+    /** How Douyin's page asks for its feed (method, address, body), as it last did. */
+    data class FeedTemplate(val url: String, val method: String, val body: String, val type: String)
+
+    /** Noted from the page itself; kept across launches, so a fresh page can ask at once. */
+    @Volatile private var feedTemplate: FeedTemplate? = runCatching {
+        val p = context.getSharedPreferences(TEMPLATE_PREFS, Context.MODE_PRIVATE)
+        p.getString("url", null)?.let { FeedTemplate(it, p.getString("method", "GET")!!, p.getString("body", "")!!, p.getString("type", "")!!) }
+    }.getOrNull()
+    @Volatile private var replays = 0
+    @Volatile var replaysWorked = 0
+        private set
+
+    /**
+     * Asks for the feed the way Douyin's own page does, from inside the page (its signer signs it,
+     * and the answer is captured like the page's own). The page takes ~10 s after loading to ask
+     * for itself; this asks as soon as it can sign. A fresh refresh_index each time, for new posts.
+     * Returns whether an answer came within [waitMs].
+     */
+    private suspend fun replayFeed(waitMs: Long): Boolean {
+        val t = feedTemplate ?: return false
+        val w = web ?: return false
+        if (mainReady?.isCompleted != true) return false
+        val url = DouyinFeedTemplate.prepare(t.url, ++replays)
+        val before = answersThisPage
+        capturedSignal = CompletableDeferred()
+        val js = "($REPLAY_JS)(${JsonPrimitive(url)}, ${JsonPrimitive(t.method)}, ${JsonPrimitive(t.body)}, ${JsonPrimitive(t.type)})"
+        withContext(Dispatchers.Main) { w.evaluateJavascript(js, null) }
+        withTimeoutOrNull(waitMs) { capturedSignal.await() }
+        val worked = answersThisPage > before
+        if (worked) replaysWorked++
+        dev.dyfeed.player.StartTimes.mark("replayed the page's feed request #$replays: ${if (worked) "answered" else "nothing"}")
+        return worked
+    }
+
+    /** Stops replaying once it has failed three times without ever working. */
+    private fun replayWorth(): Boolean = replaysWorked > 0 || replays - replaysWorked < 3
+
     /** Feed answers the current page has brought, and when the last came. */
     @Volatile private var answersThisPage = 0
     @Volatile private var lastAnswerAt = 0L
@@ -281,8 +318,14 @@ class DouyinWeb @Inject constructor(
         // Only while it hasn't brought its first batch yet: once it has (and that's been taken),
         // waiting the full time for another just stalls the feed (a pull took 40 s+ that way).
         if (captured.isEmpty() && web != null && answersThisPage == 0 && sinceLoad < FRESH_PAGE_MS) {
+            // Known how the page asks: ask that way as soon as the page can sign (seconds, not ~14).
+            if (feedTemplate != null && replayWorth()) {
+                withTimeoutOrNull(READY_TIMEOUT_MS) { mainReady?.await() }
+                if (captured.isEmpty()) replayFeed(REPLAY_WAIT_MS)
+            }
             capturedSignal = CompletableDeferred()
-            if (captured.isEmpty()) withTimeoutOrNull(FRESH_PAGE_MS - sinceLoad + 2_000) { capturedSignal.await() }
+            val left = FRESH_PAGE_MS - (System.currentTimeMillis() - loadedAt) + 2_000
+            if (captured.isEmpty() && left > 0) withTimeoutOrNull(left) { capturedSignal.await() }
         } else if (captured.isEmpty() && web != null && answersThisPage == 1 && now - lastAnswerAt < FOLLOW_UP_MS) {
             // A fresh page fetches a second batch a few seconds after its first: wait for that
             // rather than start the page over.
@@ -293,6 +336,8 @@ class DouyinWeb @Inject constructor(
         if (captured.isEmpty() && web != null && worthNudging) {
             if (nudge(NUDGE_WAIT_MS) > 0) nudgesWorked++ else nudgesFailed++
         }
+        // The page is open and can sign: ask again its way, instead of starting it over (~13 s).
+        if (captured.isEmpty() && web != null && feedTemplate != null && replayWorth()) replayFeed(REPLAY_WAIT_MS)
         if (captured.isEmpty()) {
             capturedSignal = CompletableDeferred()
             reload()
@@ -491,6 +536,19 @@ class DouyinWeb @Inject constructor(
         }
 
         @JavascriptInterface
+        fun template(url: String, method: String, body: String, type: String) {
+            if (search) return
+            val t = FeedTemplate(url, method.uppercase(), body, type)
+            if (t == feedTemplate) return
+            feedTemplate = t
+            dev.dyfeed.player.StartTimes.mark("page feed request noted: $method ${android.net.Uri.parse(url).path}")
+            runCatching {
+                context.getSharedPreferences(TEMPLATE_PREFS, Context.MODE_PRIVATE).edit()
+                    .putString("url", t.url).putString("method", t.method).putString("body", t.body).putString("type", t.type).apply()
+            }
+        }
+
+        @JavascriptInterface
         fun saw(url: String, status: Int, size: Int) {
             if (!search) return
             searchTrace.addLast(url.substringBefore('?').removePrefix("https://www.douyin.com") + " $status ${size}B")
@@ -545,6 +603,22 @@ class DouyinWeb @Inject constructor(
         private const val SECOND_BATCH_WAIT_MS = 800L
         /** A page opened this recently is still bringing its first batch: wait for it, don't reload (the emulator took up to 36 s). */
         private const val FRESH_PAGE_MS = 40_000L
+        private const val TEMPLATE_PREFS = "douyin_page_feed"
+        /** How long a replayed feed request gets to answer. */
+        private const val REPLAY_WAIT_MS = 6_000L
+        /** Asks again the page's way from inside it; the hook captures the answer like the page's own. */
+        private val REPLAY_JS = """
+            function(url, method, body, type) {
+              try {
+                var x = new XMLHttpRequest();
+                x.__dyReplay = true;
+                x.open(method, url, true);
+                x.withCredentials = true;
+                if (type) x.setRequestHeader('Content-Type', type);
+                x.send(method === 'GET' ? null : body);
+              } catch (e) {}
+            }
+        """.trimIndent()
         /** A fresh page's second batch comes this soon after its first, if it comes (measured 3.5 s). */
         private const val FOLLOW_UP_MS = 6_000L
         private const val SECOND_PAGE_IDLE_MS = 120_000L
@@ -602,14 +676,24 @@ class DouyinWeb @Inject constructor(
               if (window.__dyHooked) return; window.__dyHooked = true;
               var FEED = /\/aweme\/v[12]\/web\/(tab\/feed|module\/feed|aweme\/post|search\/item|search\/single|general\/search\/single|general\/search\/stream)\//;
               function pass(u, t) { try { if (t && t.length > 50) DYB.captured(String(u), t); } catch (e) {} }
+              var MODULE = /\/aweme\/v[12]\/web\/(module\/feed|tab\/feed)\//;
               var open = XMLHttpRequest.prototype.open;
               XMLHttpRequest.prototype.open = function (m, u) {
-                try { this.__dyUrl = String(u); } catch (e) {}
+                try { this.__dyUrl = String(u); this.__dyMethod = String(m || 'GET'); } catch (e) {}
                 return open.apply(this, arguments);
               };
+              var setHeader = XMLHttpRequest.prototype.setRequestHeader;
+              XMLHttpRequest.prototype.setRequestHeader = function (k, v) {
+                try { if (String(k).toLowerCase() === 'content-type') this.__dyType = String(v); } catch (e) {}
+                return setHeader.apply(this, arguments);
+              };
               var send = XMLHttpRequest.prototype.send;
-              XMLHttpRequest.prototype.send = function () {
+              XMLHttpRequest.prototype.send = function (body) {
                 var x = this;
+                // The page's own feed request, to ask again later the same way (see replayFeed).
+                if (!x.__dyMine && !x.__dyReplay && MODULE.test(x.__dyUrl || '')) {
+                  try { DYB.template(String(x.__dyUrl), x.__dyMethod || 'GET', typeof body === 'string' ? body : '', x.__dyType || ''); } catch (e) {}
+                }
                 if (!x.__dyMine && /\/aweme\//.test(x.__dyUrl || '')) {
                   x.addEventListener('loadend', function () {
                     try { DYB.saw(String(x.__dyUrl), x.status, (x.responseText || '').length); } catch (e) {}
@@ -624,6 +708,13 @@ class DouyinWeb @Inject constructor(
                 var f = window.fetch;
                 window.fetch = function (input) {
                   var url = typeof input === 'string' ? input : (input && input.url) || '';
+                  try {
+                    var init = arguments[1] || {};
+                    if (MODULE.test(url) && !init.__dyReplay) {
+                      var ct = ''; try { var h = init.headers || {}; ct = (h.get ? h.get('content-type') : (h['Content-Type'] || h['content-type'])) || ''; } catch (e) {}
+                      DYB.template(String(url), String(init.method || 'GET'), typeof init.body === 'string' ? init.body : '', String(ct));
+                    }
+                  } catch (e) {}
                   var p = f.apply(this, arguments);
                   if (/\/aweme\//.test(url)) p.then(function (r) {
                     if (!r) return;
