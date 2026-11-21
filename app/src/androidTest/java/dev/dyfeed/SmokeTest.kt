@@ -521,6 +521,7 @@ class SmokeTest {
             val u0 = System.currentTimeMillis()
             val shared = runCatching { runBlocking { douyin.shareUserPosts(sec) } }
             android.util.Log.i("PFHEALTH", "douyin share user page: " + shared.fold({ "${it.size} posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - u0} ms")
+            if (shared.getOrNull().isNullOrEmpty()) android.util.Log.i("PFHEALTH", "douyin share user trace: " + runBlocking { douyin.shareUserTrace(sec) })
         }
         val g0 = System.currentTimeMillis()
         val sug = runCatching { runBlocking { douyin.suggest("火锅") } }

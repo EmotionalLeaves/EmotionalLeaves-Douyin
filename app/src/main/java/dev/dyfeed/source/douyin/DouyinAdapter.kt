@@ -862,6 +862,19 @@ class DouyinAdapter @Inject constructor(
             .map { it.copy(extras = it.extras + ("secUid" to secUid)) }
     }
 
+    /** What the share page for a creator holds (for the health check): size, its data's keys. */
+    suspend fun shareUserTrace(secUid: String): String = withContext(Dispatchers.IO) {
+        val req = Request.Builder().url("https://www.iesdouyin.com/share/user/$secUid").header("User-Agent", MOBILE_UA).header("Referer", "https://www.douyin.com/").build()
+        runCatching {
+            http.newCall(req).execute().use { r ->
+                val html = r.body?.string().orEmpty()
+                val data = ROUTER_DATA.find(html)?.groupValues?.get(1)
+                val keys = data?.let { d -> runCatching { (json.parseToJsonElement(d) as? JsonObject)?.let { o -> o.keys.take(6) + ((o["loaderData"] as? JsonObject)?.let { l -> l.entries.map { (k, v) -> "$k:" + ((v as? JsonObject)?.keys?.take(8)?.joinToString("|") ?: "-") } } ?: emptyList()) } }.getOrNull() }
+                "http ${r.code} ${r.request.url.host}${r.request.url.encodedPath.take(40)}, ${html.length} chars, router data ${if (data == null) "none" else "${data.length} chars"}, keys $keys, mentions aweme_list=${"aweme_list" in html} item_list=${"item_list" in html} post=${"\"post\"" in html}"
+            }
+        }.getOrElse { "error ${it.message}" }
+    }
+
     private fun findAwemeList(e: JsonElement?): kotlinx.serialization.json.JsonArray? {
         val o = e as? JsonObject ?: return null
         (o["aweme_list"] as? kotlinx.serialization.json.JsonArray)?.let { return it }
