@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.60 — 2026-11-21
+- ZhDictionary: UTF-8 blob + sorted keys + line refs, entries parsed on lookup (was ~120k Entry objects, ~80 MB per heap dump).
+
 ## 1.7.59 — 2026-11-21
 - Shorter Douyin card subtitle and Learn section title.
 

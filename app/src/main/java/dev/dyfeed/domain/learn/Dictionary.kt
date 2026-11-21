@@ -27,11 +27,39 @@ data class Token(val text: String, val entries: List<Entry>) {
 /**
  * Chinese → English word list (CC-CEDICT, 120,000 words, CC BY-SA 4.0, bundled), and the splitting
  * of a sentence into its words: longest dictionary word first, as learners' readers do.
+ *
+ * Kept compact: the lines as one block of UTF-8 bytes, plus a sorted array of the words and where
+ * each one's lines are; an entry is read out of its line when it's looked up. Held as 120,000
+ * Entry objects it took ~80 MB of the app's memory (measured in a heap dump), more than everything
+ * else together; this way it's ~18 MB.
  */
-class ZhDictionary(private val words: Map<String, List<Entry>>) {
-    private val longest = words.keys.maxOfOrNull { it.length }?.coerceAtMost(MAX_WORD) ?: 1
+class ZhDictionary private constructor(
+    private val blob: ByteArray,
+    /** Line i is blob[lineStarts[i] until lineStarts[i + 1] - 1] (the -1 is its newline). */
+    private val lineStarts: IntArray,
+    /** Every simplified and traditional form, sorted (for binary search). */
+    private val keys: Array<String>,
+    /** keys[k]'s lines are refs[keyFirst[k] until keyFirst[k + 1]], in dictionary order. */
+    private val keyFirst: IntArray,
+    private val refs: IntArray,
+) {
+    private val longest = (keys.maxOfOrNull { it.length } ?: 1).coerceAtMost(MAX_WORD)
+    private val lineCount get() = lineStarts.size - 1
 
-    fun lookup(word: String): List<Entry> = words[word].orEmpty()
+    private fun keyIndex(word: String): Int = java.util.Arrays.binarySearch(keys, word)
+    private fun has(word: String): Boolean = keyIndex(word) >= 0
+    private fun line(i: Int): String = String(blob, lineStarts[i], lineStarts[i + 1] - lineStarts[i] - 1, Charsets.UTF_8)
+
+    fun lookup(word: String): List<Entry> {
+        val k = keyIndex(word)
+        if (k < 0) return emptyList()
+        val list = (keyFirst[k] until keyFirst[k + 1]).mapNotNull { entryOf(line(refs[it])) }
+        // A stable sort: within the same rank, the dictionary's own order stays.
+        return if (list.size > 1) list.sortedBy { rank(it) } else list
+    }
+
+    /** Every entry once, in dictionary order (read line by line: for searches, not hot paths). */
+    private fun allEntries(): Sequence<Entry> = (0 until lineCount).asSequence().mapNotNull { entryOf(line(it)) }
 
     /**
      * [text] as words, left to right; punctuation, Latin text and numbers come back as unknown pieces.
@@ -69,7 +97,7 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
         val ws = ArrayList<String>()
         var i = 0
         while (i < run.length) {
-            val len = (minOf(longest, run.length - i) downTo 1).firstOrNull { words.containsKey(run.substring(i, i + it)) } ?: 1
+            val len = (minOf(longest, run.length - i) downTo 1).firstOrNull { has(run.substring(i, i + it)) } ?: 1
             ws += run.substring(i, i + len)
             i += len
         }
@@ -80,7 +108,7 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
         val ws = ArrayList<String>()
         var end = run.length
         while (end > 0) {
-            val len = (minOf(longest, end) downTo 1).firstOrNull { words.containsKey(run.substring(end - it, end)) } ?: 1
+            val len = (minOf(longest, end) downTo 1).firstOrNull { has(run.substring(end - it, end)) } ?: 1
             ws += run.substring(end - len, end)
             end -= len
         }
@@ -92,16 +120,16 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
         val query = q.trim().lowercase()
         if (query.isEmpty()) return emptyList()
         if (query.any(::isHan)) {
-            lookup(query).takeIf { it.isNotEmpty() }?.let { exact -> return (exact + words.filterKeys { it != query && it.contains(query) }.values.flatten().sortedBy { it.simplified.length }).take(limit) }
-            return words.filterKeys { it.contains(query) }.values.flatten().sortedBy { it.simplified.length }.take(limit)
+            val containing = keys.asSequence().filter { it != query && it.contains(query) }
+                .flatMap { lookup(it) }.distinct().toList().sortedBy { it.simplified.length }
+            return (lookup(query) + containing).distinct().take(limit)
         }
         val bare = query.replace(" ", "")
-        val all = words.values.asSequence().flatten()
-        val byPinyin = all.filter { e -> val p = e.pinyin.lowercase(); p.replace(" ", "") == bare || p.filter { it.isLetter() } == bare.filter { it.isLetter() } }.take(limit).toList()
+        val byPinyin = allEntries().filter { e -> val p = e.pinyin.lowercase(); p.replace(" ", "") == bare || p.filter { it.isLetter() } == bare.filter { it.isLetter() } }.take(limit).toList()
         val word = Regex("""(^|[^a-z])${Regex.escape(query)}($|[^a-z])""")
-        val byEnglish = all.filter { word.containsMatchIn(it.english.lowercase()) }
+        val byEnglish = allEntries().filter { word.containsMatchIn(it.english.lowercase()) }.toList()
             .sortedWith(compareBy({ !it.english.lowercase().startsWith(query) }, { it.english.length }))
-            .take(limit).toList()
+            .take(limit)
         return (byPinyin + byEnglish).distinct().take(limit)
     }
 
@@ -109,19 +137,52 @@ class ZhDictionary(private val words: Map<String, List<Entry>>) {
         private const val MAX_WORD = 8
         fun isHan(c: Char): Boolean = Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN
 
+        /** One line → its entry: "simplified \t traditional (empty if the same) \t pinyin \t meanings [\t measure words, comma-separated]". */
+        private fun entryOf(line: String): Entry? {
+            val parts = line.split('\t')
+            if (parts.size < 4) return null
+            return Entry(parts[0], parts[1].ifEmpty { parts[0] }, parts[2], parts[3], parts.getOrNull(4)?.split(',')?.filter { it.isNotBlank() }.orEmpty())
+        }
+
         /** Lines "simplified \t traditional (empty if the same) \t pinyin \t meanings [\t measure words, comma-separated]". */
         fun parse(lines: Sequence<String>): ZhDictionary {
-            val map = HashMap<String, MutableList<Entry>>(140_000)
-            lines.forEach { line ->
-                val parts = line.split('\t')
-                if (parts.size < 4) return@forEach
-                val e = Entry(parts[0], parts[1].ifEmpty { parts[0] }, parts[2], parts[3], parts.getOrNull(4)?.split(',')?.filter { it.isNotBlank() }.orEmpty())
-                map.getOrPut(e.simplified) { ArrayList(1) } += e
-                if (e.traditional != e.simplified) map.getOrPut(e.traditional) { ArrayList(1) } += e
+            val bytes = java.io.ByteArrayOutputStream(1 shl 20)
+            var starts = IntArray(1 shl 17)
+            var n = 0
+            val pairKeys = ArrayList<String>(1 shl 18)
+            var pairLines = IntArray(1 shl 18)
+            var pairs = 0
+            fun addPair(key: String, line: Int) {
+                if (pairs == pairLines.size) pairLines = pairLines.copyOf(pairs * 2)
+                pairKeys += key; pairLines[pairs++] = line
             }
-            // A stable sort: within the same rank, the dictionary's own order stays.
-            map.values.forEach { list -> if (list.size > 1) list.sortBy { rank(it) } }
-            return ZhDictionary(map)
+            lines.forEach { line ->
+                val t1 = line.indexOf('\t'); if (t1 <= 0) return@forEach
+                val t2 = line.indexOf('\t', t1 + 1); if (t2 < 0) return@forEach
+                if (line.indexOf('\t', t2 + 1) < 0) return@forEach // fewer than four fields
+                val simplified = line.substring(0, t1)
+                val traditional = line.substring(t1 + 1, t2)
+                if (n + 1 >= starts.size) starts = starts.copyOf(starts.size * 2)
+                starts[n] = bytes.size()
+                bytes.write(line.toByteArray(Charsets.UTF_8)); bytes.write('\n'.code)
+                addPair(simplified, n)
+                if (traditional.isNotEmpty() && traditional != simplified) addPair(traditional, n)
+                n++
+            }
+            starts[n] = bytes.size()
+            // Group the (word, line) pairs by word; a stable sort keeps each word's lines in order.
+            val order = (0 until pairs).sortedWith(compareBy { pairKeys[it] })
+            val keys = ArrayList<String>(pairs)
+            val keyFirst = IntArray(pairs + 1)
+            val refs = IntArray(pairs)
+            var k = -1
+            order.forEachIndexed { at, p ->
+                val key = pairKeys[p]
+                if (k < 0 || keys[k] != key) { k++; keys += key; keyFirst[k] = at }
+                refs[at] = pairLines[p]
+            }
+            keyFirst[k + 1] = pairs
+            return ZhDictionary(bytes.toByteArray(), starts.copyOf(n + 1), keys.toTypedArray(), keyFirst.copyOf(k + 2), refs)
         }
 
         /**
@@ -164,7 +225,7 @@ object Dict {
             runCatching { context.assets.open("learn/zh_en.tsv").bufferedReader().useLines { ZhDictionary.parse(it) } }
                 .recoverCatching { context.assets.open("learn/zh_en.tsv.gz").use { raw -> java.util.zip.GZIPInputStream(raw).bufferedReader().useLines { ZhDictionary.parse(it) } } }
                 .onFailure { failure = it.message ?: it.javaClass.simpleName }
-                .getOrDefault(ZhDictionary(emptyMap()))
+                .getOrDefault(ZhDictionary.parse(emptySequence()))
         }.also { if (failure == null) loaded = it }
     }
 }

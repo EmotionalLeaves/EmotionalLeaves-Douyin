@@ -1,3 +1,8 @@
+## 1.7.60 — 2026-11-21
+A lighter dictionary
+
+- Uses much less memory. A memory snapshot from the test phone showed the Chinese dictionary (120,000 words) taking about 80 MB, more than everything else in the app together. It's now stored compactly at about 18 MB, with the same words, readings and search. Less memory means fewer pauses while scrolling and less chance of Android closing the app in the background.
+
 ## 1.7.59 — 2026-11-21
 Tidier text
 
