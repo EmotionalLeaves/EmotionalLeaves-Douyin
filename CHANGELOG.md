@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.53 — 2026-11-21
+- Clear screen reachable from the hold menu (CleanScreen had no way in); CI times a relaunch (WARMSTART).
+
 ## 1.7.52 — 2026-11-21
 - Record the page's module/feed request (method/url/body/type); replay it in-page (signed, captured) once ready and before any reload; refresh_index bumped; give up after 3 misses. Undo window hosting.
 

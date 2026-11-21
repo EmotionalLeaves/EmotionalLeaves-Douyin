@@ -1,3 +1,10 @@
+## 1.7.53 — 2026-11-21
+Clear screen
+
+- 清屏 Clear screen: hold a post and choose Clear screen to see just the video. Touch the screen and "Show everything" appears for a couple of seconds to bring the rest back. The bottom bar stays.
+- Includes 1.7.52: the app notes how Douyin's page asks for its feed and asks the same way itself. On the test phone, Latest now loads its first 60 posts in 10–17 seconds (it was 73), and later launches no longer wait for the page to ask by itself.
+- Health checks now also time a second launch, the kind you'd normally have.
+
 ## 1.7.52 — 2026-11-21
 Ask the page's way
 

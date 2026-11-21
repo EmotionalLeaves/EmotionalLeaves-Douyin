@@ -375,6 +375,10 @@ fun ItemMenuSheet(
                 }
                 QuickAction(Icons.AutoMirrored.Filled.OpenInNew, "Open in 抖音", modifier = Modifier.weight(1f)) { openExternal(context, item.pageUrl); onDismiss() }
             }
+            // 清屏, as in Douyin: just the video. A touch brings back "Show everything" for a moment.
+            MenuRow("清屏 Clear screen", Icons.Filled.Fullscreen, "Just the video, with no caption or buttons over it. Touch the screen for the way back.") {
+                CleanScreen.set(true); onDismiss()
+            }
             HorizontalDivider()
             if (onMoreLikeThis != null) {
                 ListItem(
