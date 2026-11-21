@@ -1,3 +1,14 @@
+## 1.7.73 — 2026-11-21
+Reacts now, suggests as you type
+
+- For You reacts straight away:
+  - Finish, replay or like a video, and two of Douyin's related videos for it go in right after the next post.
+  - Quickly skip two posts that share a topic or creator, and the ones coming up with that topic or creator are taken out.
+  Before, nothing changed until the next batch, a dozen posts later.
+- Search suggests as you type, the way Douyin's own search box does: its suggestions for what you've typed, under your recent and followed searches. English is put into Chinese first.
+- Live captions read a frame at most every 0.35 s, so reading can't take over the phone while the video moves.
+- Includes 1.7.72: topic row over For You (全部, your interests, 美食 Food, 搞笑 Funny, 萌宠 Pets…). With "more 美食" asked for, the test measured all 24 posts after the first screen about food (it was 14 of 24 before 1.7.70). Also 1.7.71: "Made with AI · 是AI" in the hold menu.
+
 ## 1.7.72 — 2026-11-21
 Topics
 

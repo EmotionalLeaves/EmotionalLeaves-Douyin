@@ -882,8 +882,13 @@ private fun LoadingPost(modifier: Modifier = Modifier) {
         }
         // How long it's been: after a few seconds, a word to learn while Douyin's page loads (its
         // first batch takes ~15 s on a fresh install), and a word on why.
+        // Two steps, then nothing more: an endless timer here kept the UI tests' "is the screen
+        // settled?" check waiting forever (three failed runs).
         var waited by remember { mutableStateOf(0) }
-        LaunchedEffect(Unit) { while (true) { kotlinx.coroutines.delay(1_000); waited++ } }
+        LaunchedEffect(Unit) {
+            kotlinx.coroutines.delay(WAIT_WORD_S * 1_000L); waited = WAIT_WORD_S
+            kotlinx.coroutines.delay((WAIT_EXPLAIN_S - WAIT_WORD_S) * 1_000L); waited = WAIT_EXPLAIN_S
+        }
         Column(Modifier.align(Alignment.Center).padding(horizontal = 32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Loading your feed", color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(4.dp))

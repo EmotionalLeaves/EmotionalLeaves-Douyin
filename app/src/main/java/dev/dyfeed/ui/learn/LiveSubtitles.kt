@@ -114,6 +114,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         // (the whole lower half took 3 s a read on the test phone). Back to the whole area if the
         // band has nothing a few times running.
         var band: Float? = null
+        var lastReadAt = 0L
         var bandMisses = 0
         try {
             while (true) {
@@ -149,6 +150,10 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     current?.let { it.end = pos }
                     continue
                 }
+                // Moving pictures change the strip all the time: read at most every so often, so
+                // reading can't take over the phone (the next check picks the change up).
+                val sinceRead = android.os.SystemClock.elapsedRealtime() - lastReadAt
+                if (sinceRead < MIN_READ_GAP_MS) continue
                 lastSig = sig
                 val (lines, line) = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) {
                     val crop = Bitmap.createBitmap(f, 0, top, w, bottom - top)
@@ -156,6 +161,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     crop.recycle()
                     read to LiveSubs.pick(read)
                 }
+                lastReadAt = android.os.SystemClock.elapsedRealtime() // (the gap counts from when a read ends)
                 if (line == null) {
                     misses++
                     if (band != null && ++bandMisses >= BAND_GIVE_UP) { band = null; bandMisses = 0; lastSig = null }
@@ -286,5 +292,7 @@ private const val MISSES_BEFORE_SLOWING = 60
 private const val MAX_WIDTH = 480
 /** Half the height of the band read once the subtitles' place is known (a fraction of the video's height). */
 private const val BAND_HALF = 0.07f
+/** A pause of at least this between reads (each takes a few hundred ms of the phone's processor). */
+private const val MIN_READ_GAP_MS = 350L
 /** Changed frames with nothing read in the band before the whole area is read again. */
 private const val BAND_GIVE_UP = 8

@@ -53,6 +53,16 @@ class SmokeTest {
     @get:Rule
     val rule = createAndroidComposeRule<MainActivity>()
 
+    /**
+     * Live captions off for the UI tests: reading every changed frame (1.5–3 s of the emulator's two
+     * slow cores each time) starved the screen, and "is it settled?" checks timed out (three runs
+     * failed that way). Reading itself has its own test (readsBurnedInSubtitles).
+     */
+    @org.junit.Before
+    fun quietCaptions() {
+        dev.dyfeed.ui.learn.LearnPrefs.setLiveSubs(false)
+    }
+
     private val pin = listOf("1", "2", "3", "4")
 
     private fun <T> android.app.Activity.runOnUiThreadBlocking(block: () -> T): T {
@@ -505,6 +515,9 @@ class SmokeTest {
             android.util.Log.i("PFHEALTH", "douyin cover: ${img.javaClass.simpleName} in ${System.currentTimeMillis() - i0} ms from ${android.net.Uri.parse(thumb).host}${android.net.Uri.parse(thumb).path?.takeLast(30)}" +
                 ((img as? coil.request.ErrorResult)?.throwable?.let { " (${it.javaClass.simpleName}: ${it.message?.take(120)})" } ?: ""))
         } else android.util.Log.i("PFHEALTH", "douyin cover: no post in hand")
+        val g0 = System.currentTimeMillis()
+        val sug = runCatching { runBlocking { douyin.suggest("火锅") } }
+        android.util.Log.i("PFHEALTH", "douyin suggestions '火锅': " + sug.fold({ it.take(6).joinToString(" / ").ifEmpty { "none" } }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - g0} ms")
         val s0 = System.currentTimeMillis()
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
         android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - s0} ms")

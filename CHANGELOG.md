@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.73 — 2026-11-21
+- reactNow: related inserted after enjoy/like, upcoming posts sharing traits of two quick skips removed; Douyin sug while typing; OCR min gap 350 ms; finite loading timers; captions off in UI tests.
+
 ## 1.7.72 — 2026-11-21
 - Persistent topic row (全部 + 5 learned + 14 channels) steering For You to only that topic with a fresh screen; live captions kept below it.
 

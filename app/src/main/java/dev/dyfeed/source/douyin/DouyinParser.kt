@@ -336,6 +336,23 @@ object DouyinParser {
         return words.all { it in hay }
     }
 
+    /** The suggested searches in a suggestion answer: every "content"/"word" text in it, in order. */
+    fun suggestions(root: JsonElement): List<String> {
+        val out = LinkedHashSet<String>()
+        fun walk(e: JsonElement?) {
+            when (e) {
+                is JsonObject -> e.forEach { (k, v) ->
+                    if ((k == "content" || k == "word" || k == "sug_word") && v is JsonPrimitive) v.contentOrNull?.trim()?.takeIf { it.isNotEmpty() && it.length <= 30 }?.let(out::add)
+                    else walk(v)
+                }
+                is kotlinx.serialization.json.JsonArray -> e.forEach(::walk)
+                else -> {}
+            }
+        }
+        walk(root)
+        return out.toList()
+    }
+
     /**
      * How well [item] fits the search [q], 0–1: each word of it found in the caption, tags or
      * creator counts 1; a Chinese word that isn't there whole counts for the share of its

@@ -299,6 +299,28 @@ class DouyinAdapter @Inject constructor(
         return (if (good >= ENOUGH_GOOD) scored.filter { it.second >= LOOSE_FIT } else scored).map { it.first }
     }
 
+    /**
+     * What Douyin itself suggests as you type (its search box's list), for [typed] (English is put
+     * into Chinese first). Two addresses its web client uses; whichever answers. Empty if neither does.
+     */
+    suspend fun suggest(typed: String): List<String> {
+        val t = typed.trim()
+        if (t.isEmpty()) return emptyList()
+        val q = if (dev.dyfeed.domain.lang.Zh.isLatinQuery(t))
+            dev.dyfeed.domain.lang.EnglishToChinese.translate(t).getOrNull()?.trim()?.takeIf { dev.dyfeed.domain.lang.Zh.has(it) } ?: t
+        else t
+        val tries = listOf(
+            "/aweme/v1/web/search/sug/" to mapOf("keyword" to q, "source" to "aweme_video_web", "is_sug" to "1"),
+            "/aweme/v1/web/api/suggest_words/" to mapOf("query" to q, "business_id" to "30068", "from_group_id" to ""),
+        )
+        for ((path, params) in tries) {
+            val root = runCatching { call(path, params) }.getOrNull() ?: continue
+            val words = DouyinParser.suggestions(root).filter { it != q }.take(MAX_SUGGESTIONS)
+            if (words.isNotEmpty()) return words
+        }
+        return emptyList()
+    }
+
     /** Searches whose slower ways were still out when the first page went back: (ids shown, the rest). */
     private val lateSearches = java.util.concurrent.ConcurrentHashMap<String, Pair<Set<String>, kotlinx.coroutines.Deferred<List<MediaItem>>>>()
 
@@ -836,6 +858,7 @@ class DouyinAdapter @Inject constructor(
         /** The slower ways get this long more, as the second page. */
         private const val LATE_WAIT_MS = 30_000L
         private const val LATE = "late"
+        private const val MAX_SUGGESTIONS = 8
         private const val GOOD_FIT = 0.6
         private const val LOOSE_FIT = 0.34
         private const val ENOUGH_GOOD = 8

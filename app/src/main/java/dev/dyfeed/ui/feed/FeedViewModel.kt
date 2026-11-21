@@ -604,8 +604,57 @@ class FeedViewModel @Inject constructor(
                 Engagement.target(dwell, isVideo, durationMs, st?.replays ?: 0, typical)
             }
             signals.record(item, Signal(SignalType.VIEW, target))
+            reactNow(item, target)
             noticeNewTastes()
         }
+    }
+
+    /** Quick skips lately, newest last: what they had in common is taken out of what's coming. */
+    private val recentSkips = ArrayDeque<Set<String>>()
+
+    /**
+     * For You answers what you just did, not a dozen posts later (the next batch is ranked only when
+     * it's fetched): enjoyed one → Douyin's related videos for it go in right after the next post;
+     * skipped two with the same thing in common → the posts coming up that have it are taken out.
+     */
+    private fun reactNow(item: MediaItem, target: Double) {
+        if (!isMainFeed || _mode.value != FeedMode.FOR_YOU) return
+        if (target >= ENJOYED_TARGET) {
+            recentSkips.clear()
+            insertRelated(item)
+        } else if (target <= QUICK_SKIP_TARGET) {
+            val feats = traits(item)
+            if (feats.isEmpty()) return
+            recentSkips.addLast(feats)
+            while (recentSkips.size > SKIPS_REMEMBERED) recentSkips.removeFirst()
+            val common = recentSkips.dropLast(1).flatMap { it.intersect(feats) }.toSet()
+            if (common.isEmpty()) return
+            val list = raw.value
+            val keepUntil = (list.indexOfFirst { it.key == item.key }.coerceAtLeast(lastSettled)) + 1
+            val dropped = list.withIndex().filter { (i, it) -> i > keepUntil && traits(it).any { t -> t in common } }.map { it.value.key }.toSet()
+            if (dropped.isEmpty()) return
+            raw.value = list.filterNot { it.key in dropped }
+            recentSkips.clear()
+            if (raw.value.size - lastSettled < LOAD_AHEAD + 2) loadMore()
+        }
+    }
+
+    /** What a post is "about", for matching skips: its subject tags and its creator. */
+    private fun traits(item: MediaItem): Set<String> =
+        (dev.dyfeed.domain.reco.Features.of(item).filterNot { dev.dyfeed.domain.reco.Features.isMeta(it) || it.startsWith("w:") } +
+            listOfNotNull(item.creator?.let { "@" + it })).toSet()
+
+    /** Douyin's related videos for [item], into the feed right after the next post. */
+    private fun insertRelated(item: MediaItem) {
+        val related = dev.dyfeed.domain.reco.Related.of(item.key)
+        if (related.isEmpty()) return
+        val list = raw.value
+        val have = list.mapTo(HashSet()) { it.key }
+        // (Blocked posts, AI included, are filtered out of what's shown as always: see items.)
+        val pick = related.filter { it.key !in have && !seen.isSeen(it.key) }.take(RELATED_NOW)
+        if (pick.isEmpty()) return
+        val at = (list.indexOfFirst { it.key == item.key }.coerceAtLeast(lastSettled) + 2).coerceAtMost(list.size)
+        raw.value = list.take(at) + pick + list.drop(at)
     }
 
     private var lastNotice = 0L
@@ -668,6 +717,8 @@ class FeedViewModel @Inject constructor(
             library.add(LibraryKind.LIKED, item)
             signals.record(item, Signal(SignalType.LIKE))
         }
+        // More like it, right after the next post.
+        if (isMainFeed && _mode.value == FeedMode.FOR_YOU) insertRelated(item)
         noteKeeper(item)
     }
 
@@ -1039,6 +1090,13 @@ class FeedViewModel @Inject constructor(
     fun reportUrl(item: MediaItem): String? = registry.byId(item.sourceId)?.reportUrl(item)
 
     companion object {
+        /** Watched like this or better (finished, or replayed): it's what you want more of now. */
+        private const val ENJOYED_TARGET = 0.9
+        /** Swiped away this fast (see Engagement): a quick skip. */
+        private const val QUICK_SKIP_TARGET = -0.9
+        private const val SKIPS_REMEMBERED = 3
+        /** Related videos put in after something you enjoyed. */
+        private const val RELATED_NOW = 2
         /** Once per process: the main feed asks when it first appears. */
         @Volatile private var carryOnOffered = false
         private const val CARRY_ON_MIN_MS = 60_000L

@@ -313,7 +313,23 @@ class SearchViewModel @Inject constructor(
         }
     }
 
-    fun setQuery(q: String) = _ui.update { it.copy(query = q) }
+    fun setQuery(q: String) {
+        _ui.update { it.copy(query = q) }
+        // Douyin's own suggestions for what's typed, a moment after typing stops.
+        sugJob?.cancel()
+        val t = q.trim()
+        if (t.isEmpty()) { douyinSuggestions.value = emptyList(); return }
+        sugJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(SUG_DELAY_MS)
+            val douyin = registry.byId(dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) as? dev.dyfeed.source.douyin.DouyinAdapter ?: return@launch
+            val words = runCatching { douyin.suggest(t) }.getOrDefault(emptyList())
+            if (_ui.value.query.trim() == t) douyinSuggestions.value = words.filterNot { w -> dev.dyfeed.domain.filter.AiArt.isAi(MediaItem(id = w, sourceId = "douyin", type = dev.dyfeed.domain.model.MediaType.VIDEO, title = w, creator = null, tags = emptyList(), durationSec = null, thumbnailUrl = null, pageUrl = "", publishedAt = null)) }
+        }
+    }
+
+    /** What Douyin suggests for the text typed so far. */
+    val douyinSuggestions = MutableStateFlow<List<String>>(emptyList())
+    private var sugJob: kotlinx.coroutines.Job? = null
 
     fun clearQuery() {
         job?.cancel()
@@ -416,6 +432,8 @@ internal data class Combo(val ask: String, val need: List<String>, val without: 
     }
 }
 
+/** Typing has to pause this long before Douyin is asked for suggestions. */
+private const val SUG_DELAY_MS = 300L
 private val POPULAR = dev.dyfeed.data.settings.SourceCatalog.terms
 
 /** Search's quick ways in: Chinese name, English, what's searched. */
@@ -592,6 +610,7 @@ private fun SearchScreenContent(nav: NavController, vm: SearchViewModel) {
                 onTopicItem = { topic, index -> nav.navigate(Routes.viewer(vm.openList(topicRows.first { it.first == topic }.second, index, topic))) },
                 onContinue = { index -> nav.navigate(Routes.viewer(vm.openList(continueWatching, index, "Continue"))) },
                 typed = ui.query,
+                douyin = vm.douyinSuggestions.collectAsStateWithLifecycle().value,
                 followed = followed,
                 recent = recent,
                 interests = interests,
@@ -641,6 +660,8 @@ private fun SuggestionsPane(
     onTopicItem: (String, Int) -> Unit,
     onContinue: (Int) -> Unit,
     typed: String,
+    /** Douyin's own suggestions for what's typed. */
+    douyin: List<String> = emptyList(),
     followed: List<String>,
     recent: List<String>,
     interests: List<String>,
@@ -652,12 +673,15 @@ private fun SuggestionsPane(
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
         // As you type: matching searches you've made, things you like and common tags.
         val t = typed.trim().lowercase()
-        if (t.length >= 2) {
+        if (t.isNotEmpty() && (t.length >= 2 || douyin.isNotEmpty())) {
             val vocab = remember(recent, interests, followed) {
                 (recent + followed + interests + POPULAR).distinctBy { it.lowercase() }
             }
-            val matches = (vocab.filter { it.lowercase().startsWith(t) } + vocab.filter { it.lowercase().contains(t) })
-                .distinct().filter { it.lowercase() != t }.take(8)
+            // Yours first (searched before, followed), then what Douyin suggests, then the rest.
+            val mine = (vocab.filter { it.lowercase().startsWith(t) } + vocab.filter { it.lowercase().contains(t) })
+                .distinct().filter { it.lowercase() != t }
+            val matches = (mine.filter { m -> recent.any { it.equals(m, true) } || followed.any { it.equals(m, true) } }.take(3) + douyin + mine)
+                .distinctBy { it.lowercase() }.filter { it.lowercase() != t }.take(10)
             matches.forEach { q ->
                 // What kind of suggestion it is, at a glance: one you searched before, one you follow,
                 // or a topic; and the part you've typed in bold.
