@@ -177,7 +177,9 @@ fun VideoPage(
         if (!play) return@LaunchedEffect
         // Ready before you got here (prepared off screen): it started at once.
         if (firstFrame) dev.dyfeed.player.StartTimes.add(0) else askedAt = android.os.SystemClock.elapsedRealtime()
+        dev.dyfeed.player.StartTimes.mark("first video asked to play (address ${if (resolved == null) "not yet known" else "known"})")
     }
+    LaunchedEffect(resolved != null, play) { if (resolved != null && play) dev.dyfeed.player.StartTimes.mark("first video's address known while on screen") }
     var error by remember(item.key) { mutableStateOf<String?>(null) }
     val stats = remember(item.key) { vm.statsFor(item.key) }
     val handsFree by HandsFree.on.collectAsState()

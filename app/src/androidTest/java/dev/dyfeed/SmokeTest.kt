@@ -495,8 +495,9 @@ class SmokeTest {
         val t0 = System.currentTimeMillis()
         val checked = runCatching { runBlocking { rule.activity.sourceChecker.check(douyin) } }
         android.util.Log.i("PFHEALTH", "douyin check sources: ${System.currentTimeMillis() - t0} ms: " + checked.fold({ "${it.ok} ${it.detail}" }, { "error ${it.message}" }) + " | quick: ${rule.activity.sourceChecker.lastQuick}")
+        val s0 = System.currentTimeMillis()
         val search = runCatching { runBlocking { douyin.search("猫", null).items.size } }
-        android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }))
+        android.util.Log.i("PFHEALTH", "douyin search: " + search.fold({ "$it posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - s0} ms")
     }
 
     /** On-phone translation both ways (the model downloads on first use), and an English search. */
@@ -510,8 +511,9 @@ class SmokeTest {
         assertTrue("Chinese → English: ${en.getOrNull()}", en.getOrThrow().lowercase().contains("hello"))
         assertTrue("English → Chinese: ${zh.getOrNull()}", dev.dyfeed.domain.lang.Zh.has(zh.getOrThrow()))
         val douyin = rule.activity.sourceRegistry.byId("douyin") as dev.dyfeed.source.douyin.DouyinAdapter
+        val c0 = System.currentTimeMillis()
         val hits = runCatching { runBlocking { douyin.search("cat", null).items.size } }
-        android.util.Log.i("PFHEALTH", "translate: English search 'cat' → " + hits.fold({ "$it posts" }, { "error ${it.message}" }))
+        android.util.Log.i("PFHEALTH", "translate: English search 'cat' → " + hits.fold({ "$it posts" }, { "error ${it.message}" }) + " in ${System.currentTimeMillis() - c0} ms")
     }
 
     /** Learn: a caption taken apart into words, saved, and reviewed. */

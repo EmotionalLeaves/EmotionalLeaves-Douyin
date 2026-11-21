@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.55 — 2026-11-21
+- Break the first-load loop before waiting when a few candidates are in hand; first-video marks; search timings in the health test.
+
 ## 1.7.54 — 2026-11-21
 - Mark web view creation time; cap StartTimes marks at 400.
 

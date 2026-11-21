@@ -1,3 +1,9 @@
+## 1.7.55 — 2026-11-21
+Leftovers first
+
+- Opening the app again shows posts sooner. Posts left over from last time now go on screen straight away (about 1 second), instead of waiting for the first round of new ones (4.4 seconds on the test phone).
+- Health checks now time each step of the first video's start, and how long searches take.
+
 ## 1.7.54 — 2026-11-21
 Start-up check
 

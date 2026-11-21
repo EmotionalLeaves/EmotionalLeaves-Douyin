@@ -212,6 +212,9 @@ class FeedSession(
         if (searches != null) launchInterestFetches(adapters, searches)
         var rounds = 0
         while (!instantStart && candidates.size < POOL_TARGET && rounds < MAX_ROUNDS) {
+            // Nothing on screen yet and a few already in hand (last session's leftovers): show those
+            // now rather than wait a round for more (a relaunch put them up at 4.4 s instead of ~1 s).
+            if (shown.isEmpty() && candidates.size >= FIRST_SCREEN_MIN) break
             rounds++
             val launched = launchFetches(adapters, prefs) + if (searches != null) launchInterestFetches(adapters, searches) else 0
             if (launched == 0 && inFlight.isEmpty()) break
