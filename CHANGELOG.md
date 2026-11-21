@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.69 — 2026-11-21
+- Learn: review, practice row, words from your videos, 5-word list with See all, dictionary; settings in a gear sheet; trending/lines heard/topics removed.
+
 ## 1.7.68 — 2026-11-21
 - For You: targeted (interest-matching, related-of-enjoyed) posts fill the batch, general feed capped at 4/12 and bypasses no caps; 4 interests per load; much stricter AI (lone AI token, tool names, virtual hosts); search fit scoring + focus; live captions read only the subtitle band once found.
 

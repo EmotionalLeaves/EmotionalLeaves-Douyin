@@ -25,6 +25,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +67,7 @@ import dev.dyfeed.ui.theme.Accent
  * 学习 Learn: Douyin videos picked for learners, a dictionary, your saved words and their review.
  * Words come from what you watch: "Words" under any caption breaks it apart and saves what you pick.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigation.compose.hiltViewModel()) {
     val context = LocalContext.current
@@ -77,6 +79,8 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
     var reviewing by remember { mutableStateOf(LearnOpen.review.also { LearnOpen.review = false } && Srs.due(WordBook.cards.value, System.currentTimeMillis()).isNotEmpty()) }
     var quizzing by remember { mutableStateOf(false) }
     var toning by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var allWords by remember { mutableStateOf(false) }
     var listFilter by remember { mutableStateOf(WORD_FILTERS.first()) }
     var query by remember { mutableStateOf("") }
     val pinyinOn by LearnPrefs.pinyin.collectAsState()
@@ -97,7 +101,14 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
             return@AnimatedContent
         }
         LazyColumn(Modifier.fillMaxSize(), contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp)) {
-            item { dev.dyfeed.ui.common.ScreenHeader("学习 Learn", subtitle = "Chinese from the videos you watch") }
+            // Kept to a few things (it had grown to eleven sections and "wasn't helpful"): your review,
+            // three kinds of practice, the words from your videos, your list, and a dictionary.
+            // Switches are behind the gear.
+            item {
+                dev.dyfeed.ui.common.ScreenHeader("学习 Learn", subtitle = "Chinese from the videos you watch", actions = {
+                    IconButton(onClick = { showSettings = true }) { Icon(Icons.Filled.Settings, contentDescription = "Learn settings") }
+                })
+            }
             // Review: words due now.
             item {
                 Box(
@@ -145,20 +156,19 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     }
                 }
             }
-            // Listening: hear a word, pick what it means.
-            if (cards.size >= 4) item {
-                Row(
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
-                        .background(Color.White.copy(alpha = 0.07f))
-                        .clickable { quizzing = true }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Icon(Icons.AutoMirrored.Filled.VolumeUp, contentDescription = null, tint = Accent)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Listening quiz · 听力", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Hear a word you saved, pick what it means", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.65f))
+            // Practice: everything to do, side by side, one tap each.
+            item { Section("Practice · 练习") }
+            item {
+                val hsk by produceState<dev.dyfeed.domain.learn.HskTable?>(dev.dyfeed.domain.learn.Hsk.ready) { value = dev.dyfeed.domain.learn.Hsk.get(context) }
+                Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    PracticeTile("听", "Listening", if (cards.size >= 4) "Hear a word, pick its meaning" else "Save 4 words first", Modifier.weight(1f), enabled = cards.size >= 4) { quizzing = true }
+                    PracticeTile("ā á", "Tones", "Hear a sound, pick its tone", Modifier.weight(1f)) { toning = true }
+                    val table = hsk
+                    val have = remember(cards) { cards.mapTo(HashSet()) { it.word } }
+                    val level = remember(cards, table) { table?.let { t -> (1..6).firstOrNull { lv -> have.count { t.level(it) == lv } < t.count(lv) } } ?: 1 }
+                    PracticeTile("HSK", "Basics", "+10 HSK $level words", Modifier.weight(1f), enabled = table != null && dictReady) {
+                        val d = Dict.ready ?: return@PracticeTile
+                        table?.next(level, have, 10)?.forEach { w -> d.lookup(w).firstOrNull()?.let { WordBook.add(it, example = null) } }
                     }
                 }
             }
@@ -174,7 +184,7 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 if (frequent.isNotEmpty()) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(Modifier.weight(1f)) { Section("Often heard · 常见词") }
+                            Box(Modifier.weight(1f)) { Section("From your videos · 常见词") }
                             androidx.compose.material3.TextButton(
                                 onClick = { frequent.forEach { (t, _) -> WordBook.add(t.entries.first(), example = captions.firstOrNull { t.text in it }) } },
                                 modifier = Modifier.padding(end = 8.dp),
@@ -209,84 +219,72 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     }
                 }
             }
-            // Today's trending topics, in English and pinyin: tap one for its words, hold to watch.
-            item {
-                val trending by produceState(emptyList<String>()) { value = vm.trending().take(6) }
-                if (trending.isNotEmpty()) Column {
-                    Section("Today on Douyin · 热搜")
-                    trending.forEach { topic ->
-                        val en = dev.dyfeed.ui.common.rememberEnglish(topic, force = true)
-                        Column(
-                            Modifier.fillMaxWidth()
-                                .combinedClickableCompat(onClick = { LearnWords.request.value = topic }, onLongClick = { nav.navigate(Routes.tag(topic)) })
-                                .padding(horizontal = 20.dp, vertical = 8.dp),
-                        ) {
-                            (if (dictReady) pinyinLine(topic) else null)?.let { Text(it, color = Color(0xFFFFD58A), style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-                            Text(topic, style = MaterialTheme.typography.bodyLarge, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                            en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-                        }
+            if (cards.isNotEmpty()) {
+                item {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(Modifier.weight(1f)) { Section("Your words · 生词本 (${cards.size})") }
+                        // Out to Anki, a spreadsheet or notes: word, pinyin, meaning, where you met it.
+                        androidx.compose.material3.TextButton(
+                            onClick = {
+                                val send = android.content.Intent(android.content.Intent.ACTION_SEND)
+                                    .setType("text/plain")
+                                    .putExtra(android.content.Intent.EXTRA_SUBJECT, "My Chinese words")
+                                    .putExtra(android.content.Intent.EXTRA_TEXT, dev.dyfeed.domain.learn.exportWords(cards))
+                                context.startActivity(android.content.Intent.createChooser(send, "Share your words"))
+                            },
+                            modifier = Modifier.padding(end = 8.dp),
+                        ) { Text("Share list") }
                     }
-                    Text("Tap for the words · hold to watch the videos", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.4f), modifier = Modifier.padding(horizontal = 20.dp))
                 }
-            }
-            // The last lines heard in videos (read off subtitles), in English: tap one for its words.
-            item {
-                val heard by dev.dyfeed.domain.learn.Heard.lines.collectAsState()
-                val recent = remember(heard) { heard.asReversed().distinct().take(5) }
-                if (recent.isNotEmpty()) Column {
-                    Section("Lines you heard · 听到的句子")
-                    recent.forEach { line ->
-                        val en = dev.dyfeed.ui.common.rememberEnglish(line, force = true)
-                        Column(Modifier.fillMaxWidth().clickable { LearnWords.request.value = line }.padding(horizontal = 20.dp, vertical = 6.dp)) {
-                            if (dictReady) pinyinColored(line)?.let { Text(it, style = MaterialTheme.typography.labelSmall, maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis) }
-                            Text(line, style = MaterialTheme.typography.bodyLarge, maxLines = 2, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                            en?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f), maxLines = 2) }
+                if (allWords) item {
+                    // Narrow the list down: what's due, single words, whole lines.
+                    androidx.compose.foundation.lazy.LazyRow(
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(WORD_FILTERS) { f ->
+                            androidx.compose.material3.FilterChip(selected = f == listFilter, onClick = { listFilter = f }, label = { Text(f) })
                         }
                     }
                 }
-            }
-            item { Section("Watch and learn · 看视频学中文") }
-            item {
-                Column(Modifier.padding(horizontal = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    TOPICS.chunked(2).forEach { pair ->
-                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            pair.forEach { (zh, en, hue) ->
-                                val pics by produceState(emptyList<String>(), zh) { value = vm.thumbs(zh) }
-                                TopicCard(zh, en, hue, Modifier.weight(1f), pics) { nav.navigate(Routes.tag(zh)) }
-                            }
-                            if (pair.size == 1) Spacer(Modifier.weight(1f))
+                val allShown = cards.sortedByDescending { it.addedAt }.filter { c ->
+                    when (listFilter) {
+                        "To review" -> c.due <= now
+                        "Words" -> c.word.length <= 4
+                        "Lines" -> c.word.length > 4
+                        else -> true
+                    }
+                }
+                // The latest few; the rest on request (a long list here buried everything else).
+                val shownCards = if (allWords) allShown else allShown.take(WORDS_PREVIEW)
+                items(shownCards, key = { it.word }) { c ->
+                    Row(
+                        Modifier.fillMaxWidth().clickable { Speak.say(context, c.word) }.padding(horizontal = 20.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(
+                            c.word,
+                            fontSize = if (c.word.length > 4) 15.sp else 22.sp,
+                            maxLines = 2,
+                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                            modifier = Modifier.width(if (c.word.length > 4) 128.dp else 88.dp),
+                        )
+                        Column(Modifier.weight(1f)) {
+                            Text(Pinyin.marks(c.pinyin), color = toneColor(Pinyin.tones(c.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
+                            Text(c.english, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.75f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
                         }
+                        val lv = dev.dyfeed.domain.learn.Hsk.ready?.level(c.word)
+                        Text((lv?.let { if (it >= 7) "HSK 7–9 · " else "HSK $it · " } ?: "") + strength(c), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
+                        IconButton(onClick = { WordBook.remove(c.word) }) { Icon(Icons.Filled.Close, contentDescription = "Remove ${c.word}", tint = Color.White.copy(alpha = 0.5f)) }
+                    }
+                }
+                if (allShown.size > WORDS_PREVIEW) item {
+                    androidx.compose.material3.TextButton(onClick = { allWords = !allWords }, modifier = Modifier.padding(horizontal = 8.dp)) {
+                        Text(if (allWords) "Show fewer" else "See all ${allShown.size}")
                     }
                 }
             }
-            // Start with the words learners learn first (HSK), the commonest first, ten at a time.
-            item {
-                val hsk by produceState<dev.dyfeed.domain.learn.HskTable?>(dev.dyfeed.domain.learn.Hsk.ready) { value = dev.dyfeed.domain.learn.Hsk.get(context) }
-                val table = hsk
-                if (table != null && dictReady) Column {
-                    Section("Learn the basics · HSK 汉语水平考试")
-                    Row(Modifier.padding(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        (1..3).forEach { lv ->
-                            val have = cards.mapTo(HashSet()) { it.word }
-                            val total = remember(table) { table.count(lv) }
-                            val known = remember(cards, table) { have.count { table.level(it) == lv } }
-                            Column(
-                                Modifier.weight(1f).clip(RoundedCornerShape(14.dp)).background(Color.White.copy(alpha = 0.07f))
-                                    .clickable {
-                                        val d = Dict.ready ?: return@clickable
-                                        table.next(lv, have, 10).forEach { w -> d.lookup(w).firstOrNull()?.let { WordBook.add(it, example = null) } }
-                                    }
-                                    .padding(12.dp),
-                            ) {
-                                Text("HSK $lv", fontWeight = FontWeight.Bold)
-                                Text("$known of $total saved", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f))
-                                Text("+ 10 words", style = MaterialTheme.typography.labelMedium, color = Accent, fontWeight = FontWeight.Bold)
-                            }
-                        }
-                    }
-                }
-            }
-            item { Section("Dictionary · 词典") }
+            item { Section("Look up a word · 词典") }
             item {
                 OutlinedTextField(
                     value = query,
@@ -320,126 +318,6 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     }
                 }
             }
-            if (cards.isNotEmpty()) {
-                item {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.weight(1f)) { Section("Your words · 生词本 (${cards.size})") }
-                        // Out to Anki, a spreadsheet or notes: word, pinyin, meaning, where you met it.
-                        androidx.compose.material3.TextButton(
-                            onClick = {
-                                val send = android.content.Intent(android.content.Intent.ACTION_SEND)
-                                    .setType("text/plain")
-                                    .putExtra(android.content.Intent.EXTRA_SUBJECT, "My Chinese words")
-                                    .putExtra(android.content.Intent.EXTRA_TEXT, dev.dyfeed.domain.learn.exportWords(cards))
-                                context.startActivity(android.content.Intent.createChooser(send, "Share your words"))
-                            },
-                            modifier = Modifier.padding(end = 8.dp),
-                        ) { Text("Share list") }
-                    }
-                }
-                item {
-                    // Narrow the list down: what's due, single words, whole lines.
-                    androidx.compose.foundation.lazy.LazyRow(
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        items(WORD_FILTERS) { f ->
-                            androidx.compose.material3.FilterChip(selected = f == listFilter, onClick = { listFilter = f }, label = { Text(f) })
-                        }
-                    }
-                }
-                val shownCards = cards.sortedByDescending { it.addedAt }.filter { c ->
-                    when (listFilter) {
-                        "To review" -> c.due <= now
-                        "Words" -> c.word.length <= 4
-                        "Lines" -> c.word.length > 4
-                        else -> true
-                    }
-                }
-                items(shownCards, key = { it.word }) { c ->
-                    Row(
-                        Modifier.fillMaxWidth().clickable { Speak.say(context, c.word) }.padding(horizontal = 20.dp, vertical = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(
-                            c.word,
-                            fontSize = if (c.word.length > 4) 15.sp else 22.sp,
-                            maxLines = 2,
-                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                            modifier = Modifier.width(if (c.word.length > 4) 128.dp else 88.dp),
-                        )
-                        Column(Modifier.weight(1f)) {
-                            Text(Pinyin.marks(c.pinyin), color = toneColor(Pinyin.tones(c.pinyin).firstOrNull() ?: 5), style = MaterialTheme.typography.labelLarge)
-                            Text(c.english, style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.75f), maxLines = 1, overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis)
-                        }
-                        val lv = dev.dyfeed.domain.learn.Hsk.ready?.level(c.word)
-                        Text((lv?.let { if (it >= 7) "HSK 7–9 · " else "HSK $it · " } ?: "") + strength(c), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.5f))
-                        IconButton(onClick = { WordBook.remove(c.word) }) { Icon(Icons.Filled.Close, contentDescription = "Remove ${c.word}", tint = Color.White.copy(alpha = 0.5f)) }
-                    }
-                }
-            }
-            item { Section("How it helps · 设置") }
-            // Tones: hear a syllable, name its tone.
-            item {
-                Row(
-                    Modifier.padding(start = 16.dp, end = 16.dp, top = 10.dp).fillMaxWidth().clip(RoundedCornerShape(18.dp))
-                        .background(Color.White.copy(alpha = 0.07f))
-                        .clickable { toning = true }
-                        .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Text("ā á ǎ à", color = Accent, fontWeight = FontWeight.Bold, fontSize = 18.sp)
-                    Spacer(Modifier.width(12.dp))
-                    Column(Modifier.weight(1f)) {
-                        Text("Tones · 声调", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                        Text("Hear a syllable, pick its tone", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.65f))
-                    }
-                }
-            }
-            // Pinyin over the feed's captions.
-            item {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Pinyin over captions", style = MaterialTheme.typography.titleSmall)
-                        Text("Every Chinese caption in the feed shows how it's said", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
-                }
-            }
-            item {
-                val autoPauseOn by LearnPrefs.autoPause.collectAsState()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Pause after each line", style = MaterialTheme.typography.titleSmall)
-                        Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
-                }
-            }
-            item {
-                val easyOn by LearnPrefs.easy.collectAsState()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("Easier Chinese first", style = MaterialTheme.typography.titleSmall)
-                        Text("For You leans toward captions made of beginner words (HSK 1–3)", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = easyOn, onCheckedChange = { on ->
-                        LearnPrefs.setEasy(on)
-                        // Its word lists have to be in memory for For You to use them.
-                        if (on) kotlinx.coroutines.MainScope().launch { Dict.get(context); dev.dyfeed.domain.learn.Hsk.get(context) }
-                    })
-                }
-            }
-            item {
-                val boostOn by LearnPrefs.boost.collectAsState()
-                Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
-                        Text("More videos with your words", style = MaterialTheme.typography.titleSmall)
-                        Text("For You leans toward captions that use words you're learning", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
-                    }
-                    Switch(checked = boostOn, onCheckedChange = LearnPrefs::setBoost)
-                }
-            }
             item {
                 Text(
                     "Dictionary: CC-CEDICT (MDBG, CC BY-SA 4.0). HSK lists: Complete HSK Vocabulary (drkameleon, MIT). Voice: your phone's text-to-speech. Translation: Google ML Kit, on the phone.",
@@ -447,6 +325,60 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                     color = Color.White.copy(alpha = 0.4f),
                     modifier = Modifier.padding(20.dp),
                 )
+            }
+        }
+    }
+    if (showSettings) {
+        androidx.compose.material3.ModalBottomSheet(onDismissRequest = { showSettings = false }) {
+            Column(Modifier.padding(bottom = 24.dp)) {
+                Text("Learn settings", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp))
+                Column {
+                // Pinyin over the feed's captions.
+                run {
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Pinyin over captions", style = MaterialTheme.typography.titleSmall)
+                            Text("Every Chinese caption in the feed shows how it's said", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        Switch(checked = pinyinOn, onCheckedChange = LearnPrefs::setPinyin)
+                    }
+                }
+                run {
+                    val autoPauseOn by LearnPrefs.autoPause.collectAsState()
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Pause after each line", style = MaterialTheme.typography.titleSmall)
+                            Text("Videos stop when a subtitle line ends, to read it before going on", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        Switch(checked = autoPauseOn, onCheckedChange = LearnPrefs::setAutoPause)
+                    }
+                }
+                run {
+                    val easyOn by LearnPrefs.easy.collectAsState()
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("Easier Chinese first", style = MaterialTheme.typography.titleSmall)
+                            Text("For You leans toward captions made of beginner words (HSK 1–3)", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        Switch(checked = easyOn, onCheckedChange = { on ->
+                            LearnPrefs.setEasy(on)
+                            // Its word lists have to be in memory for For You to use them.
+                            if (on) kotlinx.coroutines.MainScope().launch { Dict.get(context); dev.dyfeed.domain.learn.Hsk.get(context) }
+                        })
+                    }
+                }
+                run {
+                    val boostOn by LearnPrefs.boost.collectAsState()
+                    Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text("More videos with your words", style = MaterialTheme.typography.titleSmall)
+                            Text("For You leans toward captions that use words you're learning", style = MaterialTheme.typography.bodySmall, color = Color.White.copy(alpha = 0.6f))
+                        }
+                        Switch(checked = boostOn, onCheckedChange = LearnPrefs::setBoost)
+                    }
+                }
+
+                }
             }
         }
     }
@@ -705,36 +637,26 @@ private fun TonesTrainer(onDone: () -> Unit) {
     }
 }
 
+/** One kind of practice: a big symbol, its name, what it does. */
+@Composable
+private fun PracticeTile(symbol: String, title: String, note: String, modifier: Modifier = Modifier, enabled: Boolean = true, onClick: () -> Unit) {
+    Column(
+        modifier.clip(RoundedCornerShape(16.dp)).background(Color.White.copy(alpha = if (enabled) 0.08f else 0.04f))
+            .clickable(enabled = enabled, onClick = onClick).padding(12.dp),
+    ) {
+        Text(symbol, color = if (enabled) Accent else Color.White.copy(alpha = 0.35f), fontWeight = FontWeight.ExtraBold, fontSize = 20.sp, maxLines = 1)
+        Spacer(Modifier.height(6.dp))
+        Text(title, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, color = if (enabled) Color.White else Color.White.copy(alpha = 0.5f))
+        Text(note, style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.6f), maxLines = 2, minLines = 2)
+    }
+}
+
+/** Words shown in the list before "See all". */
+private const val WORDS_PREVIEW = 5
+
 @Composable
 private fun Section(text: String) {
     Text(text, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 22.dp, bottom = 10.dp))
-}
-
-@Composable
-private fun TopicCard(zh: String, en: String, hue: Float, modifier: Modifier, pics: List<String> = emptyList(), onClick: () -> Unit) {
-    Box(
-        modifier.height(if (pics.isEmpty()) 72.dp else 104.dp).clip(RoundedCornerShape(14.dp))
-            .background(Brush.linearGradient(listOf(Color.hsl(hue, 0.55f, 0.36f), Color.hsl((hue + 35f) % 360f, 0.6f, 0.2f))))
-            .clickable(onClick = onClick),
-    ) {
-        // A few of its videos, faded behind the name: what's inside, at a glance.
-        if (pics.isNotEmpty()) Row(Modifier.fillMaxSize()) {
-            pics.forEach { url ->
-                coil.compose.AsyncImage(
-                    model = url,
-                    contentDescription = null,
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                    modifier = Modifier.weight(1f).fillMaxSize(),
-                    alpha = 0.55f,
-                )
-            }
-        }
-        Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.65f)))))
-        Column(Modifier.align(Alignment.BottomStart).padding(horizontal = 14.dp, vertical = 10.dp)) {
-            Text(zh, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-            Text(en, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.labelMedium, maxLines = 1)
-        }
-    }
 }
 
 private fun strength(c: Card): String = when {
@@ -759,20 +681,3 @@ private const val SESSION = 20
 private const val DAILY_GOAL = 10
 private val WORD_FILTERS = listOf("All", "To review", "Words", "Lines")
 
-/** Douyin searches that bring up videos made for learners (and plain everyday speech). */
-private val TOPICS = listOf(
-    Triple("学中文", "Chinese for learners", 338f),
-    Triple("汉语拼音", "Pinyin and tones", 268f),
-    Triple("日常口语", "Everyday spoken Chinese", 205f),
-    Triple("汉字", "How characters work", 24f),
-    Triple("成语故事", "Idiom stories", 290f),
-    Triple("绕口令", "Tongue twisters", 12f),
-    Triple("儿歌", "Kids' songs: simple words", 190f),
-    Triple("中文歌曲", "Chinese songs", 318f),
-    Triple("古诗词", "Classic poems", 248f),
-    Triple("街头采访", "Street interviews", 352f),
-)
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-private fun Modifier.combinedClickableCompat(onClick: () -> Unit, onLongClick: () -> Unit): Modifier =
-    this.then(Modifier.combinedClickable(onClick = onClick, onLongClick = onLongClick))

@@ -1,3 +1,14 @@
+## 1.7.69 — 2026-11-21
+A simpler Learn
+
+- Learn is simpler. It had grown to eleven sections; now it's five:
+  1. **Review:** your words due today, with the daily goal.
+  2. **Practice:** three tiles side by side. Listening, Tones, and Basics (adds 10 HSK words at your level).
+  3. **From your videos:** the words that keep coming up in what you watch, with Save all.
+  4. **Your words:** the latest 5, with "See all" for the rest.
+  5. **Look up a word:** the dictionary.
+  The switches (pinyin over captions, pause after each line, easier Chinese first, more videos with your words) are behind the gear at the top. Trending topics, lines heard and the topic grid are gone from this page. What's said in a video is still in its Transcript.
+
 ## 1.7.68 — 2026-11-21
 Your feed, no AI, search that fits
 
