@@ -639,6 +639,36 @@ class SmokeTest {
         }
     }
 
+    /**
+     * For You follows what you want: with "more 美食" asked for, how much of what it serves is about
+     * food, and how much came from searches made for you (the user: "random crap" before).
+     */
+    @Test
+    fun forYouFollowsInterests() {
+        val a = rule.activity
+        dev.dyfeed.data.repo.SteerState.set(listOf(dev.dyfeed.domain.reco.Steer.Directive(dev.dyfeed.domain.reco.Steer.Kind.MORE, "美食")))
+        try {
+            runBlocking {
+                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Default)
+                val session = a.feedSessions.create(dev.dyfeed.data.repo.FeedSpec.Main(dev.dyfeed.domain.model.FeedMode.FOR_YOU), scope)
+                val got = ArrayList<dev.dyfeed.domain.model.MediaItem>()
+                val t0 = System.currentTimeMillis()
+                while (got.size < 36 && System.currentTimeMillis() - t0 < 90_000) {
+                    val r = session.loadMore()
+                    got += r.items
+                    if (r.items.isEmpty()) kotlinx.coroutines.delay(1_000)
+                }
+                session.close()
+                val later = got.drop(12) // the first screen is whatever was in hand
+                val food = later.count { dev.dyfeed.source.douyin.DouyinParser.relevance(it, "美食") >= 0.6 || it.tags.any { t -> "美食" in t || "吃" in t } }
+                val mine = later.count { it.extras["for_you"] != null || it.extras["via"] == "related" }
+                android.util.Log.i("PFHEALTH", "for you follows interests: ${got.size} posts; after the first screen ${later.size}: $food about food, $mine found for you")
+            }
+        } finally {
+            dev.dyfeed.data.repo.SteerState.clear()
+        }
+    }
+
     /** "More like this": a feed around one post finds posts that share its tags. */
     @Test
     fun moreLikeThis() {
