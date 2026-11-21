@@ -11,6 +11,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.async
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -210,7 +211,19 @@ class DouyinWeb @Inject constructor(
     /** How many page-fetched feed answers are waiting (without using them up). */
     fun waitingAnswers(): Int = captured.size
 
-    suspend fun harvest(waitMs: Long = 15_000): List<String> = awake { harvestNow(waitMs) }
+    /**
+     * What Douyin's own page has loaded for itself. One at a time: callers arriving while a fetch is
+     * under way share its answers, instead of each reloading the page (which restarted it for the
+     * others: the emulator showed the first batch held up by over a minute that way).
+     */
+    suspend fun harvest(waitMs: Long = 15_000): List<String> {
+        harvestInFlight?.let { running -> if (running.isActive) return runCatching { running.await() }.getOrDefault(emptyList()) }
+        val job = idleScope.async { awake { harvestNow(waitMs) } }
+        harvestInFlight = job
+        return try { job.await() } finally { if (harvestInFlight === job) harvestInFlight = null }
+    }
+
+    @Volatile private var harvestInFlight: kotlinx.coroutines.Deferred<List<String>>? = null
 
     private suspend fun harvestNow(waitMs: Long): List<String> {
         dev.dyfeed.player.StartTimes.mark("harvest: first call (waiting ${captured.size}, page ${System.currentTimeMillis() - loadedAt} ms old)")
@@ -443,8 +456,8 @@ class DouyinWeb @Inject constructor(
         private const val MAX_CAPTURED = 6
         private const val NUDGE_WAIT_MS = 7_000L
         private const val SECOND_BATCH_WAIT_MS = 800L
-        /** A page opened this recently is still bringing its first batch: wait for it, don't reload. */
-        private const val FRESH_PAGE_MS = 25_000L
+        /** A page opened this recently is still bringing its first batch: wait for it, don't reload (the emulator took up to 36 s). */
+        private const val FRESH_PAGE_MS = 40_000L
         private const val SECOND_PAGE_IDLE_MS = 120_000L
         /** Unused this long, the pages are paused (a feed pull or search wakes them at once). */
         private const val IDLE_PAUSE_MS = 6_000L

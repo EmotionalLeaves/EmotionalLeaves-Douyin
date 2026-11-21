@@ -97,6 +97,24 @@ class DouyinAdapter @Inject constructor(
         // Measured: the first batch reached the screen at 144 s when the address was tried first.
         if (!web.signedIn() || !directFeedGate.open) {
             dev.dyfeed.player.StartTimes.mark("feed: from the page (answers waiting: ${web.waitingAnswers()})")
+            // First pull, nothing waiting yet: race the page's own batch against Douyin's related
+            // videos for posts you watched before (ids don't expire, and related needs only the
+            // page's signer, which is there well before its own feed). Whichever comes first.
+            if (cursor == null && web.waitingAnswers() == 0) {
+                val seeds = synchronized(loaded) { loaded.toList() }.asReversed().filter { it.type == MediaType.VIDEO }.take(RELATED_SEEDS)
+                if (seeds.isNotEmpty()) {
+                    val first = kotlinx.coroutines.coroutineScope {
+                        val page = async { fromPage() }
+                        val related = async { relatedPosts(seeds).filterNot { seen.isSeen(it.key) }.distinctBy { it.id } }
+                        kotlinx.coroutines.selects.select<List<MediaItem>> {
+                            related.onAwait { r -> if (r.isNotEmpty()) { page.cancel(); r } else page.await() }
+                            page.onAwait { p -> if (p.isNotEmpty()) { related.cancel(); p } else related.await() }
+                        }
+                    }
+                    dev.dyfeed.player.StartTimes.mark("feed: first screen ${first.size} posts (related or page, whichever first)")
+                    return Page(first, next)
+                }
+            }
             val got = fromPage()
             dev.dyfeed.player.StartTimes.mark("feed: page gave ${got.size} posts")
             return Page(got, next)
@@ -742,6 +760,8 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
+        /** Posts watched before whose related videos make the first screen (one request each, in parallel). */
+        private const val RELATED_SEEDS = 3
         /** How long "the feed API gives visitors nothing playable" is trusted before trying it again. */
         private const val DIRECT_FEED_RECHECK_MS = 24 * 60 * 60_000L
         private const val MAX_WEB_RESULTS = 16

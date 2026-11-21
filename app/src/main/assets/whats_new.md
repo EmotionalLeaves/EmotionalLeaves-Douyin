@@ -1,3 +1,10 @@
+## 1.7.43 — 2026-11-20
+Snappy start
+
+- Faster start, second pass, from the test phone's timeline. Different parts of the app were each reloading Douyin's hidden page while another waited on it, which pushed the first posts past a minute. Now they share one fetch.
+- Faster first screen: at launch the app asks Douyin for videos related to ones you've watched before. That answers as soon as the page can sign requests, well before Douyin's page has fetched its own feed. The first to arrive fills the screen.
+- Includes 1.7.41–1.7.42: the bottom bar always stays and answers the first tap; AI-made posts hidden by default; no feed-address detour without an account; quick retries until the first post shows.
+
 ## 1.7.42 — 2026-11-20
 Snappy start
 

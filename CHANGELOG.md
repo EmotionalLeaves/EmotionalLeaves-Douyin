@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.43 — 2026-11-20
+- Single-flight harvest shared by callers; first pull races related-of-history against the page batch; FRESH_PAGE_MS 40 s.
+
 ## 1.7.42 — 2026-11-20
 - Signed out: recommended() always harvests the page (API skipped); VM retries every 2 s while nothing is shown; startup marks for each step.
 
