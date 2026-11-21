@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.72 — 2026-11-21
+- Persistent topic row (全部 + 5 learned + 14 channels) steering For You to only that topic with a fresh screen; live captions kept below it.
+
 ## 1.7.71 — 2026-11-21
 - Hold menu: Made with AI → not interested + item and creator blocked.
 

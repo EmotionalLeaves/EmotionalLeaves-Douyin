@@ -1,3 +1,14 @@
+## 1.7.72 — 2026-11-21
+Topics
+
+- Topics over For You, like Douyin's channels. A row under the tabs is always there:
+  - **全部 All** first.
+  - Then up to five things For You has learned you like.
+  - Then the usual channels: 美食 Food, 搞笑 Funny, 萌宠 Pets, 旅行 Travel, 风景 Scenery, 音乐 Music, 舞蹈 Dance, 体育 Sports, 游戏 Games, 动漫 Anime, 科技 Tech, 穿搭 Style, 汽车 Cars, 学中文 Learn.
+
+  Tap one and For You starts over with only that (it searches for it straight away). Tap it again, or 全部, for everything. It's the quickest way to say what you want to see.
+- Includes 1.7.71: "Made with AI · 是AI" in the hold menu hides the post and everything from that account.
+
 ## 1.7.71 — 2026-11-21
 Report AI
 

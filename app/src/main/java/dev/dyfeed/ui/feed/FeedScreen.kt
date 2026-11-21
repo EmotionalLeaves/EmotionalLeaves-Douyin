@@ -559,12 +559,37 @@ fun FeedScreen(nav: NavController, locked: Boolean, vm: FeedViewModel = hiltView
                 }
             }
         }
-        // For You being steered in words: say so under the tabs, with a way out.
+        // Topics, always there under the tabs, as Douyin's channels are: 全部 for everything, then
+        // what For You has learned you like, then the usual ones. Tap one for only that; tap 全部
+        // (or it again) for everything. The quickest way to say what you want to see.
         val steering by vm.steering.collectAsStateWithLifecycle()
-        if (!chipsOpen && vm.isMainFeed && mode == FeedMode.FOR_YOU && steering.isNotEmpty() && !landscape && !wallMode && !cleanOn) {
+        val showTopics = !chipsOpen && vm.isMainFeed && mode == FeedMode.FOR_YOU && !landscape && !wallMode && !cleanOn
+        if (showTopics) {
+            val liked by vm.likedTags.collectAsStateWithLifecycle()
+            LaunchedEffect(Unit) { vm.refreshLikedTags() }
+            val topics = remember(liked) {
+                (liked.filter { dev.dyfeed.domain.lang.Zh.has(it) && it.length in 2..6 }.take(PERSONAL_TOPICS) + DEFAULT_TOPICS.map { it.first }).distinct()
+            }
+            val only = steering.singleOrNull()?.takeIf { it.kind == dev.dyfeed.domain.reco.Steer.Kind.ONLY }?.tag
+            androidx.compose.foundation.lazy.LazyRow(
+                Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 52.dp).fillMaxWidth(),
+                contentPadding = PaddingValues(horizontal = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                item(key = "all") { TopicChip("全部", "All", selected = steering.isEmpty()) { vm.onlyTopic(null) } }
+                items(topics, key = { it }) { t ->
+                    val on = only == dev.dyfeed.domain.reco.Features.normalizeTag(t)
+                    val en = DEFAULT_TOPICS.firstOrNull { it.first == t }?.second ?: "yours"
+                    TopicChip(t, en, selected = on) { vm.onlyTopic(if (on) null else t) }
+                }
+            }
+        }
+        // For You being steered in words: say so under the topics, with a way out.
+        if (!chipsOpen && vm.isMainFeed && mode == FeedMode.FOR_YOU && steering.isNotEmpty() && !landscape && !wallMode && !cleanOn &&
+            steering.singleOrNull()?.kind != dev.dyfeed.domain.reco.Steer.Kind.ONLY) {
             SteerChip(
                 steering, onEdit = { steerOpen = true }, onClear = vm::clearSteer,
-                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 54.dp, start = 48.dp, end = 48.dp),
+                modifier = Modifier.align(Alignment.TopCenter).statusBarsPadding().padding(top = 96.dp, start = 48.dp, end = 48.dp),
             )
         }
         val asked by vm.thisOrThatRequest.collectAsStateWithLifecycle()
@@ -2334,6 +2359,30 @@ private suspend fun dominantHue(context: android.content.Context, url: String): 
 }
 
 /** A pill over the feed: one of your tastes (or All). */
+/** Topics always offered over For You (after your own): Douyin's big channels, Chinese with English. */
+private val DEFAULT_TOPICS = listOf(
+    "美食" to "Food", "搞笑" to "Funny", "萌宠" to "Pets", "旅行" to "Travel", "风景" to "Scenery",
+    "音乐" to "Music", "舞蹈" to "Dance", "体育" to "Sports", "游戏" to "Games", "动漫" to "Anime",
+    "科技" to "Tech", "穿搭" to "Style", "汽车" to "Cars", "学中文" to "Learn",
+)
+/** How many of your own learned interests lead the topic row. */
+private const val PERSONAL_TOPICS = 5
+
+/** One topic over For You: its name, and small English under it. */
+@Composable
+private fun TopicChip(zh: String, en: String, selected: Boolean, onClick: () -> Unit) {
+    Column(
+        Modifier.clip(RoundedCornerShape(50))
+            .background(if (selected) Color.White else Color.Black.copy(alpha = 0.35f))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(zh, color = if (selected) Color.Black else Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, maxLines = 1)
+        Text(en, color = if (selected) Color.Black.copy(alpha = 0.7f) else Color.White.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+    }
+}
+
 @Composable
 private fun TasteChip(label: String, selected: Boolean, onClick: () -> Unit) {
     Text(

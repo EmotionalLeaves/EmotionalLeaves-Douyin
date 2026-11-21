@@ -216,7 +216,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         val aspect = if (size != null && size.width > 0 && size.height > 0) size.width.toFloat() / size.height else 9f / 16f
         val shownH = minOf(maxHeight, maxWidth / aspect)
         val top = (maxHeight - shownH) / 2
-        val y = (top + shownH * lineY - 64.dp).coerceAtLeast(80.dp)
+        val y = (top + shownH * lineY - 64.dp).coerceAtLeast(112.dp) // (below the topic row)
         Column(
             Modifier.align(Alignment.TopCenter)
                 .offset(y = y)

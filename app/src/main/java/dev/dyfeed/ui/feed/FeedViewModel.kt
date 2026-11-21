@@ -359,6 +359,14 @@ class FeedViewModel @Inject constructor(
         }
     }
 
+    /** A topic from the row over For You: only that (null: everything again), from a fresh screen. */
+    fun onlyTopic(tag: String?) {
+        if (tag == null) dev.dyfeed.data.repo.SteerState.clear()
+        else dev.dyfeed.data.repo.SteerState.set(listOf(dev.dyfeed.domain.reco.Steer.Directive(dev.dyfeed.domain.reco.Steer.Kind.ONLY, dev.dyfeed.domain.reco.Features.normalizeTag(tag))))
+        setMode(FeedMode.FOR_YOU)
+        refresh()
+    }
+
     fun clearSteer() {
         if (dev.dyfeed.data.repo.SteerState.active.value.isEmpty()) return
         dev.dyfeed.data.repo.SteerState.clear()
