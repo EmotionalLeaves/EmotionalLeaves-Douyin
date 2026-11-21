@@ -173,7 +173,13 @@ fun LearnScreen(nav: NavController, vm: LearnViewModel = androidx.hilt.navigatio
                 }
                 if (frequent.isNotEmpty()) {
                     Column {
-                        Section("Words you keep hearing · 常见词")
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(Modifier.weight(1f)) { Section("Words you keep hearing · 常见词") }
+                            androidx.compose.material3.TextButton(
+                                onClick = { frequent.forEach { (t, _) -> WordBook.add(t.entries.first(), example = captions.firstOrNull { t.text in it }) } },
+                                modifier = Modifier.padding(end = 8.dp),
+                            ) { Text("Save all") }
+                        }
                         androidx.compose.foundation.lazy.LazyRow(
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
