@@ -223,6 +223,10 @@ class DouyinWeb @Inject constructor(
         return try { job.await() } finally { if (harvestInFlight === job) harvestInFlight = null }
     }
 
+    /** Feed answers the current page has brought, and when the last came. */
+    @Volatile private var answersThisPage = 0
+    @Volatile private var lastAnswerAt = 0L
+
     @Volatile private var harvestInFlight: kotlinx.coroutines.Deferred<List<String>>? = null
 
     private suspend fun harvestNow(waitMs: Long): List<String> {
@@ -237,10 +241,18 @@ class DouyinWeb @Inject constructor(
         // and wait for its first batch like any fresh page. (Reloading here restarted a page that
         // was half-loaded: the first posts came 15 s later than they would have.)
         if (web == null) startPage()
-        val sinceLoad = System.currentTimeMillis() - loadedAt
-        if (captured.isEmpty() && web != null && sinceLoad < FRESH_PAGE_MS) {
+        val now = System.currentTimeMillis()
+        val sinceLoad = now - loadedAt
+        // Only while it hasn't brought its first batch yet: once it has (and that's been taken),
+        // waiting the full time for another just stalls the feed (a pull took 40 s+ that way).
+        if (captured.isEmpty() && web != null && answersThisPage == 0 && sinceLoad < FRESH_PAGE_MS) {
             capturedSignal = CompletableDeferred()
             if (captured.isEmpty()) withTimeoutOrNull(FRESH_PAGE_MS - sinceLoad + 2_000) { capturedSignal.await() }
+        } else if (captured.isEmpty() && web != null && answersThisPage == 1 && now - lastAnswerAt < FOLLOW_UP_MS) {
+            // A fresh page fetches a second batch a few seconds after its first: wait for that
+            // rather than start the page over.
+            capturedSignal = CompletableDeferred()
+            if (captured.isEmpty()) withTimeoutOrNull(FOLLOW_UP_MS - (now - lastAnswerAt)) { capturedSignal.await() }
         }
         val worthNudging = nudgesWorked > 0 || nudgesFailed < 2
         if (captured.isEmpty() && web != null && worthNudging) {
@@ -352,6 +364,7 @@ class DouyinWeb @Inject constructor(
 
     private fun createPage(done: CompletableDeferred<Unit>) {
         dev.dyfeed.player.StartTimes.mark("douyin page opening")
+        answersThisPage = 0
         done.invokeOnCompletion { dev.dyfeed.player.StartTimes.mark("douyin page ready") }
         mainReady = done
         // The same web view when there is one: only the page inside starts over.
@@ -451,8 +464,11 @@ class DouyinWeb @Inject constructor(
                 if (isSearch || "/aweme/post" in url || !body.contains("aweme")) return
                 captured.addLast(body)
                 while (captured.size > MAX_CAPTURED) captured.pollFirst()
+                answersThisPage++
+                lastAnswerAt = System.currentTimeMillis()
                 capturedSignal.complete(Unit)
                 dev.dyfeed.player.StartTimes.mark("first feed answer captured")
+                if (answersThisPage <= 2) dev.dyfeed.player.StartTimes.mark("page answer $answersThisPage: ${android.net.Uri.parse(url).path} ${body.length / 1024} KB")
             }
         }
     }
@@ -477,6 +493,8 @@ class DouyinWeb @Inject constructor(
         private const val SECOND_BATCH_WAIT_MS = 800L
         /** A page opened this recently is still bringing its first batch: wait for it, don't reload (the emulator took up to 36 s). */
         private const val FRESH_PAGE_MS = 40_000L
+        /** A fresh page's second batch comes this soon after its first, if it comes (measured 3.5 s). */
+        private const val FOLLOW_UP_MS = 6_000L
         private const val SECOND_PAGE_IDLE_MS = 120_000L
         /** Unused this long, the pages are paused (a feed pull or search wakes them at once). */
         private const val IDLE_PAUSE_MS = 6_000L

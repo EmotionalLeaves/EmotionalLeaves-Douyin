@@ -1,3 +1,9 @@
+## 1.7.46 — 2026-11-20
+Faster pulls
+
+- Faster pulls after the first screen. Once Douyin's hidden page had brought its first batch, the next pull still waited up to 40 seconds for a "first batch" that had already come. Now it waits only a few seconds for the page's usual second batch, then moves on.
+- Includes 1.7.45: the page opens instead of restarting when the feed asks early, the real batch is taken when the first answer has nothing playable, and a word to learn while the feed loads.
+
 ## 1.7.45 — 2026-11-20
 Faster first posts, a word while you wait
 

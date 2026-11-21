@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.46 — 2026-11-20
+- Fresh-page wait only until the page's first answer; 6 s follow-up wait for its second; timeline marks for the page's first answers.
+
 ## 1.7.45 — 2026-11-20
 - Harvest opens a missing page instead of reloading it; fromPage takes a second answer when the first had nothing playable; loading screen teaches a word; page lifecycle timeline marks.
 
