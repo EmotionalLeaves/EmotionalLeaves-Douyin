@@ -1,3 +1,9 @@
+## 1.7.70 — 2026-11-21
+Closer to you
+
+- For You follows you more closely. Douyin's general feed now only fills the spots your own posts can't, using its best fits for you, and never more than needed. Before, whenever fewer than half a screen of your posts were ready, it competed for every spot. The test that asks for "more 美食" measured 14 of 24 posts about food with the old rule.
+- Asking For You for something ("more cats", "only food") now searches for it from the very first screen.
+
 ## 1.7.69 — 2026-11-21
 A simpler Learn
 

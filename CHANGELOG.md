@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.70 — 2026-11-21
+- General feed room = max(4, 12 - yours), best by base score; asked-for steers searched on the first load.
+
 ## 1.7.69 — 2026-11-21
 - Learn: review, practice row, words from your videos, 5-word list with See all, dictionary; settings in a gear sheet; trending/lines heard/topics removed.
 

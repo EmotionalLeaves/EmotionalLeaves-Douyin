@@ -208,7 +208,7 @@ class FeedSession(
         val searches: List<String>? = when {
             // Not on the very first load: they'd share Douyin's one hidden page with the feed
             // and hold up the first screen (startup measured at up to two minutes).
-            forYou && loads == 1 && shown.isEmpty() -> null
+            forYou && loads == 1 && shown.isEmpty() && SteerState.current().isEmpty() -> null
             forYou -> interestQueries()
             // Coomer creators are stored as "name@service"; search by the name.
             following -> (follows.creators.map { it.substringBefore('@') } + follows.tags)
@@ -482,10 +482,14 @@ class FeedSession(
             // (It's Douyin's feed for anyone at all: left to compete freely it filled For You with
             // "random stuff", as the user put it.)
             val mine = candidates.filter { it.extras[TARGETED] != null || it.extras[dev.dyfeed.source.douyin.DouyinParser.VIA] == "related" }
-            val choices = if (mine.size >= BATCH / 2) {
+            // The general feed fills only what yours can't (at least its share), best fits first.
+            // (Measured with "more 美食" asked for: 14 of 24 about food when it competed whenever
+            // yours ran short of half a screen.)
+            val generalRoom = maxOf(GENERAL_SHARE_OF_BATCH, BATCH - mine.size)
+            val choices = if (mine.isNotEmpty()) {
                 val general = candidates.filter { it.extras[TARGETED] == null && it.extras[dev.dyfeed.source.douyin.DouyinParser.VIA] != "related" }
                     .map { it to ranker.baseScore(it, aff.tags, aff.creators, now) }
-                    .sortedByDescending { it.second }.take(GENERAL_SHARE_OF_BATCH).map { it.first }
+                    .sortedByDescending { it.second }.take(generalRoom).map { it.first }
                 mine + general
             } else candidates
             // With the taste engine: slots take turns between your interests, scored on the map of meaning.
