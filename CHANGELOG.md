@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.44 — 2026-11-20
+- Drop the related-of-history first-screen race (related addresses silent on the emulator); tag related posts via=related in failure reasons.
+
 ## 1.7.43 — 2026-11-20
 - Single-flight harvest shared by callers; first pull races related-of-history against the page batch; FRESH_PAGE_MS 40 s.
 

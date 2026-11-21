@@ -272,6 +272,9 @@ object DouyinParser {
         return false
     }
 
+    /** Extra key: which Douyin answer a post came from, when it's worth telling apart (e.g. "related"). */
+    const val VIA = "via"
+
     /** Extra key: what the video says on screen (its subtitles), as Douyin read it. */
     const val SCREEN_TEXT = "ocr"
     private const val MAX_SCREEN_TEXT = 600

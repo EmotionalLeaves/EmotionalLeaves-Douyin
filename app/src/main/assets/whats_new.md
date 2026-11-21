@@ -1,3 +1,10 @@
+## 1.7.44 — 2026-11-20
+Snappy start, fixed
+
+- Fixes 1.7.43: the "related videos" first screen it tried filled the feed with posts whose video servers never sent anything to the test phone, so it's gone. The first screen comes from Douyin's own page again, which the test phone now shows about 16 seconds after a fresh install (it was 89+ seconds).
+- Keeps 1.7.43's main fix: parts of the app no longer reload Douyin's hidden page on each other, so posts aren't held up for a minute.
+- Includes 1.7.41–1.7.42: the bottom bar always stays and answers the first tap; AI-made posts hidden by default; quick retries until the first post shows.
+
 ## 1.7.43 — 2026-11-20
 Snappy start
 

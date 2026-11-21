@@ -229,7 +229,7 @@ fun VideoPage(
     val nextAddress = androidx.compose.runtime.rememberUpdatedState { code: String, why: String ->
         val failedUrl = (stream as? StreamInfo.Direct)?.url
         val host = failedUrl?.let { android.net.Uri.parse(it).host }.orEmpty()
-        val reason = "$why [$host, ${tried.size + 1} tried]"
+        val reason = "$why [$host, ${tried.size + 1} tried${item.extras[dev.dyfeed.source.douyin.DouyinParser.VIA]?.let { ", via $it" } ?: ""}]"
         tried = tried + listOfNotNull(failedUrl)
         if (tried.size > MAX_ADDRESS_TRIES || item.sourceId != dev.dyfeed.source.douyin.DouyinParser.SOURCE_ID) { error = code; vm.markBroken(item, reason) }
         else copyScope.launch {
