@@ -518,6 +518,10 @@ class SmokeTest {
         // How much of what Douyin sends is AI (all of it hidden, by default): the filter's catch.
         val inHand = douyin.readyPosts(300)
         val ai = inHand.filter(dev.dyfeed.domain.filter.AiArt::isAi)
+        // A sample of what got through, to look over for AI the filter missed.
+        inHand.filterNot(dev.dyfeed.domain.filter.AiArt::isAi).shuffled().take(25).forEachIndexed { i, p ->
+            android.util.Log.i("PFHEALTH", "douyin passed $i: ${p.creator ?: ""} | ${(p.title ?: "").take(50)} | ${p.tags.take(4).joinToString(",")}")
+        }
         android.util.Log.i("PFHEALTH", "douyin ai filter: ${ai.size} of ${inHand.size} posts caught; e.g. " + ai.take(5).joinToString(" | ") { (it.creator ?: "") + ": " + (it.title ?: "").take(30) })
         val g0 = System.currentTimeMillis()
         val sug = runCatching { runBlocking { douyin.suggest("火锅") } }
