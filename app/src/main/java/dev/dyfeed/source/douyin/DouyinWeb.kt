@@ -415,18 +415,23 @@ class DouyinWeb @Inject constructor(
                 val done = onReady() ?: return
                 if (done.isCompleted) return
                 // Wait for Douyin's signer script to install itself, then a moment more.
-                view.postDelayed(object : Runnable {
+                // On the main looper, not view.postDelayed: this web view is never attached to a
+                // window, and a detached view keeps posted work until it is attached, which is
+                // never. So the page never counted as ready, and every signed request after each
+                // page load waited out the whole 14 s timeout first (seen in the start-up timeline).
+                val main = android.os.Handler(android.os.Looper.getMainLooper())
+                main.postDelayed(object : Runnable {
                     var tries = 0
                     override fun run() {
                         view.evaluateJavascript(SIGNER_PRESENT_JS) { v ->
                             if (v == "true" || ++tries >= 20) {
                                 if (!bridge.search) dev.dyfeed.player.StartTimes.mark("douyin signer ${if (v == "true") "found" else "not found"} after $tries checks")
-                                view.postDelayed({ done.complete(Unit) }, 800)
-                                view.onPause() // stops animations; scripts keep running
-                            } else view.postDelayed(this, 500)
+                                main.postDelayed({ done.complete(Unit) }, SIGNER_SETTLE_MS)
+                                // (No onPause here: it would slow the page's own timers, and its next batch.)
+                            } else main.postDelayed(this, 250)
                         }
                     }
-                }, 500)
+                }, 250)
             }
 
             override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
@@ -599,6 +604,8 @@ class DouyinWeb @Inject constructor(
             })();
         """.trimIndent()
         private const val READY_TIMEOUT_MS = 14_000L
+        /** After the signer appears, a moment for it to finish setting itself up. */
+        private const val SIGNER_SETTLE_MS = 300L
 
         /** Measured before the first batch: mcs ×36, mon ×9, the APM scripts ×6 (see the start-up timeline). */
         private val SKIP_HOSTS = listOf("mcs.zijieapi.com", "mon.zijieapi.com", "ibytedapm.com")

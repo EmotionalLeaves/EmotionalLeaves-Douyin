@@ -1,3 +1,9 @@
+## 1.7.50 — 2026-11-20
+No more 14-second waits
+
+- Searches, comments and creator pages answer up to 14 seconds sooner. Douyin's hidden page was never marked "ready", so the first request after each page load sat out a 14-second timeout before going ahead. It now goes as soon as Douyin's request signer is in place.
+- Includes 1.7.49: the hidden page skips Douyin's usage logging, performance monitoring and styling, and uses less memory.
+
 ## 1.7.49 — 2026-11-20
 Lighter Douyin page
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.50 — 2026-11-20
+- Page readiness check ran via view.postDelayed on a never-attached WebView (never ran): use the main looper; no onPause.
+
 ## 1.7.49 — 2026-11-20
 - Skip mcs/mon zijieapi, ibytedapm and CSS in the hidden page; MAX_CAPTURED 4.
 
