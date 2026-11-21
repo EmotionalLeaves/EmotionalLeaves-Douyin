@@ -1,3 +1,9 @@
+## 1.7.42 — 2026-11-20
+Snappy start
+
+- Faster start, measured: on the test phone Douyin's posts arrived 24 seconds after launch but reached the screen at 144 seconds. Three fixes for that gap. Without an account the app now never asks Douyin's feed address (it never plays for visitors) and takes the posts Douyin's own page has already loaded. Until the first post shows, it checks again every 2 seconds instead of backing off up to 30. And at launch the feed has Douyin's page to itself.
+- Includes 1.7.41 (its build stopped on the slow start): the bottom bar always stays put and answers the first tap; AI-made posts are hidden by default (Douyin's AI label, AI绘画, AI创作, AIGC, 数字人…).
+
 ## 1.7.41 — 2026-11-20
 Snappier start, a bar that stays, no AI
 

@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.42 — 2026-11-20
+- Signed out: recommended() always harvests the page (API skipped); VM retries every 2 s while nothing is shown; startup marks for each step.
+
 ## 1.7.41 — 2026-11-20
 - First For You load holds interest searches; harvest waits for a fresh page's own batch (no nudge/reload within 25 s); no reload on bad answers while loading; second-batch wait 0.8 s; startup timeline + cold start with pm clear in CI; bottom bar never fades/tucks; Chinese AI terms + Douyin AIGC label; hideAiArt on by default (migration 2).
 

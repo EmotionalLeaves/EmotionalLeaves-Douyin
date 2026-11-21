@@ -187,6 +187,7 @@ class FeedSession(
         if (loads == 1 && spec is FeedSpec.Similar) seed += dev.dyfeed.domain.reco.Related.of(spec.seedKey)
 
         // Pick up anything that finished in the background since the last call.
+        if (loads == 1 && spec is FeedSpec.Main) dev.dyfeed.player.StartTimes.mark("feed session: first load asked")
         val errors = collect(follows, tag, mode).toMutableList()
         val instantStart = loads == 1 && candidates.size >= BATCH
         val forYou = spec is FeedSpec.Main && mode == FeedMode.FOR_YOU

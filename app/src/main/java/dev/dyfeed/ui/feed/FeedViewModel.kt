@@ -424,8 +424,11 @@ class FeedViewModel @Inject constructor(
     /** Sources were slow or briefly failing: try again shortly (backing off) if the user is near the end. */
     private fun scheduleRetry(s: FeedSession) {
         retryJob?.cancel()
-        val wait = retryDelayMs
-        retryDelayMs = (retryDelayMs * 2).coerceAtMost(RETRY_MAX_MS)
+        // Nothing on screen yet: keep asking every couple of seconds (the posts are often minutes
+        // into a back-off otherwise: the first screen was measured at 144 s). Backing off is for later.
+        val empty = items.value.isEmpty()
+        val wait = if (empty) RETRY_MIN_MS else retryDelayMs
+        if (!empty) retryDelayMs = (retryDelayMs * 2).coerceAtMost(RETRY_MAX_MS)
         retryJob = viewModelScope.launch {
             delay(wait)
             if (s === session && lastSettled >= items.value.size - LOAD_AHEAD) loadMore()

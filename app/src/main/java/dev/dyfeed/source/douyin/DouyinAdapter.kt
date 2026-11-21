@@ -92,7 +92,15 @@ class DouyinAdapter @Inject constructor(
         // (1.4 MB of nothing playable). After two such answers, go straight to what its own page
         // loads, which plays: saves seconds on every pull. Signing in tries the address again.
         resetIfSignInChanged()
-        if (!directFeedGate.open) return Page(fromPage(), next)
+        // Without an account (and accounts need a Chinese phone number), the feed address never
+        // gives anything playable: take what Douyin's own page loads, already waiting from launch.
+        // Measured: the first batch reached the screen at 144 s when the address was tried first.
+        if (!web.signedIn() || !directFeedGate.open) {
+            dev.dyfeed.player.StartTimes.mark("feed: from the page (answers waiting: ${web.waitingAnswers()})")
+            val got = fromPage()
+            dev.dyfeed.player.StartTimes.mark("feed: page gave ${got.size} posts")
+            return Page(got, next)
+        }
         val root = try { callFeed(index) } catch (e: SourceException) {
             if (e.httpCode == 429) throw e
             directFeedGate.attempt { emptyList<Unit>() }

@@ -213,6 +213,7 @@ class DouyinWeb @Inject constructor(
     suspend fun harvest(waitMs: Long = 15_000): List<String> = awake { harvestNow(waitMs) }
 
     private suspend fun harvestNow(waitMs: Long): List<String> {
+        dev.dyfeed.player.StartTimes.mark("harvest: first call (waiting ${captured.size}, page ${System.currentTimeMillis() - loadedAt} ms old)")
         // First the cheap way: move the open page along (as pressing ↓ does on douyin.com), which
         // makes it fetch its next batch. Only if that brings nothing, start a fresh page.
         // Stops trying once it has failed twice without ever working (the emulator showed Douyin
