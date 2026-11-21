@@ -109,6 +109,12 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         var frame: Bitmap? = null
         var lastSig: LongArray? = null
         var misses = 0
+        // Where this video's subtitles sit (a fraction of its height), once found: from then on only
+        // that band is read, a third of the area, so each line is read about three times faster
+        // (the whole lower half took 3 s a read on the test phone). Back to the whole area if the
+        // band has nothing a few times running.
+        var band: Float? = null
+        var bandMisses = 0
         try {
             while (true) {
                 delay(if (misses > MISSES_BEFORE_SLOWING) SLOW_MS else EVERY_MS)
@@ -134,8 +140,8 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     }.onFailure { cont.resume(false) }
                 }
                 if (!copied) continue
-                val top = (h * 0.42f).toInt()
-                val bottom = (h * 0.96f).toInt()
+                val top = band?.let { (h * (it - BAND_HALF)).toInt().coerceIn((h * 0.42f).toInt(), h - 2) } ?: (h * 0.42f).toInt()
+                val bottom = band?.let { (h * (it + BAND_HALF)).toInt().coerceIn(top + 1, (h * 0.96f).toInt().coerceAtLeast(top + 1)) } ?: (h * 0.96f).toInt()
                 // Nothing changed where subtitles go: the same line (or none) is still up.
                 val sig = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Default) { LiveSubs.signature(f, top, bottom) }
                 val prev = lastSig
@@ -152,6 +158,7 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                 }
                 if (line == null) {
                     misses++
+                    if (band != null && ++bandMisses >= BAND_GIVE_UP) { band = null; bandMisses = 0; lastSig = null }
                     // Learn → Pause after each line: stop here so the English can be read.
                     // Learn → Pause after each line: stop here, its English left up to be read.
                     if (current != null && LearnPrefs.autoPause.value) {
@@ -167,7 +174,10 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
                     continue
                 }
                 misses = 0
-                val y = lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }?.let { it.centerY - it.height } ?: lineY
+                bandMisses = 0
+                val found = lines.filter { line.endsWith(it.text.replace(" ", "")) }.maxByOrNull { it.centerY }
+                if (band == null && found != null) { band = found.centerY; lastSig = null }
+                val y = found?.let { it.centerY - it.height } ?: lineY
                 if (LiveSubs.same(current?.zh, line)) { current?.let { it.end = pos }; continue }
                 current?.let { it.end = pos }
                 // One line straight into the next: pause on the change, showing the line just ended.
@@ -274,3 +284,7 @@ private const val SLOW_MS = 500L
 private const val MISSES_BEFORE_SLOWING = 60
 /** Wide enough for subtitle text to be read reliably, small enough to copy four times a second. */
 private const val MAX_WIDTH = 480
+/** Half the height of the band read once the subtitles' place is known (a fraction of the video's height). */
+private const val BAND_HALF = 0.07f
+/** Changed frames with nothing read in the band before the whole area is read again. */
+private const val BAND_GIVE_UP = 8

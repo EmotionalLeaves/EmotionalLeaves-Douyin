@@ -231,7 +231,7 @@ class DouyinAdapter @Inject constructor(
         if (cursor == LATE) {
             val (shown, work) = lateSearches.remove(q) ?: return Page(emptyList(), null)
             val late = kotlinx.coroutines.withTimeoutOrNull(LATE_WAIT_MS) { work.await() }.orEmpty()
-            return Page(late.distinctBy { it.id }.filter { it.id !in shown }.sortedBy { !DouyinParser.matches(it, q) }, null)
+            return Page(late.distinctBy { it.id }.filter { it.id !in shown }.let { focus(it, q) }, null)
         }
         val offset = cursor?.toIntOrNull() ?: 0
         // Signed out, the search API always says "sign in first": don't spend the time asking.
@@ -273,12 +273,12 @@ class DouyinAdapter @Inject constructor(
         val waiting = ways.filterNot { it.isCompleted }
         val found = done.flatMap { it.getCompleted() }
         // Posts that contain every word of the search first; related ones after (order kept within each).
-        val all = found.distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
+        val all = found.distinctBy { it.id }.let { focus(it, q) }
         if (waiting.isEmpty() || all.isEmpty()) {
             if (waiting.isNotEmpty()) {
                 // Nothing yet from the quick ways: wait for the rest after all.
                 val rest = kotlinx.coroutines.withTimeoutOrNull(LATE_WAIT_MS) { waiting.flatMap { it.await() } }.orEmpty()
-                val everything = (found + rest).distinctBy { it.id }.sortedBy { !DouyinParser.matches(it, q) }
+                val everything = (found + rest).distinctBy { it.id }.let { focus(it, q) }
                 if (everything.isEmpty()) direct.exceptionOrNull()?.let { throw it }
                 return Page(everything, null)
             }
@@ -287,6 +287,16 @@ class DouyinAdapter @Inject constructor(
         }
         lateSearches[q] = all.mapTo(HashSet()) { it.id } to indexScope.async { waiting.flatMap { it.await() } }
         return Page(all, LATE)
+    }
+
+    /**
+     * Search results best-fitting first; and when enough really fit, only those (a search also brings
+     * Douyin's related and trending posts, which buried the real results: "search doesn't work").
+     */
+    private fun focus(items: List<MediaItem>, q: String): List<MediaItem> {
+        val scored = items.map { it to DouyinParser.relevance(it, q) }.sortedByDescending { it.second }
+        val good = scored.count { it.second >= GOOD_FIT }
+        return (if (good >= ENOUGH_GOOD) scored.filter { it.second >= LOOSE_FIT } else scored).map { it.first }
     }
 
     /** Searches whose slower ways were still out when the first page went back: (ids shown, the rest). */
@@ -826,6 +836,9 @@ class DouyinAdapter @Inject constructor(
         /** The slower ways get this long more, as the second page. */
         private const val LATE_WAIT_MS = 30_000L
         private const val LATE = "late"
+        private const val GOOD_FIT = 0.6
+        private const val LOOSE_FIT = 0.34
+        private const val ENOUGH_GOOD = 8
         /** Where the posts already in hand sit among the search's ways. */
         private const val FROM_FEED_AT = 3
         private const val RACE_MS = 2_500L

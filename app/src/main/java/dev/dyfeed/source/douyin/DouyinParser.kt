@@ -336,6 +336,39 @@ object DouyinParser {
         return words.all { it in hay }
     }
 
+    /**
+     * How well [item] fits the search [q], 0–1: each word of it found in the caption, tags or
+     * creator counts 1; a Chinese word that isn't there whole counts for the share of its
+     * two-character pieces that are ("有趣的猫" against "猫咪太有趣了"), small words like 的 aside.
+     */
+    fun relevance(item: MediaItem, q: String): Double {
+        val words = q.lowercase().split(Regex("""\s+""")).map { it.removePrefix("#") }.filter { it.isNotBlank() }
+        if (words.isEmpty()) return 0.0
+        val hay = buildString {
+            append(item.title.orEmpty().lowercase()); append(' ')
+            item.tags.forEach { append(it.lowercase()); append(' ') }
+            append(item.creator.orEmpty().lowercase())
+        }
+        return words.sumOf { w ->
+            when {
+                w in hay -> 1.0
+                w.any { dev.dyfeed.domain.lang.Zh.has(it.toString()) } -> {
+                    val core = w.filterNot { it in FILLER }
+                    if (core.length <= 1) (if (core.isNotEmpty() && core in hay) 1.0 else 0.0)
+                    else {
+                        // Half for its two-character pieces, half for its characters (word order varies).
+                        val pieces = core.windowed(2)
+                        val chars = core.toSet()
+                        0.5 * pieces.count { it in hay } / pieces.size + 0.5 * chars.count { it in hay } / chars.size
+                    }
+                }
+                else -> 0.0
+            }
+        } / words.size
+    }
+
+    private const val FILLER = "的了是在和与吗呢吧啊很太也都就"
+
     /** "重庆火锅太好吃了 #美食 #重庆 @小王" → "重庆火锅太好吃了"; null if nothing else is left. */
     fun caption(desc: String): String? =
         desc.replace(HASHTAG, " ").replace(MENTION, " ").replace(Regex("""\s+"""), " ").trim().takeIf { it.isNotEmpty() }

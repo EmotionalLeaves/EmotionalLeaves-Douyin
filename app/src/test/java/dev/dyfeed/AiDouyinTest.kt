@@ -22,6 +22,15 @@ class AiDouyinTest {
         assertTrue(AiArt.isAi(post("小猫", extras = mapOf(AiArt.AI_LABEL to "1"))))
         assertFalse(AiArt.isAi(post("重庆火锅太好吃了 #美食")))
         assertFalse(AiArt.isAi(post("爱情故事 爱你一万年"))) // 爱 isn't "ai"
+        // Stricter (the user wants none): "AI" alone, the AI tools' names, AI singers and presenters.
+        assertTrue(AiArt.isAi(post("用AI做了一个视频，太真实了")))
+        assertTrue(AiArt.isAi(post("新作品", tags = listOf("即梦"))))
+        assertTrue(AiArt.isAi(post("可灵生成的猫猫跳舞")))
+        assertTrue(AiArt.isAi(post("虚拟主播今天唱歌")))
+        assertTrue(AiArt.isAi(post("小猫咪", extras = emptyMap()).copy(creator = "AI小助手")))
+        // But not words that merely contain the letters.
+        assertFalse(AiArt.isAi(post("Thai food 泰国美食 paint the wall")))
+        assertFalse(AiArt.isAi(post("重庆火锅太好吃了 #美食 #探店")))
     }
 
     @Test

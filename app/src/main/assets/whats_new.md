@@ -1,3 +1,16 @@
+## 1.7.68 — 2026-11-21
+Your feed, no AI, search that fits
+
+- For You is built around you. Posts found for your interests, and Douyin's "related" videos for ones you enjoyed, now fill most of each screen: at most 4 in 12 come from Douyin's general feed, and only its best fits for you. Before, Douyin's feed for anyone at all could take the whole screen. It also searches 4 of your interests per round, up from 2, and those posts always make it into the pool.
+- No AI, as far as it can tell. The filter is much stricter:
+  - "AI" on its own in a caption, tag or creator's name (用AI做的, #AI, AI小助手)
+  - AI tools' names (即梦, 可灵, 海螺AI, 通义万相, Sora, Midjourney…)
+  - AI singers, presenters and 虚拟人
+  - "内容由AI生成"
+  A post that's only about AI also goes; that's the trade for none getting through.
+- Search shows what you searched for. When enough results really fit, only those are shown; Douyin's loosely related and trending extras no longer bury them. A Chinese search also matches posts that say it in other words (有趣的猫 finds 猫咪太有趣了).
+- Live captions read faster. Once the app knows where a video's subtitles sit, it reads only that strip, about a third of the area, so each line is read roughly three times faster.
+
 ## 1.7.67 — 2026-11-21
 Faster auto captions
 

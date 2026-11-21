@@ -564,9 +564,15 @@ class SmokeTest {
         val r0 = System.currentTimeMillis()
         val again = runBlocking { kotlinx.coroutines.withTimeoutOrNull(20_000) { dev.dyfeed.ui.learn.Reader.lines(crop, top, 720, 1280) } }.orEmpty()
         val readMs = System.currentTimeMillis() - r0
+        // Once the subtitles' place is known only a band around it is read (as the app does).
+        val bandTop = (1280 * (1000f / 1280 - 0.07f)).toInt()
+        val bandCrop = android.graphics.Bitmap.createBitmap(bmp, 0, bandTop, 720, (1280 * 0.14f).toInt())
+        val b0 = System.currentTimeMillis()
+        val inBand = runBlocking { kotlinx.coroutines.withTimeoutOrNull(20_000) { dev.dyfeed.ui.learn.Reader.lines(bandCrop, bandTop, 720, 1280) } }.orEmpty()
+        val bandMs = System.currentTimeMillis() - b0
         val t0 = System.currentTimeMillis()
         val en = runBlocking { dev.dyfeed.domain.lang.ChineseToEnglish.translate(dev.dyfeed.domain.learn.LiveSubs.pick(again) ?: "我们今天去吃火锅") }
-        android.util.Log.i("PFHEALTH", "translate: live subtitles read ${lines.map { it.text }} → $picked; warm: read in $readMs ms, English in ${System.currentTimeMillis() - t0} ms (${en.getOrNull()})")
+        android.util.Log.i("PFHEALTH", "translate: live subtitles read ${lines.map { it.text }} → $picked; warm: read in $readMs ms (band: $bandMs ms, ${dev.dyfeed.domain.learn.LiveSubs.pick(inBand)}), English in ${System.currentTimeMillis() - t0} ms (${en.getOrNull()})")
         // The reader comes from Play services; where the emulator has none, nothing to check.
         org.junit.Assume.assumeTrue(lines.isNotEmpty())
         assertTrue("subtitle read: $picked", picked?.contains("火锅") == true)

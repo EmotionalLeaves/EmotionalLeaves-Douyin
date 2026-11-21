@@ -352,7 +352,10 @@ class FeedSession(
                 result.onSuccess { page ->
                     interestCursors[id] = page.nextCursor
                     if (page.nextCursor == null) interestDone += id
-                    incoming += page.items
+                    // Posts that really are about the interest searched for are marked as yours (a
+                    // search also brings loosely related ones: those count as the general feed).
+                    val q = id.substringAfterLast('|')
+                    incoming += page.items.map { if (aboutQuery(it, q)) it.copy(extras = it.extras + (TARGETED to "interest")) else it }
                 }.onFailure {
                     val n = (failures[id] ?: 0) + 1
                     failures[id] = n
@@ -410,7 +413,8 @@ class FeedSession(
         val perOrigin = candidates.groupingBy { Spread.origin(it) }.eachCount().toMutableMap()
         items.shuffled().forEach { item ->
             val n = perSource[item.sourceId] ?: 0
-            if (n >= ((SOURCE_POOL_CAPS[item.sourceId] ?: PER_SOURCE_POOL_CAP) * (sourceRoom[item.sourceId] ?: 1.0)).toInt()) return@forEach
+            // (Posts found for your interests always get in: a pool full of the general feed mustn't keep them out.)
+            if (item.extras[TARGETED] == null && n >= ((SOURCE_POOL_CAPS[item.sourceId] ?: PER_SOURCE_POOL_CAP) * (sourceRoom[item.sourceId] ?: 1.0)).toInt()) return@forEach
             val origin = Spread.origin(item)
             val o = perOrigin[origin] ?: 0
             if (o >= PER_ORIGIN_POOL_CAP) return@forEach
@@ -473,9 +477,20 @@ class FeedSession(
         val batch = if (spec is FeedSpec.Main && mode == FeedMode.FOR_YOU) {
             val aff = signals.affinities()
             val ranker = Ranker(settings.get().weights)
+            // What's yours (found for your interests, or beside videos you enjoyed) gets most of the
+            // screen; Douyin's general visitor feed only the rest, and only its best-matching posts.
+            // (It's Douyin's feed for anyone at all: left to compete freely it filled For You with
+            // "random stuff", as the user put it.)
+            val mine = candidates.filter { it.extras[TARGETED] != null || it.extras[dev.dyfeed.source.douyin.DouyinParser.VIA] == "related" }
+            val choices = if (mine.size >= BATCH / 2) {
+                val general = candidates.filter { it.extras[TARGETED] == null && it.extras[dev.dyfeed.source.douyin.DouyinParser.VIA] != "related" }
+                    .map { it to ranker.baseScore(it, aff.tags, aff.creators, now) }
+                    .sortedByDescending { it.second }.take(GENERAL_SHARE_OF_BATCH).map { it.first }
+                mine + general
+            } else candidates
             // With the taste engine: slots take turns between your interests, scored on the map of meaning.
             val picked = signals.engine.use { engine ->
-                ranker.rank(candidates, aff.tags, aff.creators, now, recentSources, limit = BATCH, recent = recentShown, allowForcedRun = allowForcedRun, recentOrigins = recentOrigins, engine = engine, steer = SteerState.current())
+                ranker.rank(choices, aff.tags, aff.creators, now, recentSources, limit = BATCH, recent = recentShown, allowForcedRun = allowForcedRun, recentOrigins = recentOrigins, engine = engine, steer = SteerState.current())
             }
             // Keep the pool bounded by dropping the weakest candidates.
             if (candidates.size - picked.size > POOL_MAX) {
@@ -622,7 +637,14 @@ class FeedSession(
         /** A candidate passed over for this many loads (~12 items each) is dropped. */
         private const val STALE_LOADS = 8
         private const val INTEREST_PREFIX = "interest|"
-        private const val INTERESTS_PER_LOAD = 2
+        /** Extra key: the post was found for one of your interests. */
+        private const val TARGETED = "for_you"
+        /** At most this many of a For You batch from Douyin's general feed, when yours can fill the rest. */
+        private const val GENERAL_SHARE_OF_BATCH = 4
+
+        /** Whether [item] is about [q] (its caption, tags or creator say so; see DouyinParser.relevance). */
+        internal fun aboutQuery(item: MediaItem, q: String): Boolean = dev.dyfeed.source.douyin.DouyinParser.relevance(item, q) >= 0.6
+        private const val INTERESTS_PER_LOAD = 4
         private const val SIMILAR_MEANING = 0.5
         private const val SIMILAR_LOOK = 0.3
         private const val SIMILAR_RELATED = 0.6

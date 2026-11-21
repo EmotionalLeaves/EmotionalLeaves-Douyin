@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.68 — 2026-11-21
+- For You: targeted (interest-matching, related-of-enjoyed) posts fill the batch, general feed capped at 4/12 and bypasses no caps; 4 interests per load; much stricter AI (lone AI token, tool names, virtual hosts); search fit scoring + focus; live captions read only the subtitle band once found.
+
 ## 1.7.67 — 2026-11-21
 - Pre-translate the next posts' captions (cached → shown at once); live captions poll every 150 ms, back off to 500 ms after ~10 s without text (was 2 s after 3 s); warm OCR and translator models.
 
