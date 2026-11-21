@@ -119,3 +119,8 @@ this file first, adds one entry at the bottom, and keeps the rules below.
   words (dictionary rebuilt keeping CL:), caption difficulty label, quick-entry fit on small phones,
   word-list filters; the More-like-this emulator check had been seeded with a Feed leftover query and
   never ran — now seeded from 美食.
+- 2026-11-20 (chat, rounds 191–205 → 1.7.33–1.7.39): user: Check sources took ~2 min. Feed API
+  (1.4 MB, unplayable for visitors) skipped after two tries and remembered for a day; Check sources
+  quick path (posts in hand + mirrors + one trending call, parallel): 2 min → 2.4 s measured; For You
+  60 posts 31 s → 21 s. Monkey found DouyinLoginActivity never declared in the manifest (Verify I'm
+  human crashed) — fixed, registration checked each run. Daily goal, tone trainer.
