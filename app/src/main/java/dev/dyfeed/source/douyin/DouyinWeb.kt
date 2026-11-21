@@ -435,6 +435,9 @@ class DouyinWeb @Inject constructor(
                 val path = u.path.orEmpty()
                 if (!bridge.search && answersThisPage == 0) hostsBeforeFirst.merge(host + if (path.endsWith(".js")) " js" else if (path.endsWith(".css")) " css" else "", 1, Int::plus)
                 val heavy = MEDIA_HOSTS.any { host.contains(it) } ||
+                    // Douyin's usage logging and performance monitoring, and the page's looks:
+                    // none of it is needed to fetch the feed, all of it held the first batch up.
+                    SKIP_HOSTS.any { host.endsWith(it) } || path.endsWith(".css", ignoreCase = true) ||
                     MEDIA_EXT.any { path.endsWith(it, ignoreCase = true) } ||
                     request.requestHeaders["Accept"]?.startsWith("image/") == true
                 return if (heavy) WebResourceResponse("text/plain", "utf-8", ByteArrayInputStream(ByteArray(0))) else null
@@ -497,7 +500,8 @@ class DouyinWeb @Inject constructor(
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"
 
         private const val PAGE_TTL_MS = 30 * 60_000L
-        private const val MAX_CAPTURED = 6
+        /** Page answers kept waiting (each is 1.5–3 MB of text, twice that in memory): enough for two pulls. */
+        private const val MAX_CAPTURED = 4
         private const val NUDGE_WAIT_MS = 7_000L
         private const val SECOND_BATCH_WAIT_MS = 800L
         /** A page opened this recently is still bringing its first batch: wait for it, don't reload (the emulator took up to 36 s). */
@@ -596,6 +600,8 @@ class DouyinWeb @Inject constructor(
         """.trimIndent()
         private const val READY_TIMEOUT_MS = 14_000L
 
+        /** Measured before the first batch: mcs ×36, mon ×9, the APM scripts ×6 (see the start-up timeline). */
+        private val SKIP_HOSTS = listOf("mcs.zijieapi.com", "mon.zijieapi.com", "ibytedapm.com")
         private val MEDIA_HOSTS = listOf("douyinvod.com", "douyinpic.com", "douyincdn.com", "zjcdn.com", "douyinliving.com")
         private val MEDIA_EXT = listOf(".mp4", ".m3u8", ".flv", ".jpg", ".jpeg", ".png", ".webp", ".heic", ".gif", ".woff", ".woff2", ".mp3")
 

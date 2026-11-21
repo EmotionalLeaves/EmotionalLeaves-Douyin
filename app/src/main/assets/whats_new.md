@@ -1,3 +1,10 @@
+## 1.7.49 — 2026-11-20
+Lighter Douyin page
+
+- Douyin's hidden page loads lighter. It no longer downloads Douyin's usage logging, performance monitoring or page styling. None of that is needed to fetch posts, and on the test phone it made up about 75 of the requests made before the first batch.
+- Uses less memory: fewer of Douyin's large feed answers (1.5–3 MB each) are kept waiting.
+- Includes 1.7.48: the first screen shows as soon as a few posts are in.
+
 ## 1.7.48 — 2026-11-20
 First screen sooner
 

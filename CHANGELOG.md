@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.49 — 2026-11-20
+- Skip mcs/mon zijieapi, ibytedapm and CSS in the hidden page; MAX_CAPTURED 4.
+
 ## 1.7.48 — 2026-11-20
 - First screen goes out at 4 candidates; log hosts fetched before the page's first answer; loop log.
 
