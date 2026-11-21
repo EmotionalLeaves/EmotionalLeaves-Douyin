@@ -1,3 +1,9 @@
+## 1.7.62 — 2026-11-21
+Fastest mirror first
+
+- The first video after reopening the app starts sooner. For posts fetched a while ago (more than 20 minutes), the app now asks all of the video's mirror servers at once and plays from the first one that answers. Before, it tried them one by one, and the test phone waited 3.8 seconds for a refusal before trying the next.
+- Includes 1.7.61: the app's peak memory in the stress test dropped from 119 MB to 57 MB.
+
 ## 1.7.61 — 2026-11-21
 Leaner again
 

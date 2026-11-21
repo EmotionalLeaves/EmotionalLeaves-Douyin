@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.62 — 2026-11-21
+- Race the mirrors of addresses older than 20 min (1-byte range GETs, 2.5 s cap) in resolveStream.
+
 ## 1.7.61 — 2026-11-21
 - Captured page answers held as UTF-8 bytes (heap dump: 4 × ~6 MB Strings).
 

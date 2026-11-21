@@ -453,9 +453,41 @@ class DouyinAdapter @Inject constructor(
         val stillGood = cached != null && (DouyinParser.expiresAt(cached)?.let { it - System.currentTimeMillis() > 60_000 }
             ?: (System.currentTimeMillis() - at < URL_TTL_MS))
         val media = if (stillGood) cached else null
+        // An address fetched a while ago (last session's leftovers): some of its mirror servers
+        // have often stopped taking it by now (the test phone's first video waited 3.8 s for a 403
+        // before trying the next). Ask them all for one byte at once and play from the first to answer.
+        if (media != null && item.type == MediaType.VIDEO && System.currentTimeMillis() - at > RACE_AFTER_MS) {
+            val mirrors = (listOf(media) + item.extras[DouyinParser.ALTERNATES].orEmpty().split(' ').filter { it.isNotBlank() }).distinct().take(MAX_RACE)
+            if (mirrors.size > 1) firstAnswering(mirrors, RACE_MS)?.let { return StreamInfo.Direct(it, "video/mp4") }
+        }
         val url = media ?: fresh(item.id)?.extras?.get("media") ?: item.extras["media"]
             ?: throw SourceException(id, "This Douyin post is gone")
         return StreamInfo.Direct(url, if (item.type == MediaType.VIDEO) "video/mp4" else null)
+    }
+
+    /** The first of [urls] whose server sends its first byte within [timeoutMs], or null. */
+    private suspend fun firstAnswering(urls: List<String>, timeoutMs: Long): String? = kotlinx.coroutines.coroutineScope {
+        val winners = kotlinx.coroutines.channels.Channel<String>(urls.size)
+        val jobs = urls.map { u -> launch { if (answers(u)) winners.trySend(u) } }
+        val first = kotlinx.coroutines.withTimeoutOrNull(timeoutMs) { winners.receive() }
+        jobs.forEach { it.cancel() }
+        first
+    }
+
+    private suspend fun answers(url: String): Boolean {
+        val parsed = url.toHttpUrlOrNull() ?: return false
+        val call = http.newCall(Request.Builder().url(parsed).header("Range", "bytes=0-0").header("Accept", "*/*").build())
+        return kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+            cont.invokeOnCancellation { runCatching { call.cancel() } }
+            call.enqueue(object : okhttp3.Callback {
+                override fun onFailure(call: okhttp3.Call, e: java.io.IOException) { if (cont.isActive) cont.resume(false) {} }
+                override fun onResponse(call: okhttp3.Call, response: okhttp3.Response) {
+                    val ok = response.code in 200..299 && !response.header("Content-Type").orEmpty().startsWith("text/")
+                    response.close()
+                    if (cont.isActive) cont.resume(ok) {}
+                }
+            })
+        }
     }
 
     override fun reportUrl(item: MediaItem): String? = item.pageUrl
@@ -754,6 +786,10 @@ class DouyinAdapter @Inject constructor(
         private const val MAX_FEED_PULLS = 500
         private const val MAX_LOADED = 3_000
         private const val SAVE_EVERY = 25
+        /** Addresses older than this get their mirrors raced before playing (see resolveStream). */
+        private const val RACE_AFTER_MS = 20 * 60_000L
+        private const val RACE_MS = 2_500L
+        private const val MAX_RACE = 4
         /** Page answers taken per pull when the first had nothing playable (see fromPage). */
         private const val PAGE_TRIES = 2
         /** How long "the feed API gives visitors nothing playable" is trusted before trying it again. */
