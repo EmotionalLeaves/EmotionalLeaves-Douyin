@@ -1,3 +1,11 @@
+## 1.7.67 — 2026-11-21
+Faster auto captions
+
+- Faster auto captions:
+  - Post captions: the English for the next few posts is worked out while you watch the current one, so it's already there when you swipe. No more "Translating…".
+  - Live captions (what's said): new lines are caught about twice as often (every 0.15 s instead of every 0.25 s). After a stretch with no subtitles the app now still checks twice a second; before, it slowed to once every 2 seconds, so the next line showed up late. The text-reading and translation models now load as soon as captions start, so the first line isn't held up while they load.
+- Includes 1.7.66: Douyin's hidden page stays open for 5 minutes after you leave the app, so coming back is quicker.
+
 ## 1.7.66 — 2026-11-21
 Back quicker
 

@@ -1815,7 +1815,8 @@ private fun Overlay(
                 val chinese = remember(it) { it.any { c -> Character.UnicodeScript.of(c.code) == Character.UnicodeScript.HAN } }
                 if (chinese) {
                     var showing by remember(item.key) { mutableStateOf(dev.dyfeed.domain.lang.ChineseToEnglish.auto) }
-                    var english by remember(item.key) { mutableStateOf<String?>(null) }
+                    // Translated ahead (while the post before it played): there at once, no "Translating…".
+                    var english by remember(item.key) { mutableStateOf(dev.dyfeed.domain.lang.ChineseToEnglish.cached(it)) }
                     // Settings → Translate captions automatically: fetch it as the post comes up.
                     androidx.compose.runtime.LaunchedEffect(item.key, showing) {
                         if (showing && english == null) {

@@ -35,10 +35,28 @@ import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.chinese.ChineseTextRecognizerOptions
 import dev.dyfeed.domain.learn.LiveSubs
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 
 /** On-phone reading of Chinese text in a picture (ML Kit, its model inside the app: works at once, offline, without Play services). */
+/** Loads the text reader's and the translator's models once, ahead of the first line. */
+private object Warm {
+    @Volatile private var done = false
+    fun up() {
+        if (done) return
+        done = true
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default).launch {
+            runCatching {
+                val b = Bitmap.createBitmap(64, 32, Bitmap.Config.ARGB_8888)
+                Reader.lines(b, 0, 64, 32)
+                b.recycle()
+            }
+            runCatching { dev.dyfeed.domain.lang.ChineseToEnglish.translate("你好") }
+        }
+    }
+}
+
 internal object Reader {
     val client by lazy { TextRecognition.getClient(ChineseTextRecognizerOptions.Builder().build()) }
 
@@ -83,6 +101,9 @@ fun BoxScope.LiveSubtitles(player: ExoPlayer?, playerView: PlayerView?, active: 
         if (!on || !active || player == null || playerView == null || android.os.Build.VERSION.SDK_INT < 24) return@LaunchedEffect
         // Lines met in this video, with when they were on screen: clips loop, so from the second
         // time round each line shows exactly on time, already translated, without reading a frame.
+        // The reader and the translator each load their model on first use (a second or so):
+        // load them now, so the first line isn't late.
+        Warm.up()
         val cues = ArrayList<Cue>()
         var current: Cue? = null
         var frame: Bitmap? = null
@@ -240,10 +261,16 @@ private const val REPLAY_LEAD_MS = 300L
 /** A line seen in this video, and from when to when (ms into it). */
 private class Cue(val start: Long, var end: Long, val zh: String, var en: String?, val y: Float)
 
-/** Four checks a second: a new line shows within about a quarter of a second of appearing. */
-private const val EVERY_MS = 250L
-/** Videos with no subtitles get looked at less often, to spare the battery. */
-private const val SLOW_MS = 2_000L
-private const val MISSES_BEFORE_SLOWING = 12
+/**
+ * About seven checks a second. Each is cheap when nothing changed where subtitles go (a few hundred
+ * pixels compared); the reading itself only runs when something did.
+ */
+private const val EVERY_MS = 150L
+/**
+ * Videos with no subtitles for ~10 s get looked at less often, to spare the battery: twice a
+ * second, not every 2 s as before, which made the first line after a pause show up late.
+ */
+private const val SLOW_MS = 500L
+private const val MISSES_BEFORE_SLOWING = 60
 /** Wide enough for subtitle text to be read reliably, small enough to copy four times a second. */
 private const val MAX_WIDTH = 480

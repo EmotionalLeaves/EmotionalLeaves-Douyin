@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.7.67 — 2026-11-21
+- Pre-translate the next posts' captions (cached → shown at once); live captions poll every 150 ms, back off to 500 ms after ~10 s without text (was 2 s after 3 s); warm OCR and translator models.
+
 ## 1.7.66 — 2026-11-21
 - Close the hidden pages 5 min (was 1) after the app leaves the screen.
 

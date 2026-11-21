@@ -624,6 +624,10 @@ class FeedViewModel @Inject constructor(
     private fun preloadAround(list: List<MediaItem>, index: Int) {
         val ahead = (index + 1..index + PRELOAD_AHEAD).mapNotNull { list.getOrNull(it) }
         ahead.forEach { preloader.thumbnail(it.thumbnailUrl) }
+        // Their captions' English, ready before you get to them (auto-translate on).
+        if (dev.dyfeed.domain.lang.ChineseToEnglish.auto) viewModelScope.launch(kotlinx.coroutines.Dispatchers.Default) {
+            ahead.mapNotNull { it.title?.takeIf(dev.dyfeed.domain.lang.Zh::has) }.forEach { dev.dyfeed.domain.lang.ChineseToEnglish.translate(it) }
+        }
         val autoplay = autoplayAllowed()
         // Douyin's servers are far away: on Wi-Fi, the start of the next three videos is fetched
         // ahead, but only after the one you're on has had a head start (they'd otherwise split the
